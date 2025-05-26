@@ -20,7 +20,7 @@
 <br>
 
     <p class="text-justify">The above histogram demonstrates the peptide length distribution of the sample(s) uploaded.
-                            Contaminations and Decoy peptides have been filtered out.
+                            Peptides labelled with #CONTAM or #DECOY in the accession column have been filtered out.
                             Peptides with the length between 5 to 30 residues have been selected. The error bar in case of replicates
                             represents the standard deviation of the number of specifc n-mers across replicates. The switch button above can be used to switch between the distributions presented in percentage and absolute numbers. Click the tool icons at the top right corner
                             for more operations. 
@@ -60,7 +60,7 @@
 
     <br>
 
-    <p class="text-justify">The upset plot depicts peptides after pre-processing (Contaminations and Decoy peptides removed, PTM and resulting duplicates removed). For class I analysis, 8-14-mers are shown. For class II analysis, 12-20-mers are shown.</p> 
+    <p class="text-justify">The upset plot depicts peptides after pre-processing (Peptides labelled with #CONTAM or #DECOY peptides removed, PTM and resulting duplicates removed). For class I analysis, 8-14-mers are shown. For class II analysis, 12-20-mers are shown.</p> 
 
     {% if showSeqLogoSection %}
 
@@ -81,7 +81,7 @@
 
         <br>
 
-        <p class="text-justify">The Seq2Logo depicts peptides after pre-processing (Contaminations and Decoy peptides removed, PTM and resulting duplicates removed). For class I analysis, 8-14-mers are used. Class II analysis uses 9-mer cores predicted by netMHCIIpan-4.3.</p> 
+        <p class="text-justify">The Seq2Logo depicts peptides after pre-processing (Peptides labelled with #CONTAM or #DECOY peptides removed, PTM and resulting duplicates removed). For class I analysis, 8-14-mers are used. Class II analysis uses 9-mer cores predicted by netMHCIIpan-4.3.</p> 
         <br>
 
     {% endif %}
@@ -170,7 +170,7 @@
 
         <br>
         <br>
-        <p class="text-justify">Gibbs Clustering has been applied to a peptides after removal of Contaminations and Decoy peptides, PTMs and resulting duplicates. For class I based on 8-14-mers, for class II based on 12-20-mers (duplicates removed). Each logo is labeled with the predicted allele and PCC (Pearson Correlation Coefficient) value, as determined by MHC-TP.</p> 
+        <p class="text-justify">Gibbs Clustering has been applied to a peptides after removal of peptides labelled as #CONTAM or #DECOY, PTMs and resulting duplicates. For class I based on 8-14-mers, for class II based on 12-20-mers (duplicates removed). Each logo is labeled with the predicted allele and PCC (Pearson Correlation Coefficient) value, as determined by MHC-TP.</p> 
      
     {% endif %}
 
@@ -374,7 +374,7 @@
             </div>
         
         <br>
-        <p class="text-justify">Binding prediction has been applied to a peptide list after removal of Contaminations and Decoy peptides, PTMs (For e.g., “A[+28.03]TFGVDESNAK” or “A(+28.03)TFGVDESNAK” will be treated as “ATFGVDESNAK”) and resulting duplicates. For class I based on 8-14-mers were used as input whereas for class II 12-20-mers were used.  Seq2Logos are generated based on 9-mer cores (duplicates removed) predicted by binding prediction tools.</p> 
+        <p class="text-justify">Binding prediction has been applied to a peptide list after removal of eptides labelled as #CONTAM or #DECOY, PTMs (For e.g., “A[+28.03]TFGVDESNAK” or “A(+28.03)TFGVDESNAK” will be treated as “ATFGVDESNAK”) and resulting duplicates. For class I based on 8-14-mers were used as input whereas for class II 12-20-mers were used.  Seq2Logos are generated based on 9-mer cores (duplicates removed) predicted by binding prediction tools.</p> 
         <br>
         
         <a href="{{ url_for('download_job_data_files_zip', taskId=taskId, filename=zip_filename) }}" class="btn btn-sm btn-outline-primary">
