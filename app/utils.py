@@ -33,17 +33,19 @@ def plot_lenght_distribution(samples, hist="percent", taskId=None):
                 peptideProportion[replicate] = data.groupby('Length').count()['Peptide'] / data.shape[0] * 100
             title = 'The relative frequency distribution of the peptide lengths'
             yaxis_label = '% Peptides'
+            file_suffix = 'percentage'
         else:
             for replicate, data in sample.items():
                 peptideProportion[replicate] = data.groupby('Length').count()['Peptide']
             title = 'The frequency distribution of the peptide lengths'
             yaxis_label = 'Number of Peptides'
+            file_suffix = 'absolute'
 
         bardatacombined = pd.concat(peptideProportion, axis=1).apply(lambda x: mean(x), axis=1)
         bardatacombined = bardatacombined.to_frame().reset_index().rename(columns={0: 'Count'})
 
         # Save CSV
-        csv_filename = f"{sample_name}_{hist}.csv"
+        csv_filename = f"{sample_name}_{file_suffix}.csv"
         csv_path = os.path.join(export_dir, csv_filename)
         bardatacombined.to_csv(csv_path, index=False)
 
