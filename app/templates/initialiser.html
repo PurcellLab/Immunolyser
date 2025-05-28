@@ -11,20 +11,20 @@
 		<div>
 			<h4>Data Input</h4>
 			<div class="form-row">
-				<div class="col-md-6 mb-3">Sample Name 
+				<div class="col-md-7 mb-3">Sample Name 
 					<i class="fa fa-question-circle" aria-hidden="true" style="cursor: pointer;" data-toggle="tooltip" data-placement="right" title="Name of the sample.&#013;Make sure that all the samples have unique names and do NOT contain any special characters."></i>
 				</div>
-				<div class="col-md-6 mb-3">Sample Files 
-					<i class="fa fa-question-circle" aria-hidden="true" style="cursor: pointer;" data-toggle="tooltip" data-placement="right" title="Select input csv file. The file should contain column named 'Peptide'.&#013;Select multiple files in case of more than one replicates are needed."></i>
+				<div class="col-md-5 mb-3">Sample Files (Several CSV files can be uploaded as replicates of a sample.)
+					<i class="fa fa-question-circle" aria-hidden="true" style="cursor: pointer;" data-toggle="tooltip" data-placement="right" title="Select input csv file(s). The file should contain column named 'Peptide'.&#013;Select multiple files in case of more than one replicates are needed."></i>
 				</div>
 			</div>
 			<div id="samples">
 				<div id="sample" class="form-row">
 					<label for="sample_name" hidden>Sample</label> 
-					<input id="sample_name-1" name="sample-1" required type="text" value="" class="col-md-6 mb-3">
+					<input id="sample_name-1" name="sample-1" required type="text" value="" class="col-md-7 mb-3">
 					<br>
 					<label for="sample_file-1" hidden>Peptide File</label> 
-					<input id="sample_file-1" multiple name="sample-1" required type="file" class="col-md-6 mb-3" onchange="calculateNumberOfPeptidesInCsv(event)" required accept=".csv">    
+					<input id="sample_file-1" multiple name="sample-1" required type="file" class="col-md-5 mb-3" onchange="calculateNumberOfPeptidesInCsv(event)" required accept=".csv">    
 				</div>
 			</div>
 			<input id="add_sample" name="add_sample" type="button" value="Add Sample" onclick="addSample()">
@@ -35,20 +35,20 @@
 
 		<div>
 			<div id="control" class="form-row">
-				<h4 class="col-md-6 mb-3">Control Data<span style="font-size:16px;"> (optional)</span></h4>
+				<h4 class="col-md-7 mb-3">Control Data<span style="font-size:16px;"> (optional)</span></h4>
 				<label for="control_name" hidden>Control</label> 
 				<input id="control_name-1" name="control-1" type="text" value="Control" class="col-md-3 mb-3" hidden>
 				<br>
 				<label for="control" hidden>Peptide File </label>
-				<input id="control" multiple name="control-1" type="file" class="col-md-6 mb-3" required accept=".csv">	
+				<input id="control" multiple name="control-1" type="file" class="col-md-5 mb-3" required accept=".csv">	
 			</div>
 		</div>
 
 		<br>
 
 		<div class="form-row mb-3" id="motif_length_section" hidden>
-			<h5 class="col-md-6">Preferred length of motifs</h5>
-			<select class="col-md-3" name="motif_length" id="motif_length">
+			<h5 class="col-md-7">Preferred length of motifs</h5>
+			<select class="col-md-5" name="motif_length" id="motif_length">
 				<option value=8>8</option>
 				<option value=9 selected>9</option>
 			</select>
@@ -58,25 +58,25 @@
 			<h4>MHC Binding Predictions</h4>
 			
 			<div class="form-row">
-				<h5 class="col-md-6">Species</h5>
-				<select class="col-md-3" name="species" id="species" onchange="updateSelectedMHCClass()">
+				<h5 class="col-md-7">Species</h5>
+				<select class="col-md-5" name="species" id="species" onchange="updateSelectedMHCClass()">
 					<option value="" disabled selected>Select Species</option>
 				</select>
 			</div>
 			<br>
 			
 			<div class="form-row">
-				<h5 class="col-md-6">MHC Class of interest</h5>
-				<select class="col-md-3" name="mhc_class" id="mhc_class" disabled onchange="updateSelectedMHCClass()">
+				<h5 class="col-md-7">MHC Class of interest</h5>
+				<select class="col-md-5" name="mhc_class" id="mhc_class" disabled onchange="updateSelectedMHCClass()">
 					<option value="" disabled selected>Select MHC Class</option>
 				</select>
 			</div>
 			<br>
 			
 			<div class="form-row">
-				<h5 class="col-md-6">Alleles</h5>
+				<h5 class="col-md-7">Alleles</h5>
 
-				<div class="col-md-3">
+				<div class="col-md-5">
 					<input 
 						type="text" 
 						id="alleles_search" 
@@ -103,9 +103,9 @@
 			<br>
 			    
 			<div class="form-row">
-				<b class="col-md-6 mb-3" id="allelestextarealabel">or type allele names separated by commas.</b>&nbsp;  <br>
+				<b class="col-md-7 mb-3" id="allelestextarealabel">or type allele names separated by commas.</b>  <br>
 				<!-- <input class="col-md-4 mb-3" name="alleles" type="text" value=""><br> -->
-				<textarea id='alleles'rows="3" cols="40" name="alleles" placeholder="Enter alleles"></textarea><br>
+				<textarea class="col-md-5" id='alleles'rows="3" name="alleles" placeholder="Enter alleles"></textarea><br>
 
 			</div>
 				
