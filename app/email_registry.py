@@ -7,7 +7,7 @@ project_root = os.path.dirname(os.path.realpath(os.path.join(__file__, "..")))
 
 DB_PATH = os.path.join(project_root, 'results.sqlite')
 
-def init_db():
+def init_email_registry():
     """Create the email_registry table if it doesn't exist."""
     with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()

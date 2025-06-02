@@ -6,11 +6,12 @@ from app.utils import *
 from pathlib import Path
 from app.Pepscan import PepScan
 from collections import Counter,OrderedDict
-import uuid, logging, base64, re, shutil, glob, os, pandas as pd, subprocess, io, requests, zipfile, json, smtplib
+import uuid, logging, base64, re, shutil, glob, os, pandas as pd, subprocess, io, requests, zipfile, json, smtplib, datetime
 from Bio import SeqIO
 from constants import *
 from email.mime.text import MIMEText
 from app.email_registry import save_email, get_email
+from app.job_registry import insert_job, update_job_status
 
 project_root = os.path.dirname(os.path.realpath(os.path.join(__file__, "..")))
 
@@ -114,6 +115,11 @@ def initialiser():
         alleles_unformatted = request.form.get('alleles')
         species = request.form.get('species')
 
+        
+        ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
+        user_agent = request.headers.get('User-Agent')
+        referrer = request.referrer
+
         # Prediction tools selected by the user
         if mhcclass == MHC_Class.Two:
             predictionTools = [
@@ -128,6 +134,17 @@ def initialiser():
             ]
 
         task = submit_job.delay(samples, motif_length, mhcclass, alleles_unformatted, predictionTools, species)
+
+        insert_job(
+            job_id=task.id,
+            ip_address=ip_address,
+            mhc_class=mhcclass,
+            species=species,
+            alleles=alleles_unformatted,
+            user_agent=user_agent,
+            referrer=referrer,
+            status="SUBMITTED"
+        )
 
         return redirect(url_for('job_confirmation', task_id=task.id))
 
@@ -376,20 +393,28 @@ def submit_job(self, samples, motif_length, mhcclass, alleles_unformatted, predi
         if mhcclass == MHC_Class.One:
             runHLAClust(taskId, data, species=species, logger=logger)
 
+        # On job success: update status first
+        update_job_status(job_id=taskId, status='SUCCESS', error_message=None)
+        logging.info(f"Job {taskId} status updated to SUCCESS.")
+
         # On job success
-            email = get_email(taskId)
-            if email:
-                logging.info(f"Found email '{email}' for completed task '{taskId}', attempting to send notification.")
-                try:
-                    send_email(email, taskId, success=True)
-                    logging.info(f"Email successfully sent to {email} for job {taskId}.")
-                except Exception as e:
-                    logging.error(f"Failed to send success email to {email} for job {taskId}: {e}")
-            else:
-                logging.info(f"No email found for task {taskId}; skipping email notification.")
+        email = get_email(taskId)
+        if email:
+            logging.info(f"Found email '{email}' for completed task '{taskId}', attempting to send notification.")
+            try:
+                send_email(email, taskId, success=True)
+                logging.info(f"Email successfully sent to {email} for job {taskId}.")
+            except Exception as e:
+                logging.error(f"Failed to send success email to {email} for job {taskId}: {e}")
+        else:
+            logging.info(f"No email found for task {taskId}; skipping email notification.")
 
     except Exception as main_exception:
-        logging.error(f"Job {taskId} failed with error: {main_exception}")
+
+        # On failure: update status with error message
+        error_msg = str(main_exception)
+        update_job_status(job_id=taskId, status='FAILURE', error_message=error_msg)
+        logging.error(f"Job {taskId} failed with error: {error_msg}")
 
         email = get_email(taskId)
         if email:
