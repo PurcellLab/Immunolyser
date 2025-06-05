@@ -1,5 +1,5 @@
 from app import app, celery
-from flask import render_template, request, jsonify, redirect, url_for, send_file
+from flask import render_template, request, jsonify, redirect, url_for, send_file, make_response
 from werkzeug.utils import secure_filename
 from werkzeug.exceptions import NotFound
 from app.utils import *
@@ -837,6 +837,37 @@ def getOverLapPeptides():
 
         
     return jsonify(res)
+
+@app.route("/api/downloadOverlapPeptides", methods=["POST"])
+def download_overlap_peptides():
+    task_id = request.form['taskId']
+    selected_samples = request.form.getlist('samples[]')
+
+    if not is_valid_uuid(task_id):
+        return f"The ID '{task_id}' is not a valid task ID.", 400
+
+    peptide_sets = {}
+
+    for sample in selected_samples:
+        dir_path = os.path.join(data_mount, task_id, sample)
+        peptides = set()
+        if os.path.exists(dir_path):
+            for fname in os.listdir(dir_path):
+                if fname.endswith('8to14mer.txt') or fname.endswith('12to20mer.txt'):
+                    full_path = os.path.join(dir_path, fname)
+                    peptides.update(pd.read_csv(full_path, header=None)[0].to_list())
+        peptide_sets[sample] = peptides
+
+    # Intersect all selected sets
+    if peptide_sets:
+        intersected = set.intersection(*peptide_sets.values())
+    else:
+        intersected = set()
+
+    response = make_response('\n'.join(sorted(intersected)))
+    response.headers["Content-Disposition"] = "attachment; filename=overlap_peptides.txt"
+    response.headers["Content-Type"] = "text/plain"
+    return response
 
 @app.route("/api/getSeqLogo", methods=["POST"])
 

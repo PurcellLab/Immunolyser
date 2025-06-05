@@ -60,7 +60,10 @@
 
     <br>
 
-    <p class="text-justify">The upset plot depicts peptides after pre-processing (Peptides labelled with #CONTAM or #DECOY peptides removed, PTM and resulting duplicates removed). For class I analysis, 8-14-mers are shown. For class II analysis, 12-20-mers are shown.</p> 
+    <p class="text-justify">
+    The UpSet plot depicts peptides after pre-processing: peptides labeled with <code>#CONTAM</code> or <code>#DECOY</code> are removed, as well as those with post-translational modifications (PTMs) and any resulting duplicates. For class I analysis, 8–14-mers are shown; for class II, 12–20-mers are shown. 
+    <strong>Click on any bar to download the overlapping peptides for that sample or combination.</strong>
+    </p>
 
     {% if showSeqLogoSection %}
 
@@ -551,6 +554,39 @@
                         UpSetJS.render(document.getElementById('overlap_render'),props)
                     }
                     
+                    props.onClick = (set) => {
+                        let selectedSamples = [];
+
+                        // Determine selected samples
+                        if (set.degree === 1 && typeof set.name === 'string') {
+                            selectedSamples = [set.name];
+                        } else if (set.degree > 1 && set.sets && typeof set.sets === 'object') {
+                            selectedSamples = Object.keys(set.sets);
+                        }
+
+                        // Get peptides intersection
+                        const overlap = data
+                            .filter(item => selectedSamples.includes(item.name))
+                            .map(item => new Set(item.elems));
+
+                        const intersection = overlap.length
+                            ? [...overlap.reduce((a, b) => new Set([...a].filter(x => b.has(x))))]
+                            : [];
+
+                        //  descriptive file name
+                        const safeName = (set.name || 'unnamed').replace(/[^a-z0-9_\-]/gi, '_');
+                        const fileName = `peptide_overlap_${safeName}.txt`;
+
+                        // Download as text file
+                        const blob = new Blob([intersection.join('\n')], { type: 'text/plain' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = fileName;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                    };
+
                     UpSetJS.render(document.getElementById('overlap_render'),props);
 
                 }
