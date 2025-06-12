@@ -522,15 +522,12 @@
         if (alleles.length > 0) {
             alleles[0].checked = true;
             tool = document.getElementById(alleles[0].id + '_dropdown_predictor').value;
-        }
-        else{
-            tool = ""
+            injectUpsetPlot(document.getElementById('taskId').innerText,tool,alleles[0].id,'yes',alleles[0].id.concat('_render'));
+
         }
 
         upsets = document.getElementsByClassName('upsetPlot');
         
-        injectUpsetPlot(document.getElementById('taskId').innerText,tool,alleles[0].id,'yes',alleles[0].id.concat('_render'));
-
         // setUpsetPlot(document.getElementById('taskId').innerText,alleles[0].id,alleles[0].id.concat('_render'));
         upsets[0].hidden = false;
 
