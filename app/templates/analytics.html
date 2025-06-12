@@ -217,29 +217,27 @@
             }
         }
         
-    function updateCluster(taskId,sample,replicate,select){
-
+    function updateCluster(taskId, sample, replicate, select) {
         select.nextElementSibling.hidden = false;
 
         var data = new FormData();
-            data.append("taskId", taskId);
-            data.append("replicate", replicate);
-            data.append("sample", sample);
-            data.append("cluster", select.value);
+        data.append("taskId", taskId);
+        data.append("replicate", replicate);
+        data.append("sample", sample);
+        data.append("cluster", select.value);
 
-            var xhr = new XMLHttpRequest();
-            xhr.withCredentials = true;
+        var xhr = new XMLHttpRequest();
+        xhr.withCredentials = true;
 
-            xhr.addEventListener("readystatechange", function() {
-            if(this.readyState === 4) {
-                // console.log(this.responseText);
-                select.nextElementSibling.hidden = true;
-            }
-            if (this.status == 200) {
-                    var data = JSON.parse(this.responseText);
+        xhr.onload = function () {
+            select.nextElementSibling.hidden = true;
 
-                    bar = Object.keys(data)[0];
-                    seqLogos = data[bar];
+            if (xhr.status === 200) {
+                try {
+                    var data = JSON.parse(xhr.responseText);
+
+                    var bar = Object.keys(data)[0];
+                    var seqLogos = data[bar];
 
                     var div = document.createElement("div");
                     div.className = "your-class";
@@ -249,7 +247,7 @@
                     var barElement = document.createElement('img');
                     barElement.setAttribute('src', bar);
                     barElement.setAttribute('alt', "");
-                    barElement.setAttribute('width', 10); // set to 10 to match your HTML
+                    barElement.setAttribute('width', 10);
                     div.appendChild(barElement);
 
                     // Create image containers for each cluster
@@ -289,14 +287,23 @@
                         arrows: false
                     });
 
-                    // Hide loading spinner or similar element
-                    select.nextElementSibling.hidden = true;
+                } catch (e) {
+                    console.error("Error parsing JSON response:", e);
+                    console.warn("Response text was:", xhr.responseText);
                 }
-            });
+            } else {
+                console.error("Request failed with status:", xhr.status);
+                console.warn("Response text was:", xhr.responseText);
+            }
+        };
 
-            xhr.open("POST", window.location.origin.concat('/api/generateGibbs'));
+        xhr.onerror = function () {
+            select.nextElementSibling.hidden = true;
+            console.error("Network error occurred.");
+        };
 
-            xhr.send(data);
+        xhr.open("POST", window.location.origin.concat('/api/generateGibbs'));
+        xhr.send(data);
     }
 
     </script>
