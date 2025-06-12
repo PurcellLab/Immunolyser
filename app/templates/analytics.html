@@ -278,14 +278,6 @@
                         oldGibbs.parentNode.replaceChild(div, oldGibbs);
                     }
 
-                    $(div).find('.your-class').slick({
-                        dots: true,
-                        infinite: true,
-                        slidesToShow: 3,
-                        slidesToScroll: 1,
-                        arrows: false
-                    });
-
                 } catch (e) {
                     console.error("Error parsing JSON response:", e);
                     console.warn("Response text was:", xhr.responseText);
@@ -507,6 +499,44 @@
             arrows:true
             });
         });
+
+        // Watch for new .your-class elements and initialize slick
+        const observer = new MutationObserver(function (mutations) {
+            mutations.forEach(function (mutation) {
+                mutation.addedNodes.forEach(function (node) {
+                    if (node.nodeType === 1) {
+                        // Check if it's the slider container
+                        if (node.classList.contains('your-class')) {
+                            initSlick($(node));
+                        }
+
+                        // Check if it contains any .your-class descendants
+                        $(node).find('.your-class').each(function () {
+                            initSlick($(this));
+                        });
+                    }
+                });
+            });
+        });
+
+        // Start observing the whole document body
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+
+        // Helper to initialize slick safely
+        function initSlick($el) {
+            if (!$el.hasClass('slick-initialized')) {
+                $el.slick({
+                    dots: true,
+                    infinite: true,
+                    slidesToShow: 3,
+                    slidesToScroll: 1,
+                    arrows: true
+                });
+            }
+        }
 
         // Populating overlap upset plot
         setupPeptideOverlapUpsetPlot(document.getElementById('taskId').innerText);
