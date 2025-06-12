@@ -521,6 +521,7 @@
         var alleles = document.getElementsByClassName('allele');
         if (alleles.length > 0) {
             alleles[0].checked = true;
+            tool = document.getElementById(alleles[0].id + '_dropdown_predictor').value;
         }
 
         upsets = document.getElementsByClassName('upsetPlot');
