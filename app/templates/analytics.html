@@ -273,13 +273,19 @@
                     }
 
                     // Replace old element
-                    var oldGibbs = document.getElementById(sample.concat('_').concat(replicate));
+                    var oldGibbs = document.getElementById(div.id);
                     if (oldGibbs && oldGibbs.parentNode) {
                         oldGibbs.parentNode.replaceChild(div, oldGibbs);
                     }
 
-                    // Initialize slick slider
-                    $('#' + sample + '_' + replicate).slick({
+                    // Initialize slick slider safely
+                    var slickSelector = '#' + div.id;
+
+                    if ($(slickSelector).hasClass('slick-initialized')) {
+                        $(slickSelector).slick('unslick'); // destroy old slick instance
+                    }
+
+                    $(slickSelector).slick({
                         dots: true,
                         infinite: true,
                         slidesToShow: 3,
