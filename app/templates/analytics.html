@@ -523,13 +523,11 @@
             alleles[0].checked = true;
             tool = document.getElementById(alleles[0].id + '_dropdown_predictor').value;
             injectUpsetPlot(document.getElementById('taskId').innerText,tool,alleles[0].id,'yes',alleles[0].id.concat('_render'));
-
-        }
-
-        upsets = document.getElementsByClassName('upsetPlot');
+            upsets = document.getElementsByClassName('upsetPlot');
         
-        // setUpsetPlot(document.getElementById('taskId').innerText,alleles[0].id,alleles[0].id.concat('_render'));
-        upsets[0].hidden = false;
+            // setUpsetPlot(document.getElementById('taskId').innerText,alleles[0].id,alleles[0].id.concat('_render'));
+            upsets[0].hidden = false;
+        }
 
         function setupPeptideOverlapUpsetPlot(taskId) {
             var data = new FormData();
