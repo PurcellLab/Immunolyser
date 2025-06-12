@@ -518,8 +518,10 @@
         // Populating overlap upset plot
         setupPeptideOverlapUpsetPlot(document.getElementById('taskId').innerText);
 
-        alleles = document.getElementsByClassName('allele');
-        alleles[0].checked = true;
+        var alleles = document.getElementsByClassName('allele');
+        if (alleles.length > 0) {
+            alleles[0].checked = true;
+        }
 
         upsets = document.getElementsByClassName('upsetPlot');
         
