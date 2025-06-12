@@ -533,82 +533,85 @@
         function setupPeptideOverlapUpsetPlot(taskId) {
             var data = new FormData();
             data.append("taskId", taskId);
-            data.append("replicates",getSelectedReplicatesOverOverlap());
-            console.log(getSelectedReplicatesOverOverlap())
+            data.append("replicates", getSelectedReplicatesOverOverlap());
+            console.log(getSelectedReplicatesOverOverlap());
 
             var xhr = new XMLHttpRequest();
             xhr.withCredentials = true;
 
-            xhr.addEventListener("readystatechange", function() {
-            if(this.readyState === 4) {
-                // console.log(this.responseText);
-            }
-            if (this.status == 200) {
-                    const data = JSON.parse(this.responseText); 
-                    
-                    const sets = UpSetJS.asSets(data);
-                    const props = { 
-                                    sets: sets,
-                                    width: 1200,
-                                    height: 600,
-                                    selection: null,
-                                    setName: '',
-                                    combinationName: 'Number of peptides',
-                                    combinations: {
-                                        type: 'distinctIntersection',
-                                        min: 1,
-                                        limit: 100,
-                                        order: 'cardinality',
-                                    }
-                                }
+            xhr.onload = function () {
+                if (xhr.status === 200) {
+                    try {
+                        const data = JSON.parse(xhr.responseText);
 
-                    props.onHover = (set) => {
-                        props.selection = set;
-                        UpSetJS.render(document.getElementById('overlap_render'),props)
+                        const sets = UpSetJS.asSets(data);
+                        const props = {
+                            sets: sets,
+                            width: 1200,
+                            height: 600,
+                            selection: null,
+                            setName: '',
+                            combinationName: 'Number of peptides',
+                            combinations: {
+                                type: 'distinctIntersection',
+                                min: 1,
+                                limit: 100,
+                                order: 'cardinality',
+                            }
+                        };
+
+                        props.onHover = (set) => {
+                            props.selection = set;
+                            UpSetJS.render(document.getElementById('overlap_render'), props);
+                        };
+
+                        props.onClick = (set) => {
+                            let selectedSamples = [];
+
+                            if (set.degree === 1 && typeof set.name === 'string') {
+                                selectedSamples = [set.name];
+                            } else if (set.degree > 1 && set.sets && typeof set.sets === 'object') {
+                                selectedSamples = Object.keys(set.sets);
+                            }
+
+                            const overlap = data
+                                .filter(item => selectedSamples.includes(item.name))
+                                .map(item => new Set(item.elems));
+
+                            const intersection = overlap.length
+                                ? [...overlap.reduce((a, b) => new Set([...a].filter(x => b.has(x))))]
+                                : [];
+
+                            const safeName = (set.name || 'unnamed').replace(/[^a-z0-9_\-]/gi, '_');
+                            const fileName = `peptide_overlap_${safeName}.txt`;
+
+                            const blob = new Blob([intersection.join('\n')], { type: 'text/plain' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = fileName;
+                            a.click();
+                            URL.revokeObjectURL(url);
+                        };
+
+                        UpSetJS.render(document.getElementById('overlap_render'), props);
+
+                    } catch (e) {
+                        console.error("Error parsing JSON response:", e);
+                        console.warn("Response text was:", xhr.responseText);
                     }
-                    
-                    props.onClick = (set) => {
-                        let selectedSamples = [];
-
-                        // Determine selected samples
-                        if (set.degree === 1 && typeof set.name === 'string') {
-                            selectedSamples = [set.name];
-                        } else if (set.degree > 1 && set.sets && typeof set.sets === 'object') {
-                            selectedSamples = Object.keys(set.sets);
-                        }
-
-                        // Get peptides intersection
-                        const overlap = data
-                            .filter(item => selectedSamples.includes(item.name))
-                            .map(item => new Set(item.elems));
-
-                        const intersection = overlap.length
-                            ? [...overlap.reduce((a, b) => new Set([...a].filter(x => b.has(x))))]
-                            : [];
-
-                        //  descriptive file name
-                        const safeName = (set.name || 'unnamed').replace(/[^a-z0-9_\-]/gi, '_');
-                        const fileName = `peptide_overlap_${safeName}.txt`;
-
-                        // Download as text file
-                        const blob = new Blob([intersection.join('\n')], { type: 'text/plain' });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = fileName;
-                        a.click();
-                        URL.revokeObjectURL(url);
-                    };
-
-                    UpSetJS.render(document.getElementById('overlap_render'),props);
-
+                } else {
+                    console.error("Request failed with status:", xhr.status);
+                    console.warn("Response text was:", xhr.responseText);
                 }
-            });
+            };
+
+            xhr.onerror = function () {
+                console.error("Network error occurred.");
+            };
 
             xhr.open("POST", window.location.origin.concat('/api/getOverlapPeptides'));
-
             xhr.send(data);
-
         }
 
         function alleleUpsetSelect(elem,taskId){
