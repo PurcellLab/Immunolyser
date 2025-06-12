@@ -278,8 +278,7 @@
                         oldGibbs.parentNode.replaceChild(div, oldGibbs);
                     }
 
-                    // Initialize slick slider safely
-                     $('#' + sample + '_' + replicate).slick({
+                    $(div).find('.your-class').slick({
                         dots: true,
                         infinite: true,
                         slidesToShow: 3,
