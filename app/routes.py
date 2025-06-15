@@ -912,7 +912,13 @@ def getSeqLogo():
         total_peptides = peptides.shape[0]
         # Saving all binders which can be downloaded in text files
         peptides.to_csv(binders_location,index=False,header=False)
-        peptides =  peptides[peptides.peptide.apply(lambda x: True if len(x)==9 else False)]
+        # Read motif length from file
+        motif_length_file_path = os.path.join('app', 'static', 'images', taskId, "motif_length.txt")
+        with open(motif_length_file_path, 'r') as f:
+            motif_length = int(f.read().strip())
+
+        # Filter peptides based on the motif length
+        peptides = peptides[peptides.peptide.apply(lambda x: len(x) == motif_length)]
         nine_mers = peptides.shape[0]
         # Saving 9mer binders to be used for seq2logo generation
         peptides.to_csv(peptides_location_forseqlogo,index=False,header=False)
