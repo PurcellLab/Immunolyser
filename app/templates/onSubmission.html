@@ -4,7 +4,8 @@
 
 <div class="container mt-4">
     <div class="alert alert-info">
-        {{ message }}
+        {{ message }}<br>
+        <small class="text-muted">Please refresh the page periodically or input your email below to receive a notification when the job is finished.</small>
     </div>
 
     <div class="d-flex align-items-center">
@@ -13,7 +14,7 @@
     </div>
 </div>
 
-<div id="emailSection" class="mt-3" style="display: none;">
+<div id="emailSection" class="container mt-4">
     <input type="email" id="emailInput" class="form-control" placeholder="Enter your email for notification">
     <button class="btn btn-secondary mt-2" onclick="submitEmail()">Submit Email</button>
 </div>
@@ -47,10 +48,10 @@ function checkStatus() {
                 btn.classList.add('btn-warning');
                 btn.innerText = 'Processing';
                 statusMessage.innerText = 'Status: Processing';
-                emailSection.style.display = 'block';  // Show only if still processing
+                emailSection.style.display = 'block';
             } else {
                 statusMessage.innerText = `Status: ${data.status}`;
-                emailSection.style.display = 'block';
+                emailSection.style.display = 'none';
             }
         });
 }
