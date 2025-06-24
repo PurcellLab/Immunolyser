@@ -46,7 +46,7 @@ function checkStatus() {
                 emailSection.style.display = 'none';
             } else if (data.status === 'pending') {
                 btn.classList.add('btn-warning');
-                btn.innerText = 'Processing';
+                btn.innerText = 'Processing.. Click here again to refresh status.';
                 statusMessage.innerText = 'Status: Processing';
                 emailSection.style.display = 'block';
             } else {
