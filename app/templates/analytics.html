@@ -67,20 +67,34 @@
 
     {% if showSeqLogoSection %}
 
-        <br>
-        <h3>Peptide consensus binding motif analysis</h3>
-        <br>
+    <br>
+    <h3>Peptide consensus binding motif analysis</h3>
+    <br>
 
-        <div class="seqlogo">
-            {% for sample, replicates in seqlogos.items() %}
-                <h4>{{sample}}</h4>
-                <div class="your-class">
-                    {% for replicate in replicates %}
-                        <img src="{{ url_for('static',filename='images/{0}/{1}/seqlogos/{2}'.format(taskId,sample,replicate[0]), width=10)}}" alt="" title="Sample size : {{replicate[1]}}">                
-                    {%endfor%}
-                </div>
-            {% endfor %}
-        </div>
+    <div class="seqlogo">
+        {% for sample, replicates in seqlogos.items() %}
+            <h4>{{ sample }}</h4>
+            <div class="d-flex flex-wrap" style="gap: 20px;">
+                {% for replicate in replicates %}
+                    <div style="flex: 1 1 300px; text-align: center;">
+                        <img src="{{ url_for('static', filename='images/{0}/{1}/seqlogos/{2}'.format(taskId, sample, replicate[0])) }}" 
+                            alt="" 
+                            title="Sample size: {{ replicate[1] }}" 
+                            style="width: 100%; max-width: 300px;">
+
+                        <!-- Tiny download button below the image -->
+                        <div style="margin-top: 5px;">
+                            <a href="{{ url_for('download_seq2logo_peptides', taskid=taskId, sample=sample, replicate=replicate[0]) }}"
+                            class="btn btn-sm"
+                            style="font-size: 0.7rem; padding: 1px 5px; color: #666; background-color: transparent; border: 1px solid #ccc; border-radius: 4px; text-decoration: none;">
+                                download input
+                            </a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endfor %}
+    </div>
 
         <br>
 

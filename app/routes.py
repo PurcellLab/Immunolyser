@@ -1,5 +1,5 @@
 from app import app, celery
-from flask import render_template, request, jsonify, redirect, url_for, send_file, make_response
+from flask import render_template, request, jsonify, redirect, url_for, send_file, make_response, abort
 from werkzeug.utils import secure_filename
 from werkzeug.exceptions import NotFound
 from app.utils import *
@@ -1276,3 +1276,39 @@ def download_job_data_files_zip(taskId, filename):
         return send_file(full_path, as_attachment=True)
     else:
         return NotFound("File not found")
+    
+@app.route('/download_seq2logo_peptides/<taskid>/<sample>/<replicate>')
+def download_seq2logo_peptides(taskid, sample, replicate):
+    logger.info(f"Download request for peptides: taskid={taskid}, sample={sample}, replicate={replicate}")
+
+    motif_length_path = os.path.join(project_root, 'app', 'static', 'images', taskid, 'motif_length.txt')
+    
+    if not os.path.isfile(motif_length_path):
+        logger.error(f"Motif length file not found: {motif_length_path}")
+        return abort(404, description="Motif length file not found.")
+
+    try:
+        with open(motif_length_path, 'r') as f:
+            motif_length = f.read().strip()
+        logger.debug(f"Motif length for task {taskid}: {motif_length}")
+    except Exception:
+        logger.exception(f"Failed to read motif length file: {motif_length_path}")
+        return abort(500, description="Error reading motif length file.")
+
+    # FIXED HERE: look inside sample folder, not replicate subfolder
+    search_dir = os.path.join(data_mount, taskid, sample)
+    pattern = f'*_{motif_length}mer.txt'
+    matches = glob.glob(os.path.join(search_dir, pattern))
+
+    if not matches:
+        logger.warning(f"No file matching '*_{motif_length}mer.txt' found in {search_dir}")
+        return abort(404, description=f"No peptide file found for motif length {motif_length}.")
+
+    peptides_file = matches[0]
+    logger.info(f"Serving peptide file: {peptides_file}")
+
+    try:
+        return send_file(peptides_file, as_attachment=True)
+    except Exception:
+        logger.exception(f"Failed to send file: {peptides_file}")
+        return abort(500, description="Error sending peptide file.")
