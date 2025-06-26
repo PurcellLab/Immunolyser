@@ -1051,7 +1051,7 @@ def generatePepscanner(demo=False):
         generate_peptigram(
             csv_path=peptides_file,
             fasta_path=ref_proteome,
-            protein_ids=''.join(protiens),
+            protein_ids=','.join(protiens),
             output_dir=output_path
         )
 
