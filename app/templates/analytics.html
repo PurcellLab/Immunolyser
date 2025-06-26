@@ -166,6 +166,16 @@
                                                         {{cluster[2]}} : {{cluster[3]}} 
                                                         <span class="motif-ref" data-image="{{ cluster[4] }}">({{ cluster[2] }} ref)</span>
                                                     </p>
+
+                                                    <!-- Download core button -->
+                                                    <div style="text-align: center; margin-top: 5px;">
+                                                        <a href="{{ url_for('download_gibbscluster_core', taskid=taskId, sample=sample, replicate=replicate, cluster_attempt=cluster[5]) }}"
+                                                        class="btn btn-sm"
+                                                        style="font-size: 0.7rem; padding: 1px 5px; color: #666; background-color: transparent; border: 1px solid #ccc; border-radius: 4px; text-decoration: none;">
+                                                            download core
+                                                        </a>
+                                                    </div>
+
                                                 </div>
                                             {% endfor %}
                                         </div>
@@ -282,6 +292,29 @@
                         caption.style.textAlign = "center";
                         caption.innerHTML = `${cluster[2]} : ${cluster[3]} <span class="motif-ref" data-image="${cluster[4]}">(${cluster[2]} ref)</span>`;
                         container.appendChild(caption);
+
+                        // Add download button for core peptides
+                        // Add download button for core peptides
+                        if (cluster.length > 5) {
+                            var btnWrapper = document.createElement('div');
+                            btnWrapper.style.textAlign = "center";
+                            btnWrapper.style.marginTop = "5px";
+
+                            var downloadBtn = document.createElement('a');
+                            downloadBtn.href = `/download_gibbscluster_core/${taskId}/${sample}/${replicate}/${cluster[5]}`;
+                            downloadBtn.className = "btn btn-sm";
+                            downloadBtn.textContent = "download core";
+                            downloadBtn.style.fontSize = "0.7rem";
+                            downloadBtn.style.padding = "1px 5px";
+                            downloadBtn.style.color = "#666";
+                            downloadBtn.style.backgroundColor = "transparent";
+                            downloadBtn.style.border = "1px solid #ccc";
+                            downloadBtn.style.borderRadius = "4px";
+                            downloadBtn.style.textDecoration = "none";
+
+                            btnWrapper.appendChild(downloadBtn);
+                            container.appendChild(btnWrapper);
+                        }
 
                         div.appendChild(container);
                     }

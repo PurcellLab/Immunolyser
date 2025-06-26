@@ -1316,3 +1316,24 @@ def download_seq2logo_peptides(taskid, sample, replicate):
     except Exception:
         logger.exception(f"Failed to send file: {peptides_file}")
         return abort(500, description="Error sending peptide file.")
+
+@app.route('/download_gibbscluster_core/<taskid>/<sample>/<replicate>/<cluster_attempt>')
+def download_gibbscluster_core(taskid, sample, replicate, cluster_attempt):
+    logger.info(f"Download request for Gibbs core: taskid={taskid}, sample={sample}, replicate={replicate}, cluster={cluster_attempt}")
+    
+    core_dir = os.path.join(project_root, 'app', 'static', 'images', taskid, sample, 'gibbscluster', replicate, 'cores')
+    pattern = f'*{cluster_attempt}*'
+    matches = glob.glob(os.path.join(core_dir, pattern))
+
+    if not matches:
+        logger.warning(f"No core file found for cluster {cluster_attempt} in {core_dir}")
+        return abort(404, description=f"No core file found for cluster {cluster_attempt}.")
+
+    core_file = matches[0]
+    logger.info(f"Serving core file: {core_file}")
+
+    try:
+        return send_file(core_file, as_attachment=True)
+    except Exception:
+        logger.exception(f"Failed to send core file: {core_file}")
+        return abort(500, description="Error sending core file.")
