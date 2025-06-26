@@ -147,14 +147,32 @@ def saveNmerData(location, samples, peptideLength = 9, unique = True):
                 replicate_data[replicate_data['Length'].between(peptideLength[0], peptideLength[1], inclusive='both')]['Peptide'].to_csv(os.path.join(location, file_name, replicate_name[:-4]+'_'+str(peptideLength[0])+'to'+str(peptideLength[1])+file_extension), header=False, index=False)
 
 
-def getSeqLogosImages(samples_data):
-
+def getSeqLogosImages(samples_data, task_id, motif_length, logger):
     seqlogos = {}
 
-    # This approach has to be modified as the names of logos are derived from the data input,
-    # not from the seq2logo results.
-    for sample,replicates in samples_data.items():
-        seqlogos[sample] = [[replicate[:-4]+'-001.jpg',data.shape[0]] for replicate, data in dict(sorted(replicates.items())).items()]
+    for sample, replicates in samples_data.items():
+        sample_dir = os.path.join(data_mount, task_id, sample)
+        pattern = f'*_{motif_length}mer.txt'
+        matched_files = glob.glob(os.path.join(sample_dir, pattern))
+
+        if matched_files:
+            peptide_file = matched_files[0]
+            try:
+                with open(peptide_file, 'r') as f:
+                    lines = [line for line in f if line.strip()]
+                    num_peptides = len(lines)
+            except Exception as e:
+                logger.exception(f"Failed to read peptide file: {peptide_file}")
+                num_peptides = 0
+        else:
+            logger.warning(f"No peptide file found for sample={sample}, motif_length={motif_length}")
+            num_peptides = 0
+
+        # Create the list of logo image filenames + peptide count
+        seqlogos[sample] = [
+            [replicate[:-4] + '-001.jpg', num_peptides]
+            for replicate in sorted(replicates)
+        ]
 
     return seqlogos
 

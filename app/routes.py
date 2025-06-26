@@ -486,6 +486,10 @@ def getExistingReport(taskId):
     with open(os.path.join('app', 'static', 'images', taskId, "mhcclass.txt")) as f:
         mhcclass = f.readline()
 
+    # Selected motif length
+    with open(os.path.join('app', 'static', 'images', taskId, "motif_length.txt")) as f:
+        motif_length = f.readline()
+
     data = {}
     maxLen = 30
     minLen = 5
@@ -537,7 +541,7 @@ def getExistingReport(taskId):
     bar_percent = plot_lenght_distribution(sample_data, hist='percent', taskId=taskId)
     bar_density = plot_lenght_distribution(sample_data, hist='density', taskId=taskId)
     
-    seqlogos = getSeqLogosImages(sample_data)
+    seqlogos = getSeqLogosImages(sample_data, task_id=taskId, motif_length=motif_length, logger=logger)
     gibbsImages = getGibbsImages(logger, taskId, sample_data)
     # seqlogos = {}
     # gibbsImages = {}
