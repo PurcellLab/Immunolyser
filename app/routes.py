@@ -1046,12 +1046,21 @@ def generatePepscanner(demo=False):
     if run_prot_peptigram is True:
         peptigram_images = []
 
-        for protein in protiens:
-            image_name = f"protein_visualization_{protein}.png"
-            output_path = os.path.join(project_root, 'app', 'static', 'images', taskId)
-            generate_peptigram(peptides_file, ref_proteome, protein, output_path, image_name)
-            peptigram_images.append(os.path.join('static', 'images', taskId, image_name))
+        output_path = os.path.join(project_root, 'app', 'static', 'images', taskId)
+        # Generate peptigram images
+        generate_peptigram(
+            csv_path=peptides_file,
+            fasta_path=ref_proteome,
+            protein_ids=''.join(protiens),
+            output_dir=output_path
+        )
 
+        # Collect relative image paths like: static/images/<taskId>/<filename>
+        peptigram_images = [
+            os.path.join('static', 'images', taskId, os.path.basename(f))
+            for f in glob.glob(os.path.join(output_path, 'prot-peptigram_*.png'))
+        ]
+                # Store in metadata
         metadata['peptigram'] = peptigram_images
 
     return jsonify(metadata)

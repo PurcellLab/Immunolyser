@@ -200,7 +200,7 @@
 
               peptigram.forEach((imgPath, index) => {
                   // Extract protein name from filename (e.g. "protein_visualization_PROT1.png")
-                  let match = imgPath.match(/protein_visualization_(.+)\.png$/);
+                  let match = imgPath.match(/prot-peptigram_(.+)\.png$/);
                   let proteinName = match ? match[1] : `Protein ${index + 1}`;
                   let safeId = `prot-tab-${index}`;
 
