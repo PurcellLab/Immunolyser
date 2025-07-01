@@ -202,7 +202,7 @@ def getGibbsImages(logger, taskId, samples_data):
             bestCluster = pd.read_table(f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate[:-4]}/images/gibbs.KLDvsClusters.tab')
             bestCluster = bestCluster[bestCluster.columns].sum(axis=1).idxmax()
 
-            clusters = [[os.path.basename(x), "Number of peptides in core could not be calculated", "Allele not predicted", "PCC score associated with allele", "Url of reference motif"] for x in sorted(glob.glob(f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate[:-4]}/logos/gibbs_logos_*of{bestCluster}*.jpg'))]
+            clusters = [[os.path.basename(x), "Number of peptides in core could not be calculated", "Allele not predicted", "Score not calculated", "Url of reference motif"] for x in sorted(glob.glob(f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate[:-4]}/logos/gibbs_logos_*of{bestCluster}*.jpg'))]
 
             # Finding the number of records used for the cluster
             findNumberOfPeptidesInCore(clusters, taskId, sample, replicate)

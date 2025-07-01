@@ -665,14 +665,14 @@ def createGibbsBar():
 
         print(f"generateGibbs : Best Cluster for {sample}'s {replicate} : {bestCluster}")
 
-        seqClusters = [[x[4:],"Number of peptides in core could not be calculated", "Allele not predicted", "PCC score associated with allele", "Url of reference motif"] for x in sorted(glob.glob(f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate}/logos/gibbs_logos_*of{bestCluster}*.jpg'))]
+        seqClusters = [[x[4:],"Number of peptides in core could not be calculated", "Allele not predicted", "Score not calculated", "Url of reference motif"] for x in sorted(glob.glob(f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate}/logos/gibbs_logos_*of{bestCluster}*.jpg'))]
 
     else:
-        seqClusters = [[x[4:], "Number of peptides in core could not be calculated", "Allele not predicted", "PCC score associated with allele", "Url of reference motif"] for x in sorted(glob.glob(f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate}/logos/gibbs_logos_*of{cluster}*.jpg'))]
+        seqClusters = [[x[4:], "Number of peptides in core could not be calculated", "Allele not predicted", "Score not calculated", "Url of reference motif"] for x in sorted(glob.glob(f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate}/logos/gibbs_logos_*of{cluster}*.jpg'))]
 
         if len(seqClusters) != int(cluster):
             # subprocess.check_call(['python3', os.path.join('app', 'gibbsclusterSeqLogo.py'), taskId, data_mount, sample, replicate, cluster, mhcclass, motif_length], shell=False)
-            seqClusters = [[x[4:], "Number of peptides in core could not be calculated", "Allele not predicted", "PCC score associated with allele", "Url of reference motif"] for x in sorted(glob.glob(f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate}/logos/gibbs_logos_*of{cluster}*.jpg'))]
+            seqClusters = [[x[4:], "Number of peptides in core could not be calculated", "Allele not predicted", "Score not calculated", "Url of reference motif"] for x in sorted(glob.glob(f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate}/logos/gibbs_logos_*of{cluster}*.jpg'))]
 
     # Adding information regarding number of peptides in the core
     findNumberOfPeptidesInCore(seqClusters, taskId, sample, replicate+'.txt')

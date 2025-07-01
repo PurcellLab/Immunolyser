@@ -104,7 +104,7 @@
     {% endif %}
 
     {% if showGibbsSection %}
-        <h3>Peptide sequence analysis</h3>
+        <h3>Peptide Sequence Clustering with Predicted MHC Allele Assignment</h3>
         <br>
 
         <div class="container" style="max-height: 100%;">
@@ -117,9 +117,10 @@
                             <br><br>
                             <div id="{{sample}}" class="collapse show in">
                                 {% for replicate, gibbs in replicates.items() %}
-                                    <div class="row" style="margin-left: 20px; margin-right: 10px;">
-                                        <input class="form-check-input" type="checkbox" value="" checked onchange="temp('{{taskId}}','{{sample}}','{{replicate}}',this.checked)">
-                                        <label class="form-check-label" for="flexCheckDefault">
+                                    <div class="form-check" style="margin-left: 20px; margin-right: 10px;">
+                                        <input class="form-check-input" type="checkbox" id="{{sample}}_{{replicate}}" checked
+                                                onchange="temp('{{taskId}}','{{sample}}','{{replicate}}',this.checked)">
+                                        <label class="form-check-label" for="{{sample}}_{{replicate}}">
                                             {{replicate}}
                                         </label>
                                     </div>
@@ -163,8 +164,10 @@
                                                 <div class="image-container">
                                                     <img src="{{ url_for('static',filename='images/{0}/{1}/gibbscluster/{2}/logos/{3}'.format(taskId,sample,replicate,cluster[0]), width=10)}}" alt="" width="100%" title="Sample size : {{cluster[1]}}">
                                                     <p style="text-align: center;">
-                                                        {{cluster[2]}} : {{cluster[3]}} 
-                                                        <span class="motif-ref" data-image="{{ cluster[4] }}">({{ cluster[2] }} ref)</span>
+                                                        Best match : {{cluster[2]}}
+                                                        (<span class="motif-ref" data-image="{{ cluster[4] }}">ref</span>)
+                                                        <br>
+                                                        PCC score : {{cluster[3]}} 
                                                     </p>
 
                                                     <!-- Download core button -->
