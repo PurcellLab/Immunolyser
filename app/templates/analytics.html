@@ -118,11 +118,12 @@
                             <div id="{{sample}}" class="collapse show in">
                                 {% for replicate, gibbs in replicates.items() %}
                                     <div class="form-check" style="margin-left: 20px; margin-right: 10px;">
-                                        <input class="form-check-input" type="checkbox" id="{{sample}}_{{replicate}}" checked
+                                        <input class="form-check-input" type="checkbox"
+                                                id="{{sample}}_{{replicate|replace(' ', '_')}}" checked
                                                 onchange="temp('{{taskId}}','{{sample}}','{{replicate}}',this.checked)">
-                                        <label class="form-check-label" for="{{sample}}_{{replicate}}">
-                                            {{replicate}}
-                                        </label>
+                                        <label class="form-check-label" for="{{sample}}_{{replicate|replace(' ', '_')}}">
+                                            {{replicate.strip()}}
+                                    </label>
                                     </div>
                                 {%endfor%}
                             </div>
