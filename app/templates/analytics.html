@@ -109,30 +109,30 @@
 
         <div class="container" style="max-height: 100%;">
             <div class="row">
-                <div id="gibbsScrollBar" class="col-2" style="word-break: break-word; overflow-x: hidden; overflow-y: auto; max-height: 1000px;">
+                <div id="gibbsScrollBar" class="col-2" style=" word-break: break-word; overflow-x: hidden; overflow-y: auto; max-height: 1000px;">
 
                     {% for sample, replicates in gibbsImages.items() %}
-                        <div class="mb-2">
-                        <!-- Sample name -->
-                        <div><strong>{{ sample }}</strong></div>
-
-                        <!-- Replicates under sample -->
-                        <div style="margin-left: 20px;">
-                            {% for replicate, gibbs in replicates.items() %}
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox"
-                                    id="{{sample}}_{{replicate|replace(' ', '_')}}" checked
-                                    onchange="temp('{{taskId}}','{{sample}}','{{replicate}}',this.checked)">
-                                <label class="form-check-label" for="{{sample}}_{{replicate|replace(' ', '_')}}">
-                                {{replicate.strip()}}
-                                </label>
+                        <div class="row">
+                            <a data-toggle="collapse" href="#{{sample}}">{{sample}}</a>
+                            <br><br>
+                            <div id="{{sample}}" class="collapse show in">
+                                {% for replicate, gibbs in replicates.items() %}
+                                    <div class="form-check" style="margin-left: 20px; margin-right: 10px;">
+                                        <input class="form-check-input" type="checkbox"
+                                                id="{{sample}}_{{replicate|replace(' ', '_')}}" checked
+                                                onchange="temp('{{taskId}}','{{sample}}','{{replicate}}',this.checked)">
+                                        <label class="form-check-label" for="{{sample}}_{{replicate|replace(' ', '_')}}">
+                                            {{replicate.strip()}}
+                                    </label>
+                                    </div>
+                                {%endfor%}
                             </div>
-                            {% endfor %}
-                        </div>
+                            <br>
                         </div>
                     {% endfor %}
 
-                    </div>
+
+                </div>
                 <div id="gibbsViewPane" class="col-10" style="overflow-y: auto; max-height: 1000px; padding-right: 30px ; padding-left: 30px">
 
                     <div class="seqlogo">
