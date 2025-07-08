@@ -139,8 +139,18 @@ class PepScan:
         self.peptide_frame["Location"] = "No protein found"
         #Add peptide count column to proteome to keep track of peptides/protein
         proteome_frame["Peptides"] = 0
-        #join peptide and protein dataframes
-        self.protein_frame = self.peptide_frame[["ID", "Peptide"]].join(proteome_frame[["ID", "Sequence"]].set_index("ID"), on = "ID", how = "inner", lsuffix = "_pep", rsuffix = "_prot")
+        
+        # Keep only rows with valid string/int IDs
+        valid_peptide_frame = self.peptide_frame[self.peptide_frame["ID"].apply(lambda x: isinstance(x, (str, int)))]
+
+        self.protein_frame = valid_peptide_frame[["ID", "Peptide"]].join(
+            proteome_frame[["ID", "Sequence"]].set_index("ID"),
+            on="ID",
+            how="inner",
+            lsuffix="_pep",
+            rsuffix="_prot"
+        )
+
         #retrieve locations for all peptides
         self.protein_frame.reset_index(drop = True, inplace = True)
         self.protein_frame["Location"] = self.get_locs()
