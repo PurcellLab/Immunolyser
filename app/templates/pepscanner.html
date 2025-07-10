@@ -11,9 +11,11 @@
   <!-- Heatmap Image -->
   <div class="row mb-4">
     <div class="col-12">
-      <img id="pepscannerimage" src="static/others/blankpepscanner.png"
-          alt="Pepscanner heatmap"
-          class="img-fluid rounded border w-100">
+      <img id="pepscannerimage" 
+          src="" 
+          alt="Pepscanner heatmap" 
+          class="img-fluid rounded border w-100" 
+          style="display:none;">
     </div>
   </div>
 
@@ -184,7 +186,10 @@
           fileName = res['fileName']
           peptigram = res['peptigram'];
 
-          document.getElementById('pepscannerimage').src = "static/images/"+ taskId +"/pepscanner.png";
+          const img = document.getElementById('pepscannerimage');
+          img.src = "static/images/" + taskId + "/pepscanner.png";
+          img.style.display = 'block';  // or '' to clear inline style
+
           
           let container = document.getElementById('protpeptigram-container');
           container.innerHTML = '';
