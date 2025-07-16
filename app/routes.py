@@ -394,7 +394,7 @@ def submit_job(self, samples, motif_length, mhcclass, alleles_unformatted, predi
             runHLAClust(taskId, data, species=species, logger=logger)
 
         # On job success: update status first
-        update_job_status(job_id=taskId, status='SUCCESS', error_message=None)
+        update_job_status(job_id=taskId, status='SUCCESS', error_message=None, logger=logger)
         logging.info(f"Job {taskId} status updated to SUCCESS.")
 
         # On job success
@@ -425,6 +425,8 @@ def submit_job(self, samples, motif_length, mhcclass, alleles_unformatted, predi
         else:
             logging.info(f"No email found for task {taskId}; skipping failure notification.")
 
+        raise
+    
 @app.route("/analytics")
 def analytics():
 
