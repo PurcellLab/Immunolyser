@@ -6,7 +6,7 @@ from app.utils import *
 from pathlib import Path
 from app.Pepscan import PepScan
 from collections import Counter,OrderedDict
-import uuid, logging, base64, re, shutil, glob, os, pandas as pd, subprocess, io, requests, zipfile, json, smtplib, datetime
+import uuid, logging, base64, re, shutil, glob, os, pandas as pd, subprocess, io, requests, zipfile, json, smtplib, datetime, traceback
 from Bio import SeqIO
 from constants import *
 from email.mime.text import MIMEText
@@ -410,10 +410,9 @@ def submit_job(self, samples, motif_length, mhcclass, alleles_unformatted, predi
             logging.info(f"No email found for task {taskId}; skipping email notification.")
 
     except Exception as main_exception:
-
-        # On failure: update status with error message
-        error_msg = str(main_exception)
-        update_job_status(job_id=taskId, status='FAILURE', error_message=error_msg)
+        tb = traceback.format_exc()
+        error_msg = f"{main_exception}\n{tb}"
+        update_job_status(job_id=taskId, status='FAILURE', error_message=error_msg, logger=logger)
         logging.error(f"Job {taskId} failed with error: {error_msg}")
 
         email = get_email(taskId)

@@ -40,14 +40,23 @@ def insert_job(job_id, ip_address, mhc_class, species, alleles,
         ))
         conn.commit()
 
-def update_job_status(job_id, status, error_message=None):
-    with sqlite3.connect(DB_PATH) as conn:
-        cursor = conn.cursor()
-        cursor.execute('''
-            UPDATE job_registry
-            SET status = ?, completed_time = ?, error_message = ?
-            WHERE job_id = ?
-        ''', (
-            status, datetime.utcnow().isoformat(), error_message, job_id
-        ))
-        conn.commit()
+def update_job_status(job_id, status, error_message=None, logger=None):
+    try:
+        if logger:
+            logger.info(f"Updating job status for job_id={job_id} to '{status}'.")
+        with sqlite3.connect(DB_PATH) as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                UPDATE job_registry
+                SET status = ?, completed_time = ?, error_message = ?
+                WHERE job_id = ?
+            ''', (
+                status, datetime.utcnow().isoformat(), error_message, job_id
+            ))
+            conn.commit()
+        if logger:
+            logger.info(f"Job status updated successfully for job_id={job_id}.")
+    except Exception as e:
+        if logger:
+            logger.error(f"Failed to update job status for job_id={job_id}: {e}", exc_info=True)
+        raise

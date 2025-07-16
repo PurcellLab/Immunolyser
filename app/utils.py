@@ -102,7 +102,11 @@ def filterPeaksFile(samples, minLen=1, maxLen=133):
             print('Number of peptides after removing peptides with accession marked as #CONTAM or #DECOY : {}'.format(temp.shape[0]))
 
 #       Removing PTMs in Peptide column
-        temp['Peptide'] = temp.apply(lambda x : omitPTMContent(x['Peptide']),axis=1)
+        if temp.shape[0] == 0:
+            raise Exception(f"After filtering for CONTAM/DECOY, no valid peptides remain in file '{file_name}'.")
+
+        # Now safe to apply omitPTMContent
+        temp['Peptide'] = temp['Peptide'].apply(omitPTMContent)
 
 #       Generating Length Column
         temp['Length']= temp.apply(lambda x : len(x['Peptide']), axis=1)
