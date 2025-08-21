@@ -637,33 +637,33 @@
                         };
 
                         props.onClick = (set) => {
-                            let selectedSamples = [];
+                        // Build form data
+                        var data = new FormData();
+                        data.append("name", set.name);
+                        data.append("elems", set.elems);   // peptides from the clicked bar
+                        data.append("taskId", taskId);
 
-                            if (set.degree === 1 && typeof set.name === 'string') {
-                                selectedSamples = [set.name];
-                            } else if (set.degree > 1 && set.sets && typeof set.sets === 'object') {
-                                selectedSamples = Object.keys(set.sets);
+                        var xhr = new XMLHttpRequest();
+                        xhr.withCredentials = true;
+
+                        xhr.addEventListener("readystatechange", function() {
+                            if (this.readyState === 4) {
+                                if (this.status == 200) {
+                                    // Show modal once backend finishes
+                                    document.getElementById('modalHeading').innerHTML = "Peptide Overlap Motif";
+                                    document.getElementById('modalHedingHref').href = "/static/images/" + taskId + "/selected-binders.txt?t=" + new Date().getTime();
+                                    document.getElementById('modalBinder').src = "static/images/" + taskId + "/seqLogoApi-001.jpg?t=" + new Date().getTime();
+                                    $('#myModal').modal('show');
+                                } else {
+                                    console.error("Error from /api/getSeqLogo:", this.status, this.responseText);
+                                }
                             }
+                        });
 
-                            const overlap = data
-                                .filter(item => selectedSamples.includes(item.name))
-                                .map(item => new Set(item.elems));
+                        xhr.open("POST", window.location.origin.concat('/api/getSeqLogo'));
+                        xhr.send(data);
+                    };
 
-                            const intersection = overlap.length
-                                ? [...overlap.reduce((a, b) => new Set([...a].filter(x => b.has(x))))]
-                                : [];
-
-                            const safeName = (set.name || 'unnamed').replace(/[^a-z0-9_\-]/gi, '_');
-                            const fileName = `peptide_overlap_${safeName}.txt`;
-
-                            const blob = new Blob([intersection.join('\n')], { type: 'text/plain' });
-                            const url = URL.createObjectURL(blob);
-                            const a = document.createElement('a');
-                            a.href = url;
-                            a.download = fileName;
-                            a.click();
-                            URL.revokeObjectURL(url);
-                        };
 
                         UpSetJS.render(document.getElementById('overlap_render'), props);
 
