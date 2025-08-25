@@ -212,7 +212,7 @@
 
     <div class="hla_clust">
         {% for sample, replicates in bindingImages.items() %}
-            <h4>{{ sample }}</h4>
+            <h5>{{ sample }}</h5>
             <div>
                 <ul>
                     {% for replicate, files in replicates.items() %}
@@ -228,12 +228,10 @@
             </div>
         {% endfor %}
     </div>
-    <br>
 
     <p class="text-justify">
         A novel algorithm, MHC-TP, predict MHC I alleles based on peptide clustering results, allowing in silico MHC typing of datasets, where genetic MHC typing is unavailable, ethically restricted, or cost-prohibitive for large-scale datasets.
     </p>
-    <br>
 
     <script>
         function temp(taskId,sample,replicate,checked){
@@ -354,7 +352,81 @@
 <br>
     {% if predicted_binders is not none %}
 
-            <h3>Peptide-HLA binding affinity prediction</h3>
+    <h3>Peptide-HLA binding affinity prediction</h3>
+        
+    <p>
+        The following downloadable CSV files contain binding prediction results from each prediction tool. You can also download the majority-voted binders (rightmost column).  
+    </p>
+
+    <p>
+        Among others, the CSV file contains three key columns:  
+        <ul>
+            <li><strong>Peptide</strong> – the binder sequence</li>
+            <li><strong>Binding Level</strong> – the binder type (i.e., strong or weak)</li>
+            <li><strong>Control</strong> – specifies whether the peptide is also present in the control group (if uploaded)</li>
+        </ul>
+        The binders in the downloadable CSV files are <strong>sorted by predicted binding affinity</strong>.
+    </p>
+
+    <p>
+        In addition to these, <strong>all columns from your originally uploaded files are also preserved</strong>.
+    </p>
+
+        <div id="binderReports">
+            
+            {% for sample, alleles in predicted_binders.items() %}
+                <h4>{{sample}}</h4>
+                <br>
+                <table class="table">
+                    
+                    <!-- Head of the table -->
+                    <thead>
+                    <tr>
+                        <th scope="col">Alleles</th>
+                        {% for method in predictionTools%}
+                            <th scope="col">{{method}}</th>
+                        {% endfor%}
+                            <!-- Hard coding table heading to show majority voting binder both MHC class 1 and 2 -->
+                            <th scope="col">Majority Voted</th>
+                    </tr>
+                    </thead>
+
+                    <!-- Body of the table -->
+                    <tbody>
+                    
+                    {% for allele,methods in alleles.items() %}
+
+                        <tr>
+                            <th scope="row">{{allele}}</th>
+
+                            {% for method,replicates in methods.items() %}
+                            <td>
+                                {% for replicate,binders in replicates.items() %}
+                                    <a href="{{binders}}">{{replicate}}</a><br>
+                                {% endfor %}
+                            </td>
+                            {% endfor%}
+                        </tr>
+                    {% endfor%}
+                    </tbody>
+                </table>
+
+            {% endfor %}
+
+        </div>
+
+        <!-- Section begin for Upset plot showing number of binder and overlap across tools. -->
+
+        <br>
+        
+        <p>
+            The following UpSet plot provides a visualization of the distribution and overlap of predicted binders across the uploaded samples. 
+            Each sample represents one of the user-uploaded datasets, and the values correspond to peptides predicted as binders. 
+            Users can explore results from any of the available binding prediction tools via the dropdown menu, or view the default option of majority-voted binders (across all tools). 
+            On the left, a list of alleles of interest is provided—selecting an allele regenerates the plot for that allele. 
+            Please note that this plot does not display binding results directly, but instead highlights how predicted binders are distributed and overlap across different samples.
+        </p>
+
 
         <br>
             <div class="container" style="max-height: 100%; padding: 0px;">
@@ -433,52 +505,6 @@
         <a href="{{ url_for('download_job_data_files_zip', taskId=taskId, filename=zip_filename) }}" class="btn btn-sm btn-outline-primary">
             Download data files used to generate report (ZIP)
         </a>        
-
-        <a data-toggle="collapse" href="#binderReports" style="text-align: right; float: right;" data-toggle="tooltip" data-placement="top" title="These files contains the predicted binders along&#013with the all the colummns present in the uploaded files.">Download binders </a>     
-        <div id="binderReports" class="collapse in">
-            
-            {% for sample, alleles in predicted_binders.items() %}
-                <h4>{{sample}}</h4>
-                <br>
-                <table class="table">
-                    
-                    <!-- Head of the table -->
-                    <thead>
-                    <tr>
-                        <th scope="col">Alleles</th>
-                        {% for method in predictionTools%}
-                            <th scope="col">{{method}}</th>
-                        {% endfor%}
-                            <!-- Hard coding table heading to show majority voting binder both MHC class 1 and 2 -->
-                            <th scope="col">Majority Voted</th>
-                    </tr>
-                    </thead>
-
-                    <!-- Body of the table -->
-                    <tbody>
-                    
-                    {% for allele,methods in alleles.items() %}
-
-                        <tr>
-                            <th scope="row">{{allele}}</th>
-
-                            {% for method,replicates in methods.items() %}
-                            <td>
-                                {% for replicate,binders in replicates.items() %}
-                                    <a href="{{binders}}">{{replicate}}</a><br>
-                                {% endfor %}
-                            </td>
-                            {% endfor%}
-                        </tr>
-                    {% endfor%}
-                    </tbody>
-                </table>
-
-            {% endfor %}
-
-            <p class="text-justify">Above table for each uploaded sample contains the information for predicted binders for each selected allele. The information is presented for every combination of alleles vs prediction tools. The information about binders is stored in csv files which can be downloaded by clicking the specific icon. Among others, the csv file contains three columns including 'Peptide', 'Binding Level' and 'Control'. The 'Peptide' column contains the binder sequence. The 'Binding Level' column demonstrates the binder type (i.e., a strong or weak binder). And the 'Control' column specifies whether the peptide is also present in the control group, if uploaded. The binders in the downloadable csv files are sorted by their predicted binding affinity.
-            </p> 
-        </div>
 
         <br>
 

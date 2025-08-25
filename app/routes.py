@@ -753,7 +753,7 @@ def getBinders():
                             continue
 
                 else:
-                    binding = getPredictionResuslts(alleles=allele,taskId=taskId,methods=[tool],samples=[sample])
+                    binding = getPredictionResuslts(alleles=allele,taskId=taskId,methods_passed=[tool],samples=[sample])
                     try:
                         # Appeding to binder_fikes list
                         binder_files.append(binding[sample][allele][tool][replicate])
