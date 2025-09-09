@@ -114,7 +114,7 @@ def initialiser():
         mhcclass = request.form.get('mhc_class')
         alleles_unformatted = request.form.get('alleles')
         species = request.form.get('species')
-
+        use_mhc_tp_full_DB = request.form.get('useFullDB', 'no')
         
         ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
         user_agent = request.headers.get('User-Agent')
@@ -133,7 +133,7 @@ def initialiser():
                 Class_One_Predictors.MHCflurry.to_dict(),
             ]
 
-        task = submit_job.delay(samples, motif_length, mhcclass, alleles_unformatted, predictionTools, species)
+        task = submit_job.delay(samples, motif_length, mhcclass, alleles_unformatted, predictionTools, species, use_mhc_tp_full_DB)
 
         insert_job(
             job_id=task.id,
@@ -149,7 +149,7 @@ def initialiser():
         return redirect(url_for('job_confirmation', task_id=task.id))
 
 @celery.task(name='app.submit_job', bind=True)
-def submit_job(self, samples, motif_length, mhcclass, alleles_unformatted, predictionTools, species):    
+def submit_job(self, samples, motif_length, mhcclass, alleles_unformatted, predictionTools, species, use_mhc_tp_full_DB):    
 
     try:
         # Have to take this input from user
@@ -159,6 +159,7 @@ def submit_job(self, samples, motif_length, mhcclass, alleles_unformatted, predi
         logger.info('MHC Class of Interest: %s', mhcclass)
         logger.info('alleles_unformatted: %s', alleles_unformatted)
         logger.info('Species: %s', species)
+        logger.info('Use Full Database Search: %s', use_mhc_tp_full_DB)
 
         # Deserialize `predictionTools`
         predictionTools = [Predictor.from_dict(tool) for tool in predictionTools]
@@ -391,7 +392,13 @@ def submit_job(self, samples, motif_length, mhcclass, alleles_unformatted, predi
 
         # Run HLA-Clust to generate heatmap
         if mhcclass == MHC_Class.One:
-            runHLAClust(taskId, data, species=species, logger=logger)
+            runHLAClust(
+                taskId,
+                data,
+                species=species,
+                use_mhc_tp_full_DB=use_mhc_tp_full_DB,
+                logger=logger
+            )
 
         # On job success: update status first
         update_job_status(job_id=taskId, status='SUCCESS', error_message=None, logger=logger)

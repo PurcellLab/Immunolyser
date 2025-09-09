@@ -9,12 +9,12 @@
 	<form onSubmit="return checkAlleles();" id="login" action="" method="post" enctype="multipart/form-data" novalidate>
 		
 		<div>
-			<h4>Data Input</h4>
+			<h4>Data input</h4>
 			<div class="form-row">
-				<div class="col-md-7 mb-3">Sample Name 
+				<div class="col-md-7 mb-3">Sample name 
 					<i class="fa fa-question-circle" aria-hidden="true" style="cursor: pointer;" data-toggle="tooltip" data-placement="right" title="Name of the sample.&#013;Make sure that all the samples have unique names and do NOT contain any special characters."></i>
 				</div>
-				<div class="col-md-5 mb-3">Sample Files (Several CSV files can be uploaded as replicates of a sample.)
+				<div class="col-md-5 mb-3">Sample files (Several CSV files can be uploaded as replicates of a sample.)
 					<i class="fa fa-question-circle" aria-hidden="true" style="cursor: pointer;" data-toggle="tooltip" data-placement="right" title="Select input csv file(s). The file should contain column named 'Peptide'.&#013;Select multiple files in case of more than one replicates are needed."></i>
 				</div>
 			</div>
@@ -23,7 +23,7 @@
 					<label for="sample_name" hidden>Sample</label> 
 					<input id="sample_name-1" name="sample-1" required type="text" value="" class="col-md-7 mb-3">
 					<br>
-					<label for="sample_file-1" hidden>Peptide File</label> 
+					<label for="sample_file-1" hidden>Peptide file</label> 
 					<input id="sample_file-1" multiple name="sample-1" required type="file" class="col-md-5 mb-3" onchange="calculateNumberOfPeptidesInCsv(event)" required accept=".csv">    
 				</div>
 			</div>
@@ -35,15 +35,16 @@
 
 		<div>
 			<div id="control" class="form-row">
-				<h4 class="col-md-7 mb-3">Control Data<span style="font-size:16px;"> (optional)</span></h4>
+				<h4 class="col-md-7 mb-3">Control data<span style="font-size:16px;"> (optional)</span></h4>
 				<label for="control_name" hidden>Control</label> 
 				<input id="control_name-1" name="control-1" type="text" value="Control" class="col-md-3 mb-3" hidden>
 				<br>
-				<label for="control" hidden>Peptide File </label>
+				<label for="control" hidden>Peptide file</label>
 				<input id="control" multiple name="control-1" type="file" class="col-md-5 mb-3" required accept=".csv">	
 			</div>
 		</div>
 
+		<br>
 		<br>
 
 		<div class="form-row mb-3" id="motif_length_section" hidden>
@@ -54,21 +55,63 @@
 			</select>
 		</div>
 
+		<br>
+		<br>
+
 		<div>
-			<h4>MHC Binding Predictions</h4>
+			<h4>MHC TP</h4>
+
+			<div class="form-row">
+				<h5 class="col-md-7">
+				Full database search?
+				<i class="fa fa-question-circle" aria-hidden="true"
+					style="cursor: pointer;"
+					data-toggle="tooltip"
+					data-placement="right"
+					title="This option applies only for Human MHC. 
+					Default is 'No' (smaller list of common alleles/supertypes). 
+					Select 'Yes' to search the full NetMHCIIpan 4.3 database instead. 
+					(Mouse MHC already uses a smaller predefined list.)"></i>
+
+				</h5>
+				<select class="col-md-5" id="useFullDB" name="useFullDB">
+				<option value="no" selected>No</option>
+				<option value="yes">Yes</option>
+				</select>
+			</div>
+			<br>
+
+			<div class="form-text small">
+				For list of allowed allele names (default smaller list), click here:
+				<a id="allelesreferencefilelink" href="/static/mhc-tp-default-search-alleles.csv" target="_blank">
+				MHC allele list
+				</a>
+				<br>
+				For the full database reference, see:
+				<a href="https://services.healthtech.dtu.dk/services/NetMHCIIpan-4.3/" target="_blank">
+				NetMHCIIpan 4.3
+				</a>
+			</div>
+		</div>
+
+		<br>
+		<br>
+
+		<div>
+			<h4>MHC binding predictions</h4>
 			
 			<div class="form-row">
 				<h5 class="col-md-7">Species</h5>
 				<select class="col-md-5" name="species" id="species" onchange="updateSelectedMHCClass()">
-					<option value="" disabled selected>Select Species</option>
+					<option value="" disabled selected>Select species</option>
 				</select>
 			</div>
 			<br>
 			
 			<div class="form-row">
-				<h5 class="col-md-7">MHC Class of interest</h5>
+				<h5 class="col-md-7">MHC class of interest</h5>
 				<select class="col-md-5" name="mhc_class" id="mhc_class" disabled onchange="updateSelectedMHCClass()">
-					<option value="" disabled selected>Select MHC Class</option>
+					<option value="" disabled selected>Select MHC class</option>
 				</select>
 			</div>
 			<br>

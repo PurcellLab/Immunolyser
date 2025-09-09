@@ -813,9 +813,12 @@ def saveMajorityVotedBinders(taskId, data, predictionTools, alleles_unformatted,
                     # Write the filtered data to a new CSV file
                     filtered_df.to_csv(f'{project_root}/app/static/images/{taskId}/{sample}/Majority_Voted/{replicate[:-4]}/binders/{allele.replace(":", "_")}/{replicate[:-4]}_{allele.replace(":", "_")}_majority_voted_binders.csv', index=False)
 
-def runHLAClust(taskId, data, species=None, logger=None):
+def runHLAClust(taskId, data, species=None, use_mhc_tp_full_DB=None, logger=None):
 
     logger.info(f'Running HLA Clust for task {taskId}.')
+
+    # Path to default allele file
+    allele_file = os.path.join(project_root, 'app', 'static', 'mhc-tp-default-search-alleles.csv')
 
     # Creating directories to store majority binding prediction results
     for sample, replicates in data.items():
@@ -831,7 +834,15 @@ def runHLAClust(taskId, data, species=None, logger=None):
                             ref_file = os.path.join(project_root, 'app', 'tools', 'HLA-PepClust', 'data', 'ref_data')
                             output_dir = path
 
-                            run_clust_search(input_file=input_file, ref_file=ref_file, output_dir=output_dir, species=species,logger=logger)
+                            run_clust_search(
+                                input_file=input_file,
+                                ref_file=ref_file,
+                                output_dir=output_dir,
+                                species=species,
+                                use_mhc_tp_full_DB=use_mhc_tp_full_DB,
+                                allele_file=allele_file,
+                                logger=logger
+                            )
 
                         if not os.path.exists(path):
                             # os.makedirs(directory)
@@ -841,7 +852,7 @@ def runHLAClust(taskId, data, species=None, logger=None):
                     except FileExistsError:
                         logger.info(f'Directory already exists {path}')
 
-def run_clust_search(input_file, ref_file, output_dir, species, logger=None):
+def run_clust_search(input_file, ref_file, output_dir, species, use_mhc_tp_full_DB=None, allele_file=None, logger=None):
     try:
         # Validate species and set the corresponding flag
         species_flag = []
@@ -861,6 +872,22 @@ def run_clust_search(input_file, ref_file, output_dir, species, logger=None):
             "--output", output_dir,
             "--processes", str(os.cpu_count())
         ] + species_flag  # Append species flag if applicable
+
+                # If species is human AND not full DB, add --hla_types from CSV file
+        if (
+            species.lower() == "human"
+            and use_mhc_tp_full_DB
+            and use_mhc_tp_full_DB.lower() == "no"
+            and allele_file
+        ):
+            import csv
+            with open(allele_file, newline='') as csvfile:
+                reader = csv.DictReader(csvfile)
+                allele_list = [row['Allele name standardised'] for row in reader if row['Allele name standardised']]
+                hla_types_arg = ",".join(allele_list)
+                command.extend(["--hla_types", hla_types_arg])
+                if logger:
+                    logger.info(f"Using restricted allele list for Human: {hla_types_arg}")
 
         # Log the command
         if logger:
