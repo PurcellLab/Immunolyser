@@ -462,11 +462,10 @@ def saveBindersData(taskId, alleles, method, mhcclass):
                             f['Binding Level'] = ""
                             f['Control'] = ""
 
-                            # Filtering peptides with presentation_percentile (%) less than or equal to 2
-                            f = f[f.apply(lambda x : float(x['presentation_percentile']) <= 2, axis=1)]
-
-                            # Tagging each binder as SB (Strong binder) or WB (Weak binder)
-                            f['Binding Level'] = f['presentation_percentile'].apply(lambda x : 'SB' if float(x) <= 0.2 else 'WB')
+                            # Tagging each binder as SB (Strong binder), WB (Weak binder), or blank
+                            f['Binding Level'] = f['presentation_percentile'].apply(
+                                lambda x: 'SB' if float(x) <= 0.2 else ('WB' if float(x) <= 2 else '')
+                            )
 
                             # Tagging binders present in control group
                             f['Control'] = f['peptide'].apply(lambda x : 'Y' if x in control_peptides else '')
@@ -495,12 +494,11 @@ def saveBindersData(taskId, alleles, method, mhcclass):
                             f['Binding Level'] = ""
                             f['Control'] = ""
                                             
-                            # Keep only strong and weak binders
-                            f = f[f.apply(lambda x : float(x['%Rank_bestAllele']) <= 10, axis=1)]
-
-                            # Tagging each binder as SB (Strong binder) or WB (Weak binder)
-                            f['Binding Level'] = f['%Rank_bestAllele'].apply(lambda x : 'SB' if float(x) <= 2 else 'WB')
-                                            
+                            # Tagging each binder as SB (Strong binder), WB (Weak binder), or blank
+                            f['Binding Level'] = f['%Rank_bestAllele'].apply(
+                                lambda x: 'SB' if float(x) <= 2 else ('WB' if float(x) <= 10 else '')
+                            )
+             
                             # Tagging binders present in control group
                             f['Control'] = f['Peptide'].apply(lambda x : 'Y' if x in control_peptides else '')
 
@@ -524,12 +522,11 @@ def saveBindersData(taskId, alleles, method, mhcclass):
                             f['Binding Level'] = ""
                             f['Control'] = ""
                                 
-                            # Keeping strong and weak binders only
-                            f = f[f.apply(lambda x : float(x['%Rank_best'])<=10,axis=1)]
+                            # Tagging each binder as SB (Strong binder), WB (Weak binder), or blank
+                            f['Binding Level'] = f['%Rank_best'].apply(
+                                lambda x: 'SB' if float(x) <= 2 else ('WB' if float(x) <= 10 else '')
+                            )
 
-                            # Tagging each binder as SB(Strong binder) or WB(Weak binder)
-                            f['Binding Level'] = f['%Rank_best'].apply(lambda x : 'SB' if float(x)<=2 else 'WB')
-                                
                             # Tagging binders present in control group
                             f['Control'] = f['Peptide'].apply(lambda x : 'Y' if x in control_peptides else '')
 
@@ -549,10 +546,10 @@ def saveBindersData(taskId, alleles, method, mhcclass):
                             f['Binding Level'] = ""
                             f['Control'] = ""
                         
-                            # Keeping strong and weak binders only
-                            f = f[f.apply(lambda x : float(x['Rank'])<=5,axis=1)]
-                            
-                            f['Binding Level'] = f['Rank'].apply(lambda x : 'SB' if float(x)<=1 else 'WB')
+                            # Tagging each binder as SB (Strong binder), WB (Weak binder), or blank
+                            f['Binding Level'] = f['Rank'].apply(
+                                lambda x: 'SB' if float(x) <= 1 else ('WB' if float(x) <= 5 else '')
+                            )
 
                             # Tagging binders present in control group
                             f['Control'] = f['Peptide'].apply(lambda x : 'Y' if x in control_peptides else '')
@@ -591,10 +588,10 @@ def saveBindersData(taskId, alleles, method, mhcclass):
                             f['Binding Level'] = ""
                             f['Control'] = ""
                         
-                            # Keeping strong and weak binders only
-                            f = f[f.apply(lambda x : float(x['EL_Rank'])<=2,axis=1)]
-                            
-                            f['Binding Level'] = f['EL_Rank'].apply(lambda x : 'SB' if float(x)<=0.5 else 'WB')
+                            # Tagging each binder as SB (Strong binder), WB (Weak binder), or blank
+                            f['Binding Level'] = f['EL_Rank'].apply(
+                                lambda x: 'SB' if float(x) <= 0.5 else ('WB' if float(x) <= 2 else '')
+                            )
 
                             # Tagging binders present in control group
                             f['Control'] = f['Peptide'].apply(lambda x : 'Y' if x in control_peptides else '')
@@ -787,6 +784,9 @@ def saveMajorityVotedBinders(taskId, data, predictionTools, alleles_unformatted,
                         # Read the CSV file into a DataFrame
                         df = pd.read_csv(binder_file)
                         
+                        # Drop rows where 'Binding Level' is empty
+                        df = df[df['Binding Level'].notna() & (df['Binding Level'] != '')]
+
                         # Remove unwanted columns between 'PlainPeptide' and 'Control'
                         columns_to_remove = df.columns[df.columns.get_loc('PlainPeptide')+1 : df.columns.get_loc('Control')]
                         df.drop(columns=columns_to_remove, inplace=True)

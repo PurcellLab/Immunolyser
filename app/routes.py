@@ -776,36 +776,41 @@ def getBinders():
                 binders = {}
 
                 # i is tool and j is file location
-                for i,j in binder_files.items():
+                for i, j in binder_files.items():
                     binders[i] = []
 
                     for k in j:
-                        binders[i].extend(pd.read_csv(os.path.join('app',k))['Peptide'].to_list())    
-
+                        df = pd.read_csv(os.path.join('app', k))
+                        df = df[df['Binding Level'].notna()]   # 🔹 filter only rows with Binding Level
+                        binders[i].extend(df['Peptide'].to_list())
 
                 # first: Common binder from first and second tool
                 # second: Common binder from second and third tool
-                # first: Common binder from first and third tool
+                # third: Common binder from first and third tool
                 first = set(binders[predictionTools[0]]).intersection(set(binders[predictionTools[1]]))
                 second = set(binders[predictionTools[1]]).intersection(set(binders[predictionTools[2]]))
                 third = set(binders[predictionTools[0]]).intersection(set(binders[predictionTools[2]]))
 
-                # binders is list of union of first, second and thirdl
+                # binders is list of union of first, second and third
                 binders = first.union(second).union(third)
 
             # For class 2. Only MixMHC2pred are considered
-            elif tool=="MixMHC2pred":	
-                for i in binder_files:	
-                    binders.extend(pd.read_csv(os.path.join('app',i))['Peptides : PlainPeptide : Core_best'].dropna().to_list())	
+            elif tool == "MixMHC2pred":
+                for i in binder_files:
+                    df = pd.read_csv(os.path.join('app', i))
+                    df = df[df['Binding Level'].notna()]   # 🔹 filter only rows with Binding Level
+                    binders.extend(df['Peptides : PlainPeptide : Core_best'].dropna().to_list())
                 binders = set(binders)
-                
+
             # Else. For specific prediction tool.
             else:
                 for i in binder_files:
-                    binders.extend(pd.read_csv(os.path.join('app',i))['Peptide'].to_list())
+                    df = pd.read_csv(os.path.join('app', i))
+                    df = df[df['Binding Level'].notna()]   # 🔹 filter only rows with Binding Level
+                    binders.extend(df['Peptide'].to_list())
                 binders = set(binders)
 
-            res.append({'name':sample,'elems':list(binders)})
+            res.append({'name': sample, 'elems': list(binders)})
     
     return jsonify(res)
 
