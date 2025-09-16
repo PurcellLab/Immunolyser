@@ -885,7 +885,7 @@ def run_clust_search(input_file, ref_file, output_dir, species, use_mhc_tp_full_
                 reader = csv.DictReader(csvfile)
                 allele_list = [row['Allele name standardised'] for row in reader if row['Allele name standardised']]
                 hla_types_arg = ",".join(allele_list)
-                command.extend(["--hla_types", hla_types_arg])
+                command.extend(["-hla", hla_types_arg])
                 if logger:
                     logger.info(f"Using restricted allele list for Human: {hla_types_arg}")
 
