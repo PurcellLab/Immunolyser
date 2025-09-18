@@ -21,7 +21,7 @@ class Predictor:
 class Class_One_Predictors:
     MixMHCpred = Predictor("MixMHCpred", "mixMHCpred 3.0")
     MHCflurry = Predictor("MHCflurry", "MHCflurry 2.0")
-    NetMHCpan = Predictor("NetMHCpan", "netMHCpan 4.1 b")
+    NetMHCpan = Predictor("NetMHCpan", "netMHCpan 4.2 b")
 
 
 class Class_Two_Predictors:
