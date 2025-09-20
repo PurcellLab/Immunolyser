@@ -589,7 +589,7 @@ def saveBindersData(taskId, alleles, method, mhcclass):
                             f['Control'] = ""
                         
                             # Tagging each binder as SB (Strong binder), WB (Weak binder), or blank
-                            f['Binding Level'] = f['EL_Rank'].apply(
+                            f['Binding Level'] = f['Rank'].apply(
                                 lambda x: 'SB' if float(x) <= 0.5 else ('WB' if float(x) <= 2 else '')
                             )
 
@@ -599,7 +599,7 @@ def saveBindersData(taskId, alleles, method, mhcclass):
                             # Updating the name of binding results column Peptide to PlainPeptide
                             f.rename(columns={'Peptide': 'PlainPeptide'}, inplace=True)
 
-                            f.sort_values(by=['EL_Rank'])[['PlainPeptide', 'EL_Rank', 'Binding Level', 'Control']] \
+                            f.sort_values(by=['Rank'])[['PlainPeptide', 'Rank', 'Binding Level', 'Control']] \
                                 .merge(input_file, on='PlainPeptide', how='left') \
                                 .to_csv(f'{project_root}/app/static/images/{taskId}/{sample}/{method.short_name}/{replicate[:-13]}/binders/{allele.replace(":", "_")}/{replicate[:-13]}_{allele.replace(":", "_")}_{method.short_name}_binders.csv', index=False)
 
