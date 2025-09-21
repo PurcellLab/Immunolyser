@@ -8,98 +8,67 @@
 <div class="container">
 	<form onSubmit="return checkAlleles();" id="login" action="" method="post" enctype="multipart/form-data" novalidate>
 		
-		<div>
-			<h4>Data input</h4>
+		<!-- Section: Data input -->
+		<fieldset class="mb-4 p-3 border rounded">
+			<legend><h4>Data input</h4></legend>
+
 			<div class="form-row">
 				<div class="col-md-7 mb-3">Sample name 
-					<i class="fa fa-question-circle" aria-hidden="true" style="cursor: pointer;" data-toggle="tooltip" data-placement="right" title="Name of the sample.&#013;Make sure that all the samples have unique names and do NOT contain any special characters."></i>
+					<i class="fa fa-question-circle" aria-hidden="true" data-toggle="tooltip" data-placement="right"
+					   title="Name of the sample.&#013;Make sure that all the samples have unique names and do NOT contain any special characters."></i>
 				</div>
-				<div class="col-md-5 mb-3">Sample files (Several CSV files can be uploaded as replicates of a sample.)
-					<i class="fa fa-question-circle" aria-hidden="true" style="cursor: pointer;" data-toggle="tooltip" data-placement="right" title="Select input csv file(s). The file should contain column named 'Peptide'.&#013;Select multiple files in case of more than one replicates are needed."></i>
+				<div class="col-md-5 mb-3">Sample files (replicates allowed)
+					<i class="fa fa-question-circle" aria-hidden="true" data-toggle="tooltip" data-placement="right"
+					   title="Select CSV file(s) containing a 'Peptide' column. Multiple files can be added as replicates."></i>
 				</div>
 			</div>
+
 			<div id="samples">
 				<div id="sample" class="form-row">
 					<label for="sample_name" hidden>Sample</label> 
-					<input id="sample_name-1" name="sample-1" required type="text" value="" class="col-md-7 mb-3">
-					<br>
+					<input id="sample_name-1" name="sample-1" required type="text" class="col-md-7 mb-3">
+					
 					<label for="sample_file-1" hidden>Peptide file</label> 
-					<input id="sample_file-1" multiple name="sample-1" required type="file" class="col-md-5 mb-3" onchange="calculateNumberOfPeptidesInCsv(event)" required accept=".csv">    
+					<input id="sample_file-1" multiple name="sample-1" required type="file"
+						   class="col-md-5 mb-3" onchange="calculateNumberOfPeptidesInCsv(event)" accept=".csv">    
 				</div>
 			</div>
-			<input id="add_sample" name="add_sample" type="button" value="Add Sample" onclick="addSample()">
-			<input id="remove_sample" name="remove_sample" type="button" value="Remove Sample" onclick="deleteSample()">
-		</div>
 
-		<br>
+			<input id="add_sample" type="button" value="Add Sample" onclick="addSample()">
+			<input id="remove_sample" type="button" value="Remove Sample" onclick="deleteSample()">
 
-		<div>
-			<div id="control" class="form-row">
-				<h4 class="col-md-7 mb-3">Control data<span style="font-size:16px;"> (optional)</span></h4>
-				<label for="control_name" hidden>Control</label> 
-				<input id="control_name-1" name="control-1" type="text" value="Control" class="col-md-3 mb-3" hidden>
-				<br>
-				<label for="control" hidden>Peptide file</label>
-				<input id="control" multiple name="control-1" type="file" class="col-md-5 mb-3" required accept=".csv">	
+			<br><br>
+			<div class="col-md-7 mb-3">Control data
+				<i class="fa fa-question-circle" aria-hidden="true" data-toggle="tooltip" data-placement="right"
+				   title="Control data is optional.&#013;If provided, it should be a CSV file containing a 'Peptide' column."></i>
 			</div>
-		</div>
+			
+			<div id="control" class="form-row">
+				<label for="control_name" hidden>Control</label> 
+				<input id="control_name-1" name="control-1" type="text" value="Control" hidden>
 
-		<br>
-		<br>
+				<label for="control" hidden>Peptide file</label>
+				<input id="control_file" multiple name="control-1" type="file" class="col-md-5 mb-3" accept=".csv">
+			</div>
+		</fieldset>
 
-		<div class="form-row mb-3" id="motif_length_section" hidden>
-			<h5 class="col-md-7">Preferred length of motifs</h5>
-			<select class="col-md-5" name="motif_length" id="motif_length">
-				<option value=8>8</option>
-				<option value=9 selected>9</option>
-			</select>
-		</div>
+		<!-- Section: Motif length -->
+		<fieldset class="mb-4 p-3 border rounded" id="motif_length_section" hidden>
+			<legend><h4>Motif length</h4></legend>
 
-		<br>
-		<br>
-
-		<div>
-			<h4>MHC TP</h4>
-
-			<div class="form-row">
-				<h5 class="col-md-7">
-				Full database search?
-				<i class="fa fa-question-circle" aria-hidden="true"
-					style="cursor: pointer;"
-					data-toggle="tooltip"
-					data-placement="right"
-					title="This option applies only for Human MHC. 
-					Default is 'No' (smaller list of common alleles/supertypes). 
-					Select 'Yes' to search the full NetMHCIIpan 4.3 database instead. 
-					(Mouse MHC already uses a smaller predefined list.)"></i>
-
-				</h5>
-				<select class="col-md-5" id="useFullDB" name="useFullDB">
-				<option value="no" selected>No</option>
-				<option value="yes">Yes</option>
+			<div class="form-row mb-3">
+				<h5 class="col-md-7">Preferred length of motifs</h5>
+				<select class="col-md-5" name="motif_length" id="motif_length">
+					<option value=8>8</option>
+					<option value=9 selected>9</option>
 				</select>
 			</div>
-			<br>
+		</fieldset>
 
-			<div class="form-text small">
-				For list of allowed allele names (default smaller list), click here:
-				<a id="allelesreferencefilelink" href="/static/mhc-tp-default-search-alleles.csv" target="_blank">
-				MHC allele list
-				</a>
-				<br>
-				For the full database reference, see:
-				<a href="https://services.healthtech.dtu.dk/services/NetMHCIIpan-4.3/" target="_blank">
-				NetMHCIIpan 4.3
-				</a>
-			</div>
-		</div>
+		<!-- Section: Binding predictions -->
+		<fieldset class="mb-4 p-3 border rounded">
+			<legend><h4>MHC binding predictions</h4></legend>
 
-		<br>
-		<br>
-
-		<div>
-			<h4>MHC binding predictions</h4>
-			
 			<div class="form-row">
 				<h5 class="col-md-7">Species</h5>
 				<select class="col-md-5" name="species" id="species" onchange="updateSelectedMHCClass()">
@@ -107,7 +76,7 @@
 				</select>
 			</div>
 			<br>
-			
+
 			<div class="form-row">
 				<h5 class="col-md-7">MHC class of interest</h5>
 				<select class="col-md-5" name="mhc_class" id="mhc_class" disabled onchange="updateSelectedMHCClass()">
@@ -115,56 +84,64 @@
 				</select>
 			</div>
 			<br>
-			
+
 			<div class="form-row">
 				<h5 class="col-md-7">Alleles</h5>
-
 				<div class="col-md-5">
-					<input 
-						type="text" 
-						id="alleles_search" 
-						placeholder="Search alleles..." 
-						onkeyup="filterAlleles()" 
-						class="form-control w-100 mb-3"
-					/>
-					
-					<select 
-						name="alleles_list" 
-						id="alleles_list" 
-						multiple 
-						size="10" 
-						disabled 
-						onclick="updateAllele(this)"
-						class="form-control w-100"
-					>
-						<!-- Options can be added dynamically later -->
-					</select>
+					<input type="text" id="alleles_search" placeholder="Search alleles..." onkeyup="filterAlleles()" class="form-control w-100 mb-3"/>
+					<select name="alleles_list" id="alleles_list" multiple size="10" disabled onclick="updateAllele(this)" class="form-control w-100"></select>
 				</div>
-				
 			</div>
-			
 			<br>
-			    
+
 			<div class="form-row">
-				<b class="col-md-7 mb-3" id="allelestextarealabel">or type allele names separated by commas.</b>  <br>
-				<!-- <input class="col-md-4 mb-3" name="alleles" type="text" value=""><br> -->
-				<textarea class="col-md-5" id='alleles'rows="3" name="alleles" placeholder="Enter alleles"></textarea><br>
-
-			</div>
-				
-				For list of allowed allele names, click here <a id="allelesreferencefilelink" href="/static/Immunolyser2.0_Allele_Dictionary.csv" target="_blank"> for the list of MHC allele names</a>.
-
+				<b class="col-md-7 mb-3" id="allelestextarealabel">or type allele names separated by commas</b>  
+				<textarea class="col-md-5" id="alleles" rows="3" name="alleles" placeholder="Enter alleles"></textarea>
 			</div>
 
-			<br>
+			<p class="small">
+				See the full list of supported alleles: 
+				<a id="allelesreferencefilelink" href="/static/Immunolyser2.0_Allele_Dictionary.csv" target="_blank">
+					Download allele list (CSV)
+				</a>
+			</p>
 			
-		</div>
-	
-		<p> 
-		<input class="col-md-12 mb-3" id="submit" name="submit" type="submit" value="Submit">
-		</p>
-   </form>
+		</fieldset>
 
+		<!-- Section: MHC Typing -->
+		<fieldset id="mhcTypingDiv" class="mb-4 p-3 border rounded" style="display:none;">
+			<legend><h4>MHC-Typing predictions</h4></legend>
+
+			<div class="form-row">
+				<h5 class="col-md-7">
+					Allele database size 
+					<i class="fa fa-question-circle" aria-hidden="true" data-toggle="tooltip" data-placement="right"
+					title="Choose which allele database to search. 
+					• Default list = top 40 most frequent alleles for each MHC class. 
+					• Full list = all alleles available in NetMHCpan 4.2 (Humans only). 
+					Mouse MHC already uses a predefined smaller list."></i>
+				</h5>
+				<select class="col-md-5" id="useFullDB" name="useFullDB">
+					<option value="no" selected>Use default list</option>
+					<option value="yes">Use full list</option>
+				</select>
+			</div>
+			<br>
+
+			<div class="form-text small">
+				Default list contains the <b>top 40 most frequent alleles</b> per MHC class.  
+				<a href="/static/mhc-tp-default-search-alleles.csv" target="_blank">Download default allele list (CSV)</a>.  
+				<br>
+				For the full reference database, see:  
+				<a href="https://services.healthtech.dtu.dk/services/NetMHCpan-4.2/" target="_blank">NetMHCpan 4.2</a>.
+			</div>
+		</fieldset>
+
+		<!-- Submit -->
+		<p> 
+			<input class="col-md-12 mb-3 btn btn-primary" id="submit" name="submit" type="submit" value="Submit">
+		</p>
+	</form>
 </div>
 
 <script type="text/javascript">
@@ -252,6 +229,13 @@
 					$('#alleles_list').prop('disabled', false);
 				}
 			});
+
+			// ✅ Show/hide MHC-Typing prediction div
+			if (species === "Human" && mhcClass === "I") {
+					$('#mhcTypingDiv').show();
+				} else {
+					$('#mhcTypingDiv').hide();
+				}
 		});
 
 	}
@@ -266,17 +250,22 @@
 
 		sampleId++;
 		var cln = sample.cloneNode(true);
-		cln.children[1].name = "sample-" + sampleId;
-		cln.children[1].id = "sample_name-" + sampleId;
-		cln.children[1].value = "";
-		cln.children[4].name = "sample-" + sampleId;
-		cln.children[4].id = "sample_file-" + sampleId;
-		cln.children[4].value = "";
-		cln.children[4].setAttribute('onchange', 'calculateNumberOfPeptidesInCsv(event)');
+		cln.querySelectorAll("label").forEach(label => label.remove());
+		const nameInput = cln.querySelector("input[type=text]");
+		const fileInput = cln.querySelector("input[type=file]");
+
+		nameInput.name = "sample-" + sampleId;
+		nameInput.id = "sample_name-" + sampleId;
+		nameInput.value = "";
+
+		fileInput.name = "sample-" + sampleId;
+		fileInput.id = "sample_file-" + sampleId;
+		fileInput.value = "";
+		fileInput.setAttribute('onchange', 'calculateNumberOfPeptidesInCsv(event)');
 		samples.appendChild(cln);
 
 		// Update dictionary tracking number of pepitdes
-		peptidesPerSample[cln.children[4].id] = 0;
+		peptidesPerSample[fileInput.id] = 0;
 	}
 
 	// Functions
@@ -289,7 +278,10 @@
 					if (removedNode.id) {
 						// Updating dictionary tracking number of peptides
 						// Removing entry tracking sample being removed
-						delete peptidesPerSample[removedNode.children[4].id];
+						const fileInput = removedNode.querySelector("input[type=file]");
+						if (fileInput) {
+							delete peptidesPerSample[fileInput.id];
+						}
 					}
 				}
 
@@ -299,14 +291,17 @@
 
 	function deleteSample() {
 		if (sampleId > 1) {
-			var select = document.getElementById('samples');
-			
-			// Updating dictionary tracking number of peptides
-			// Removing entry tracking sample being removed
-			delete peptidesPerSample[select.lastChild.children[4].id];
+			const samplesDiv = document.getElementById('samples');
+			const lastSampleRow = samplesDiv.lastElementChild;
 
-			select.removeChild(select.lastChild);
+			// Get the file input inside that row
+			const fileInput = lastSampleRow.querySelector('input[type="file"]');
 
+			if (fileInput) {
+				delete peptidesPerSample[fileInput.id];
+			}
+
+			samplesDiv.removeChild(lastSampleRow);
 			sampleId--;
 		} else {
 			alert('Analysis requires at least one sample.');
@@ -414,8 +409,8 @@
 			}
 		}
 
-		control = document.getElementById('control').getElementsByTagName('input')[1];
-		if(checkSampleFiles(control)==false){
+		const controlFileInput = document.getElementById('control_file');
+		if (controlFileInput && !checkSampleFiles(controlFileInput)) {
 			return false;
 		}
 
@@ -445,7 +440,7 @@
 			}
 		}
 
-		var alleleText = document.forms["login"]["alleles"].value;
+		const alleleText = alleleInputEl.value;
 
 		if(alleleText ==""){
 			return true;
