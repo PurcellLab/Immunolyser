@@ -790,35 +790,33 @@
                         UpSetJS.render(document.getElementById(id),props)
                     }
                     props.onClick = (set) => {
-                        // console.log(set);
+                    var data = new FormData();
+                    data.append("name", set.name);
 
-                        var data = new FormData();
-                        data.append("name", set.name);
-                        data.append("elems",set.elems);
-                        data.append("taskId",document.getElementById('taskId').innerText);
+                    // send only peptide sequences, ignore numeric values
+                    const peptideSequences = set.elems.map(p => {
+                        return (typeof p === 'string') ? p : p.sequence;
+                    });
+                    data.append("elems", JSON.stringify(peptideSequences));
 
-                        var xhr = new XMLHttpRequest();
-                        xhr.withCredentials = true;
 
-                        xhr.addEventListener("readystatechange", function() {
-                        if(this.readyState === 4) {
-                            // console.log(this.responseText);
-                        }
-                        if (this.status == 200) {
-                            // const data1 = JSON.parse(this.responseText);
-                            // console.log(data1);
-                            
+                    data.append("taskId", document.getElementById('taskId').innerText);
+
+                    var xhr = new XMLHttpRequest();
+                    xhr.withCredentials = true;
+
+                    xhr.addEventListener("readystatechange", function() {
+                        if(this.readyState === 4 && this.status == 200) {
                             document.getElementById('modalHeading').innerHTML = "Binding motif";
                             document.getElementById('modalHedingHref').href = "/static/images/{{taskId}}/selected-binders.txt?t=" + new Date().getTime();
                             document.getElementById('modalBinder').src = "static/images/{{taskId}}/seqLogoApi-001.jpg?t=" + new Date().getTime();
                             $('#myModal').modal('show'); 
                         }
-                        });
+                    })
 
-                        xhr.open("POST", window.location.origin.concat('/api/getSeqLogo'));
-
-                        xhr.send(data);
-                    }
+                    xhr.open("POST", window.location.origin.concat('/api/getSeqLogo'));
+                    xhr.send(data);
+                }
 
                     UpSetJS.render(document.getElementById(id),props);
 

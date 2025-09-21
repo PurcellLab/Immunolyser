@@ -793,22 +793,47 @@ def getBinders():
 
                 # binders is list of union of first, second and third
                 binders = first.union(second).union(third)
+                binders = [{"sequence": seq, "value": None} for seq in first.union(second).union(third)]
 
             # For class 2. Only MixMHC2pred are considered
             elif tool == "MixMHC2pred":
                 for i in binder_files:
                     df = pd.read_csv(os.path.join('app', i))
                     df = df[df['Binding Level'].notna()]   # 🔹 filter only rows with Binding Level
-                    binders.extend(df['Peptides : PlainPeptide : Core_best'].dropna().to_list())
-                binders = set(binders)
+                    binding_col_idx = df.columns.get_loc('Binding Level')
+                    numerical_column = df.columns[binding_col_idx - 1]
+
+                    binders.extend([
+                        {"sequence": seq, "value": float(val)}
+                        for seq, val in zip(df['Peptides : PlainPeptide : Core_best'].dropna(),
+                                            df[numerical_column])
+                    ])
+                # remove duplicates while preserving sequence + value
+                unique_binders = {}
+                for b in binders:
+                    unique_binders[b['sequence']] = b  # overwrites duplicates with last value
+
+                binders = list(unique_binders.values())
 
             # Else. For specific prediction tool.
             else:
                 for i in binder_files:
                     df = pd.read_csv(os.path.join('app', i))
                     df = df[df['Binding Level'].notna()]   # 🔹 filter only rows with Binding Level
-                    binders.extend(df['Peptide'].to_list())
-                binders = set(binders)
+                    binding_col_idx = df.columns.get_loc('Binding Level')
+                    numerical_column = df.columns[binding_col_idx - 1]
+
+                    binders.extend([
+                        {"sequence": seq, "value": float(val)}
+                        for seq, val in zip(df['Peptide'], df[numerical_column])
+                    ])
+                # remove duplicates while preserving sequence + value
+            unique_binders = {}
+            for b in binders:
+                unique_binders[b['sequence']] = b  # overwrites duplicates with last value
+
+            binders = list(unique_binders.values())
+
 
             res.append({'name': sample, 'elems': list(binders)})
     
@@ -886,65 +911,65 @@ def download_overlap_peptides():
     response.headers["Content-Type"] = "text/plain"
     return response
 
-@app.route("/api/getSeqLogo", methods=["POST"])
+import json
 
+@app.route("/api/getSeqLogo", methods=["POST"])
 def getSeqLogo():
 
     name = request.form['name']
-
-    # removing '(' and ')' from name if present (causing problem for subprocess call)
     print(name)
     name = str(name).replace('∩','and').replace('(','').replace(')','').replace(' ','_').strip()
-
 
     taskId = request.form['taskId']    
     if is_valid_uuid(taskId) == False:
         return f"The ID '{taskId}' is not a valid task ID."
-    elems = request.form['elems']
 
-    # print(type(elems))
-    # peptides = json.loads(elems)
-    peptides = elems.split(',')
+    # <-- minimal change here: parse JSON list from JS
+    elems = json.loads(request.form['elems'])
+
     peptides_location_forseqlogo = os.path.join(project_root,'app','static','images',taskId,'selected-9mer-binders-for-seqlogo.txt')
     binders_location = os.path.join(project_root,'app','static','images',taskId,'selected-binders.txt')
 
-    peptides = pd.DataFrame(peptides)
-    peptides.columns = ['peptide']
+    peptides = pd.DataFrame(elems, columns=['peptide'])
 
-    # In case of mhc 2 class, saving 2 columns: Peptide and Binding core
+    # --- keep all your existing if/else logic below unchanged ---
     if peptides.shape[0] > 0 and peptides[peptides['peptide'].str.contains(':')].shape[0]>0:
         total_peptides = peptides.shape[0]
         peptideswithcores = peptides['peptide'].str.split(' : ',expand=True)
         peptideswithcores.columns = ['Peptide' ,'PlainPeptide','Core']
 
-        # Saving all binders which can be downloaded in text files
         peptideswithcores[['Peptide','Core']].to_csv(binders_location,index=False)
 
         nine_mers = peptideswithcores.drop_duplicates(subset='Core').shape[0]
-        # Saving 9mer binder cores to be used for seq2logo generation
         peptideswithcores[['Core']].drop_duplicates(subset='Core').to_csv(peptides_location_forseqlogo,index=False,header=False)
 
-    # else using only peptide column
     else:
         total_peptides = peptides.shape[0]
-        # Saving all binders which can be downloaded in text files
         peptides.to_csv(binders_location,index=False,header=False)
-        # Read motif length from file
+
         motif_length_file_path = os.path.join('app', 'static', 'images', taskId, "motif_length.txt")
         with open(motif_length_file_path, 'r') as f:
             motif_length = int(f.read().strip())
 
-        # Filter peptides based on the motif length
         peptides = peptides[peptides.peptide.apply(lambda x: len(x) == motif_length)]
         nine_mers = peptides.shape[0]
-        # Saving 9mer binders to be used for seq2logo generation
         peptides.to_csv(peptides_location_forseqlogo,index=False,header=False)
 
     seqLogoLocation = os.path.join(project_root,'app','static','images',taskId,'seqLogoApi')
 
-    print('python3 {} {} {} {} {} {}'.format(os.path.join('app','seqlogoAPI.py'),peptides_location_forseqlogo,seqLogoLocation,name,nine_mers,total_peptides))
+    print('python3 {} {} {} {} {} {}'.format(os.path.join('app','seqlogoAPI.py'),
+                                              peptides_location_forseqlogo,
+                                              seqLogoLocation,
+                                              name,
+                                              nine_mers,
+                                              total_peptides))
 
-    subprocess.check_call(['python3', os.path.join('app','seqlogoAPI.py'),peptides_location_forseqlogo,seqLogoLocation,name,str(nine_mers),str(total_peptides)], shell=False)
+    subprocess.check_call(['python3', os.path.join('app','seqlogoAPI.py'),
+                           peptides_location_forseqlogo,
+                           seqLogoLocation,
+                           name,
+                           str(nine_mers),
+                           str(total_peptides)], shell=False)
 
     return os.path.join('static','images',taskId,'seqLogoApi-001.jpg')
 
