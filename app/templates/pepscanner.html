@@ -393,7 +393,7 @@
         
         col_warning_2 = false;
         showSpinner(false);
-        alert(name + ' does not contain any column starting with "Intensity_". Uncheck "Run ProtPeptigram" option to proceed.');
+        alert('No columns starting with "Intensity_" were found. Please ensure the columns are present or uncheck the "Run ProtPeptigram" option to proceed. (File: ' + name + ')');
         return false;
     
       }
