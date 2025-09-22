@@ -804,7 +804,7 @@ def getBinders():
                     numerical_column = df.columns[binding_col_idx - 1]
 
                     binders.extend([
-                        {"sequence": seq, "value": float(val)}
+                        {"sequence": seq, "value": val}
                         for seq, val in zip(df['Peptides : PlainPeptide : Core_best'].dropna(),
                                             df[numerical_column])
                     ])
@@ -824,7 +824,7 @@ def getBinders():
                     numerical_column = df.columns[binding_col_idx - 1]
 
                     binders.extend([
-                        {"sequence": seq, "value": float(val)}
+                        {"sequence": seq, "value": val}
                         for seq, val in zip(df['Peptide'], df[numerical_column])
                     ])
                 # remove duplicates while preserving sequence + value
