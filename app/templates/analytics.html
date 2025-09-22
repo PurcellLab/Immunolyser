@@ -746,143 +746,144 @@
 
             injectUpsetPlot(taskId,'',allele,'yes',id);
         }
-function injectUpsetPlot(taskId, tool, allele, onlyName, id) {
 
-    var data = new FormData();
-    data.append("taskId", taskId);
-    data.append("tool", tool);
-    data.append("allele", allele);
-    data.append("list", onlyName);
-    data.append("replicates", getSelectedReplicates());
+        function injectUpsetPlot(taskId, tool, allele, onlyName, id) {
 
-    var xhr = new XMLHttpRequest();
-    xhr.withCredentials = true;
+            var data = new FormData();
+            data.append("taskId", taskId);
+            data.append("tool", tool);
+            data.append("allele", allele);
+            data.append("list", onlyName);
+            data.append("replicates", getSelectedReplicates());
 
-    xhr.addEventListener("readystatechange", function () {
-        if (this.readyState === 4 && this.status == 200) {
-            const respData = JSON.parse(this.responseText);
+            var xhr = new XMLHttpRequest();
+            xhr.withCredentials = true;
 
-            // ---------------------------
-            // Build element-level data
-            // ---------------------------
-            const seqMap = {};
-            respData.forEach(sample => {
-                sample.elems.forEach(p => {
-                    const seq = p.sequence;
-                    if (!seqMap[seq]) {
-                        seqMap[seq] = { name: seq, sets: [], values: {} };
-                    }
-                    if (!seqMap[seq].sets.includes(sample.name)) {
-                        seqMap[seq].sets.push(sample.name);
-                    }
-                    seqMap[seq].values[sample.name] = p.value;
-                });
-            });
-            const elements = Object.values(seqMap);
+            xhr.addEventListener("readystatechange", function () {
+                if (this.readyState === 4 && this.status == 200) {
+                    const respData = JSON.parse(this.responseText);
 
-            // Extract sets + combinations from UpSetJS
-            const { sets, combinations } = UpSetJS.extractCombinations(elements);
+                    // ---------------------------
+                    // Build element-level data
+                    // ---------------------------
+                    const seqMap = {};
+                    respData.forEach(sample => {
+                        sample.elems.forEach(p => {
+                            const seq = p.sequence;
+                            if (!seqMap[seq]) {
+                                seqMap[seq] = { name: seq, sets: [], values: {} };
+                            }
+                            if (!seqMap[seq].sets.includes(sample.name)) {
+                                seqMap[seq].sets.push(sample.name);
+                            }
+                            seqMap[seq].values[sample.name] = p.value;
+                        });
+                    });
+                    const elements = Object.values(seqMap);
 
-            // ---------------------------
-            // Render UpSet plot
-            // ---------------------------
-            const props = {
-                sets: sets,
-                combinations: combinations,
-                width: 1200,
-                height: 600,
-                selection: null,
-                setName: '',
-                combinationName: 'Number of binders',
-                combinations: {
-                    type: 'distinctIntersection',
-                    min: 1,
-                    limit: 100,
-                    order: 'cardinality',
-                }
-            };
+                    // Extract sets + combinations from UpSetJS
+                    const { sets, combinations } = UpSetJS.extractCombinations(elements);
 
-            props.onHover = (set) => {
-                props.selection = set;
-                UpSetJS.render(document.getElementById(id), props);
-            };
+                    // ---------------------------
+                    // Render UpSet plot
+                    // ---------------------------
+                    const props = {
+                        sets: sets,
+                        combinations: combinations,
+                        width: 1200,
+                        height: 600,
+                        selection: null,
+                        setName: '',
+                        combinationName: 'Number of binders',
+                        combinations: {
+                            type: 'distinctIntersection',
+                            min: 1,
+                            limit: 100,
+                            order: 'cardinality',
+                        }
+                    };
 
-            props.onClick = (set) => {
-                var clickData = new FormData();
-                clickData.append("name", set.name);
+                    props.onHover = (set) => {
+                        props.selection = set;
+                        UpSetJS.render(document.getElementById(id), props);
+                    };
 
-                const peptideSequences = set.elems.map(e => {
-                    return (typeof e === 'string') ? e : (e.name || e.sequence);
-                });
-                clickData.append("elems", JSON.stringify(peptideSequences));
-                clickData.append("taskId", document.getElementById('taskId').innerText);
+                    props.onClick = (set) => {
+                        var clickData = new FormData();
+                        clickData.append("name", set.name);
 
-                var xhrClick = new XMLHttpRequest();
-                xhrClick.withCredentials = true;
-                xhrClick.addEventListener("readystatechange", function () {
-                    if (this.readyState === 4 && this.status == 200) {
-                        document.getElementById('modalHeading').innerHTML = "Binding motif";
-                        document.getElementById('modalHedingHref').href = "/static/images/{{taskId}}/selected-binders.txt?t=" + new Date().getTime();
-                        document.getElementById('modalBinder').src = "static/images/{{taskId}}/seqLogoApi-001.jpg?t=" + new Date().getTime();
-                        $('#myModal').modal('show');
-                    }
-                });
+                        const peptideSequences = set.elems.map(e => {
+                            return (typeof e === 'string') ? e : (e.name || e.sequence);
+                        });
+                        clickData.append("elems", JSON.stringify(peptideSequences));
+                        clickData.append("taskId", document.getElementById('taskId').innerText);
 
-                xhrClick.open("POST", window.location.origin.concat('/api/getSeqLogo'));
-                xhrClick.send(clickData);
-            };
-
-            UpSetJS.render(document.getElementById(id), props);
-
-            // ---------------------------
-            // ALSO build violin plot from combinations (sets + overlaps)
-            // ---------------------------
-            let traces = [];
-            combinations.forEach(combo => {
-                let x = [];
-                let y = [];
-                let hoverText = [];
-
-                combo.elems.forEach(p => {
-                    Object.values(p.values).forEach(v => {
-                            x.push(combo.name);
-                            y.push(v);
-                            hoverText.push(p.name);
+                        var xhrClick = new XMLHttpRequest();
+                        xhrClick.withCredentials = true;
+                        xhrClick.addEventListener("readystatechange", function () {
+                            if (this.readyState === 4 && this.status == 200) {
+                                document.getElementById('modalHeading').innerHTML = "Binding motif";
+                                document.getElementById('modalHedingHref').href = "/static/images/{{taskId}}/selected-binders.txt?t=" + new Date().getTime();
+                                document.getElementById('modalBinder').src = "static/images/{{taskId}}/seqLogoApi-001.jpg?t=" + new Date().getTime();
+                                $('#myModal').modal('show');
+                            }
                         });
 
-                });
+                        xhrClick.open("POST", window.location.origin.concat('/api/getSeqLogo'));
+                        xhrClick.send(clickData);
+                    };
 
-                if (y.length > 0) {
-                    traces.push({
-                        type: 'violin',
-                        x: x,
-                        y: y,
-                        name: combo.name,
-                        box: { visible: true },
-                        points: 'all',
-                        meanline: { visible: true },
-                        hovertext: hoverText,
-                        hoverinfo: 'text+y'
+                    UpSetJS.render(document.getElementById(id), props);
+
+                    // ---------------------------
+                    // ALSO build violin plot from combinations (sets + overlaps)
+                    // ---------------------------
+                    let traces = [];
+                    combinations.forEach(combo => {
+                        let x = [];
+                        let y = [];
+                        let hoverText = [];
+
+                        combo.elems.forEach(p => {
+                            Object.values(p.values).forEach(v => {
+                                    x.push(combo.name);
+                                    y.push(v);
+                                    hoverText.push(p.name);
+                                });
+
+                        });
+
+                        if (y.length > 0) {
+                            traces.push({
+                                type: 'violin',
+                                x: x,
+                                y: y,
+                                name: combo.name,
+                                box: { visible: true },
+                                points: 'all',
+                                meanline: { visible: true },
+                                hovertext: hoverText,
+                                hoverinfo: 'text+y'
+                            });
+                        }
                     });
+
+                    const layout = {
+                        title: 'Binder Violin Plot (Sets + Overlaps)',
+                        yaxis: { title: 'Binding Value' },
+                        xaxis: { title: 'Set / Overlap' },
+                        width: 1200,
+                        height: 600
+                    };
+
+                    Plotly.newPlot("violinPlotDiv", traces, layout, { responsive: true });
+
                 }
             });
 
-            const layout = {
-                title: 'Binder Violin Plot (Sets + Overlaps)',
-                yaxis: { title: 'Binding Value' },
-                xaxis: { title: 'Set / Overlap' },
-                width: 1200,
-                height: 600
-            };
-
-            Plotly.newPlot("violinPlotDiv", traces, layout, { responsive: true });
-
+            xhr.open("POST", window.location.origin.concat('/api/getBinders'));
+            xhr.send(data);
         }
-    });
-
-    xhr.open("POST", window.location.origin.concat('/api/getBinders'));
-    xhr.send(data);
-}
 
         function updateUpset(taskId,elem){
 
