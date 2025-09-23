@@ -494,14 +494,101 @@
                             {% endfor %}
                         </div>                
                     </div>
-                    <div id="violinPlotDiv" style="width:100%; height:600px;"></div>
+                </div>
+            </div>
+            <br>
 
+            <p class="text-justify">
+                Binding prediction has been applied to a peptide list after removal of peptides labelled 
+                as <code>#CONTAM</code> or <code>#DECOY</code>, PTMs 
+                (for example, “A[+28.03]TFGVDESNAK” or “A(+28.03)TFGVDESNAK” are treated as “ATFGVDESNAK”), 
+                and resulting duplicates. For Class I, 8–14-mers were used as input, whereas for Class II 
+                12–20-mers were used. Seq2Logos are generated based on 9-mer cores (duplicates removed) 
+                predicted by binding prediction tools.
+            </p>
+            <br>
+
+            <!-- Wrap violin area in a container -->
+            <div id="violinSection" style="display:none; margin-top:20px;">
+                <div id="violinPlotDiv" style="width:100%; height:600px;"></div>
+
+                <br>
+                <div id="violinPlotDescription" style="max-width:1200px;">
+                    <h4>About the violin plot</h4>
+                    <p>
+                        The violin plot visualises the <strong>distribution of predicted binding values</strong> 
+                        for peptides that are a <strong>subset of the binders shown in the UpSet plot</strong>. 
+                        Only peptides within tool-specific thresholds for strong or weak binders are included. 
+                        Thresholds vary depending on the prediction tool and MHC class, for example:
+                    </p>
+                    <table style="border-collapse: collapse; margin-bottom: 10px;">
+                        <thead>
+                            <tr>
+                                <th style="border: 1px solid #ccc; padding: 4px;">MHC</th>
+                                <th style="border: 1px solid #ccc; padding: 4px;">Tool</th>
+                                <th style="border: 1px solid #ccc; padding: 4px;">Peptide length</th>
+                                <th style="border: 1px solid #ccc; padding: 4px;">Output column</th>
+                                <th style="border: 1px solid #ccc; padding: 4px;">Strong binder threshold</th>
+                                <th style="border: 1px solid #ccc; padding: 4px;">Weak binder threshold</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="border: 1px solid #ccc; padding: 4px;">Class I</td>
+                                <td style="border: 1px solid #ccc; padding: 4px;">NetMHCpan-4.2</td>
+                                <td style="border: 1px solid #ccc; padding: 4px;">8–14-mers</td>
+                                <td style="border: 1px solid #ccc; padding: 4px;">Rank</td>
+                                <td style="border: 1px solid #ccc; padding: 4px;">0.50%</td>
+                                <td style="border: 1px solid #ccc; padding: 4px;">2.00%</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #ccc; padding: 4px;"></td>
+                                <td style="border: 1px solid #ccc; padding: 4px;">MixMHCpred 3.0</td>
+                                <td style="border: 1px solid #ccc; padding: 4px;"></td>
+                                <td style="border: 1px solid #ccc; padding: 4px;">%Rank_bestAllele</td>
+                                <td style="border: 1px solid #ccc; padding: 4px;">2</td>
+                                <td style="border: 1px solid #ccc; padding: 4px;">10</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #ccc; padding: 4px;"></td>
+                                <td style="border: 1px solid #ccc; padding: 4px;">MHCflurry 2.0</td>
+                                <td style="border: 1px solid #ccc; padding: 4px;"></td>
+                                <td style="border: 1px solid #ccc; padding: 4px;">presentation_percentile</td>
+                                <td style="border: 1px solid #ccc; padding: 4px;">0.2%</td>
+                                <td style="border: 1px solid #ccc; padding: 4px;">5%</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #ccc; padding: 4px;">Class II</td>
+                                <td style="border: 1px solid #ccc; padding: 4px;">NetMHCIIpan-4.3</td>
+                                <td style="border: 1px solid #ccc; padding: 4px;">12–20-mers</td>
+                                <td style="border: 1px solid #ccc; padding: 4px;">%Rank_EL</td>
+                                <td style="border: 1px solid #ccc; padding: 4px;">1.00%</td>
+                                <td style="border: 1px solid #ccc; padding: 4px;">5.00%</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #ccc; padding: 4px;"></td>
+                                <td style="border: 1px solid #ccc; padding: 4px;">MixMHC2pred-2.0</td>
+                                <td style="border: 1px solid #ccc; padding: 4px;"></td>
+                                <td style="border: 1px solid #ccc; padding: 4px;">%Rank_best</td>
+                                <td style="border: 1px solid #ccc; padding: 4px;">2</td>
+                                <td style="border: 1px solid #ccc; padding: 4px;">10</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <ul>
+                        <li><strong>X-axis:</strong> Sets (<em>Sample Only</em>) and overlaps (<em>Sample1 ∩ Sample2</em>), sorted from the largest to the smallest number of binders.</li>
+                        <li><strong>Y-axis:</strong> Predicted binding values for the peptides within the thresholds.</li>
+                        <li><strong>Violin shape:</strong> Shows the distribution density of binding values.</li>
+                        <li><strong>Box line:</strong> Indicates the median and interquartile range.</li>
+                        <li><strong>Points:</strong> Individual peptides are displayed as scatter points for detailed inspection.</li>
+                    </ul>
+                    <p>
+                        This violin plot complements the UpSet plot by allowing comparison of binding value distributions between unique and shared peptide binders within tool-specific thresholds.
+                    </p>
                 </div>
             </div>
 
-        <br>
-        <p class="text-justify">Binding prediction has been applied to a peptide list after removal of eptides labelled as <code>#CONTAM</code> or <code>#DECOY</code>, PTMs (For e.g., “A[+28.03]TFGVDESNAK” or “A(+28.03)TFGVDESNAK” will be treated as “ATFGVDESNAK”) and resulting duplicates. For class I based on 8-14-mers were used as input whereas for class II 12-20-mers were used.  Seq2Logos are generated based on 9-mer cores (duplicates removed) predicted by binding prediction tools.</p> 
-        <br>
+
         
         <a href="{{ url_for('download_job_data_files_zip', taskId=taskId, filename=zip_filename) }}" class="btn btn-sm btn-outline-primary">
             Download data files used to generate report (ZIP)
@@ -836,47 +923,70 @@
                     UpSetJS.render(document.getElementById(id), props);
 
                     // ---------------------------
-                    // ALSO build violin plot from combinations (sets + overlaps)
+                    // Conditionally render violin plot + description
                     // ---------------------------
-                    let traces = [];
-                    combinations.forEach(combo => {
-                        let x = [];
-                        let y = [];
-                        let hoverText = [];
+                    if (tool && tool.trim() !== "") {
+                        // Sort combinations same way as UpSetJS (by cardinality, desc)
+                        const sortedCombinations = [...combinations].sort((a, b) => b.elems.length - a.elems.length);
 
-                        combo.elems.forEach(p => {
-                            Object.values(p.values).forEach(v => {
-                                x.push(combo.sets.size === 1 ? combo.name + " Only" : combo.name);
-                                y.push(v);
-                                hoverText.push(p.name);
+                        let traces = [];
+                        sortedCombinations.forEach(combo => {
+                            let x = [];
+                            let y = [];
+                            let hoverText = [];
+
+                            combo.elems.forEach(p => {
+                                Object.values(p.values).forEach(v => {
+                                    x.push(combo.sets.size === 1 ? combo.name + " Only" : combo.name);
+                                    y.push(v);
+                                    hoverText.push(p.name);
+                                });
                             });
+
+                            if (y.length > 0) {
+                                traces.push({
+                                    type: 'violin',
+                                    x: x,
+                                    y: y,
+                                    name: combo.sets.size === 1 ? combo.name + " Only" : combo.name,
+                                    box: { visible: true },
+                                    points: 'all',
+                                    meanline: { visible: true },
+                                    hovertext: hoverText,
+                                    hoverinfo: 'text+y'
+                                });
+                            }
                         });
 
-                        if (y.length > 0) {
-                            traces.push({
-                                type: 'violin',
-                                x: x,
-                                y: y,
-                                name: combo.sets.size === 1 ? combo.name + " Only" : combo.name,
-                                box: { visible: true },
-                                points: 'all',
-                                meanline: { visible: true },
-                                hovertext: hoverText,
-                                hoverinfo: 'text+y'
-                            });
+                        const layout = {
+                            title: 'Binder Violin Plot (Sets + Overlaps)',
+                            yaxis: { title: 'Binding Value' },
+                            xaxis: { title: 'Set / Overlap' },
+                            width: 1200,
+                            height: 600
+                        };
+
+                        if (tool && tool.trim() !== "") {
+                            // render violin plot
+                            Plotly.newPlot("violinPlotDiv", traces, layout, { responsive: true });
+
+                            // show violin section (plot + description)
+                            document.getElementById("violinSection").style.display = "block";
+                        } else {
+                            // clear and hide violin section
+                            document.getElementById("violinPlotDiv").innerHTML = "";
+                            document.getElementById("violinSection").style.display = "none";
                         }
-                    });
 
-                    const layout = {
-                        title: 'Binder Violin Plot (Sets + Overlaps)',
-                        yaxis: { title: 'Binding Value' },
-                        xaxis: { title: 'Set / Overlap' },
-                        width: 1200,
-                        height: 600
-                    };
+                        // Plotly.newPlot("violinPlotDiv", traces, layout, { responsive: true });
 
-                    Plotly.newPlot("violinPlotDiv", traces, layout, { responsive: true });
-
+                        // Show violin description
+                        document.getElementById("violinDescription").style.display = "block";
+                    } else {
+                        // Hide violin plot + description if no specific tool
+                        document.getElementById("violinPlotDiv").innerHTML = "";
+                        document.getElementById("violinDescription").style.display = "none";
+                    }
                 }
             });
 
