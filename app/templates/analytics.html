@@ -846,11 +846,10 @@
 
                         combo.elems.forEach(p => {
                             Object.values(p.values).forEach(v => {
-                                    x.push(combo.name);
-                                    y.push(v);
-                                    hoverText.push(p.name);
-                                });
-
+                                x.push(combo.sets.size === 1 ? combo.name + " Only" : combo.name);
+                                y.push(v);
+                                hoverText.push(p.name);
+                            });
                         });
 
                         if (y.length > 0) {
@@ -858,7 +857,7 @@
                                 type: 'violin',
                                 x: x,
                                 y: y,
-                                name: combo.name,
+                                name: combo.sets.size === 1 ? combo.name + " Only" : combo.name,
                                 box: { visible: true },
                                 points: 'all',
                                 meanline: { visible: true },
