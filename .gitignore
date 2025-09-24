@@ -7,3 +7,6 @@ lenv/*
 results.sqlite
 .vscode/launch.json
 test.py
+data_files/*
+data_files_2/*
+tools/*
