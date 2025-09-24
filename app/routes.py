@@ -285,7 +285,7 @@ def analytics():
 
     return render_template("error.html",analytics=True, msg = 'initialiser')
 
-@app.route('/<taskId>')
+@app.route('/<uuid:taskId>')
 def getExistingReport(taskId):
 
     global DEMO_TASK_ID
@@ -296,6 +296,8 @@ def getExistingReport(taskId):
         pass
     elif is_valid_uuid(taskId) == False:
         return f"The given ID is not a valid task ID."
+
+    taskId = str(taskId)
 
     # Confirming the project root is correct
     os.chdir(project_root)
@@ -393,11 +395,9 @@ def getTaskId():
 
 def is_valid_uuid(submission_id):
     try:
-        # Try to create a UUID object from the given string
-        uuid_obj = uuid.UUID(submission_id)
+        uuid.UUID(str(submission_id))  # always cast to string first
         return True
     except ValueError:
-        # ValueError will be raised if the string is not a valid UUID
         return False
 
 # This method is to create the bar graphs for an input file not created already
