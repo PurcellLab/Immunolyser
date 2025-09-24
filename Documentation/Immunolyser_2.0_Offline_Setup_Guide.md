@@ -63,16 +63,16 @@ To make the Docker setup work, you'll need to download several tools and place t
   - <a href="https://services.healthtech.dtu.dk/cgi-bin/sw_request?software=gibbscluster&version=2.0&packageversion=2.0f&platform=Linux" target="_blank">Download GibbsCluster 2.0f</a>.
   - Save the `.gz` file in the `tools` folder.
 
-- **NetMHCpan 4.1b**:
+- **NetMHCpan 4.2b**:
 
   - <a href="https://services.healthtech.dtu.dk/cgi-bin/sw_request?software=netMHCpan&version=4.2&packageversion=4.2b&platform=Linux" target="_blank">Download NetMHCpan 4.2b</a>.
   - Save the `.gz` file in the `tools` folder.
-  - Ensure the file is named `netMHCpan-4.1b.Linux.tar.gz` (remove any extra numbers added by the system).
+  - Ensure the file is named `netMHCpan-4.2b.Linux.tar.gz` (remove any extra numbers added by the system).
 
-- **NetMHCIIpan 4.3f**:
+- **NetMHCIIpan 4.3i**:
 
   - <a href="https://services.healthtech.dtu.dk/cgi-bin/sw_request?software=netMHCIIpan&version=4.3&packageversion=4.3i&platform=Linux" target="_blank">Download NetMHCIIpan 4.3i</a>.
-  - Save the `.gz` file in the `tools` folder as `netMHCIIpan-4.3f.Linux.tar.gz`.
+  - Save the `.gz` file in the `tools` folder as `netMHCIIpan-4.3i.Linux.tar.gz`.
 
 ### **Folder Structure**  
 
