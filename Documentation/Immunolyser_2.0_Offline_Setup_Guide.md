@@ -65,13 +65,13 @@ To make the Docker setup work, you'll need to download several tools and place t
 
 - **NetMHCpan 4.1b**:
 
-  - <a href="https://services.healthtech.dtu.dk/cgi-bin/sw_request?software=netMHCpan&version=4.1&packageversion=4.1b&platform=Linux" target="_blank">Download NetMHCpan 4.1b</a>.
+  - <a href="https://services.healthtech.dtu.dk/cgi-bin/sw_request?software=netMHCpan&version=4.2&packageversion=4.2b&platform=Linux" target="_blank">Download NetMHCpan 4.2b</a>.
   - Save the `.gz` file in the `tools` folder.
   - Ensure the file is named `netMHCpan-4.1b.Linux.tar.gz` (remove any extra numbers added by the system).
 
 - **NetMHCIIpan 4.3f**:
 
-  - <a href="https://services.healthtech.dtu.dk/cgi-bin/sw_request?software=netMHCIIpan&version=4.3&packageversion=4.3f&platform=Linux" target="_blank">Download NetMHCIIpan 4.3f</a>.
+  - <a href="https://services.healthtech.dtu.dk/cgi-bin/sw_request?software=netMHCIIpan&version=4.3&packageversion=4.3i&platform=Linux" target="_blank">Download NetMHCIIpan 4.3i</a>.
   - Save the `.gz` file in the `tools` folder as `netMHCIIpan-4.3f.Linux.tar.gz`.
 
 ### **Folder Structure**  
