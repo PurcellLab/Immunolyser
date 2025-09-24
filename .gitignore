@@ -4,3 +4,6 @@ app/__pycache__/*
 __pycache__/
 immunolyser-data/*
 lenv/*
+data_files/*
+data_files_2/*
+tools/*
