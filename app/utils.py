@@ -721,8 +721,7 @@ def get_allele_name_tool_specific(allele, predictor, class_, df):
         return None
 
 def saveMajorityVotedBinders(taskId, data, predictionTools, alleles_unformatted, ALLELE_DICTIONARY):
-
-    # Creating directories to store majority binding prediction results
+    # Create directories to store majority binding prediction results
     for sample, replicates in data.items():
         for predictionTool in predictionTools:
             for replicate in replicates:
@@ -730,88 +729,93 @@ def saveMajorityVotedBinders(taskId, data, predictionTools, alleles_unformatted,
                     for allele in alleles_unformatted.split(','):
                         try:
                             if sample != 'Control':
-
-                                # Path to store user friendly binders data
-                                path = os.path.join('app', 'static', 'images', taskId, sample, 'Majority_Voted', replicate[:-4], 'binders', allele.replace(':', '_'))    
-
-                            if not os.path.exists(path):
-                                # os.makedirs(directory)
-                                Path(path).mkdir(parents=True, exist_ok=True)
-                                print("Directory Created : {}".format(path))
-                                
+                                path = os.path.join(
+                                    'app', 'static', 'images', taskId, sample,
+                                    'Majority_Voted', replicate[:-4], 'binders',
+                                    allele.replace(':', '_')
+                                )
+                                if not os.path.exists(path):
+                                    Path(path).mkdir(parents=True, exist_ok=True)
+                                    print(f"Directory Created : {path}")
                         except FileExistsError:
-                            print("Directory already exists {}".format(path))
+                            print(f"Directory already exists {path}")
 
-    # Creating CSV files to store majority binding prediction results
-
-    # Load the allele compatibility matrix (assuming it's a CSV file)
+    # Load allele compatibility matrix
     compatibility_matrix_path = os.path.join('app', 'static', 'images', taskId, 'allele_compatibility_matrix.csv')
     compatibility_matrix = pd.read_csv(compatibility_matrix_path, index_col=0)
 
     for sample, replicates in data.items():
-
         for replicate in replicates:
-
-            # Iterating selected alleles
             for allele in compatibility_matrix.columns:
+                # Get tools compatible with this allele
+                compatible_tools = compatibility_matrix.index[compatibility_matrix[allele] == "Yes"].tolist()
 
-                    # Filter tools that say "Yes" for this allele
-                    compatible_tools = compatibility_matrix.index[compatibility_matrix[allele] == "Yes"].tolist()
+                binder_files = []
+                for predictionTool in compatible_tools:
+                    predictor_short_name = get_short_name(predictionTool)
+                    allele_sanitized = allele.replace(':', '_')
+                    search_path = f'app/static/images/{taskId}/{sample}/{predictor_short_name}/{replicate[:-4]}/binders/{allele_sanitized}/*.csv'
+                    print(f"Searching binders is: {search_path}")
 
-                    binder_files = []
-                    for predictionTool in compatible_tools:
+                    files = glob.glob(search_path)
+                    binder_files.extend([(f, predictor_short_name) for f in files])
+                    print(f"Found files: {binder_files}")
 
-                        # Store the short name in a variable
-                        predictor_short_name = get_short_name(predictionTool)
-                        # Remove : from allele name
-                        allele = allele.replace(':', '_')
+                # Majority voting logic
+                peptide_counts = defaultdict(int)
+                all_data = []
+                extra_cols = []
 
-                        search_path = f'app/static/images/{taskId}/{sample}/{predictor_short_name}/{replicate[:-4]}/binders/{allele}/*.csv'
-                        print(f"Searching binders is: {search_path}")  # Print where it's searching
-                        
-                        files = glob.glob(search_path)
+                for binder_file, tool_name in binder_files:
+                    df = pd.read_csv(binder_file)
+                    df = df[df['Binding Level'].notna() & (df['Binding Level'] != '')]
 
-                        binder_files.extend(files)  
+                    # Remove intermediate columns
+                    cols_to_remove = df.columns[
+                        df.columns.get_loc('PlainPeptide') + 1 : df.columns.get_loc('Control')
+                    ]
+                    renamed_cols = {col: f"{tool_name}_{col}" for col in cols_to_remove}
+                    extra_df = df[['PlainPeptide'] + list(cols_to_remove)].rename(columns=renamed_cols)
+                    extra_cols.append(extra_df)
 
-                    print(f"  Found files: {binder_files}")  # Print found files
+                    df = df.drop(columns=cols_to_remove)
+                    all_data.append(df)
 
-                    # Dictionary to hold the peptide occurrences across files
-                    peptide_counts = defaultdict(int)
-                    all_data = []
-                    # Perform majority voting based and save in files
-                    # Iterate over all files in the list
-                    for binder_file in binder_files:
-                        # Read the CSV file into a DataFrame
-                        df = pd.read_csv(binder_file)
-                        
-                        # Drop rows where 'Binding Level' is empty
-                        df = df[df['Binding Level'].notna() & (df['Binding Level'] != '')]
+                    peptides_in_file = set(df['PlainPeptide'].dropna().astype(str))
+                    for peptide in peptides_in_file:
+                        peptide_counts[peptide] += 1
 
-                        # Remove unwanted columns between 'PlainPeptide' and 'Control'
-                        columns_to_remove = df.columns[df.columns.get_loc('PlainPeptide')+1 : df.columns.get_loc('Control')]
-                        df.drop(columns=columns_to_remove, inplace=True)
-                        
-                        # Add data from the file to the all_data list
-                        all_data.append(df)
-                        
-                        # Track peptide occurrences
-                        for peptide in df['PlainPeptide']:
-                            peptide_counts[peptide] += 1
-                    
-                    # Determine majority threshold (e.g., for 3 files, threshold is 2)
-                    majority_threshold = len(binder_files) // 2
+                majority_threshold = len(binder_files) // 2
+                majority_peptides = [
+                    pep for pep, count in peptide_counts.items()
+                    if count > majority_threshold
+                ]
 
-                    # Filter peptides that meet the majority voting rule
-                    majority_peptides = [peptide for peptide, count in peptide_counts.items() if count > majority_threshold]
-                    
-                    # Concatenate the data from all files
-                    combined_df = pd.concat(all_data, ignore_index=True)
-                    
-                    # Filter the rows to keep only the majority peptides
-                    filtered_df = combined_df[combined_df['PlainPeptide'].isin(majority_peptides)].drop_duplicates(subset=['PlainPeptide'])
+                # Combine all main data
+                combined_df = pd.concat(all_data, ignore_index=True)
 
-                    # Write the filtered data to a new CSV file
-                    filtered_df.to_csv(f'{project_root}/app/static/images/{taskId}/{sample}/Majority_Voted/{replicate[:-4]}/binders/{allele.replace(":", "_")}/{replicate[:-4]}_{allele.replace(":", "_")}_majority_voted_binders.csv', index=False)
+                # Filter only majority peptides
+                filtered_df = combined_df[
+                    combined_df['PlainPeptide'].isin(majority_peptides)
+                ]
+
+                # Group by PlainPeptide to remove duplicates and keep the first occurrence
+                filtered_df = filtered_df.groupby('PlainPeptide').first().reset_index()
+
+                # Merge back the extra columns (outer join by PlainPeptide)
+                for extra_df in extra_cols:
+                    filtered_df = filtered_df.merge(extra_df, on='PlainPeptide', how='left')
+
+                # Final deduplication — remove exact duplicate rows
+                filtered_df = filtered_df.drop_duplicates()
+
+
+                output_path = os.path.join(
+                    project_root, 'app', 'static', 'images', taskId, sample,
+                    'Majority_Voted', replicate[:-4], 'binders', allele.replace(':', '_'),
+                    f"{replicate[:-4]}_{allele.replace(':', '_')}_majority_voted_binders.csv"
+                )
+                filtered_df.to_csv(output_path, index=False)
 
 def runHLAClust(taskId, data, species=None, use_mhc_tp_full_DB=None, logger=None):
 

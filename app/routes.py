@@ -782,7 +782,7 @@ def getBinders():
                     for k in j:
                         df = pd.read_csv(os.path.join('app', k))
                         df = df[df['Binding Level'].notna()]   # 🔹 filter only rows with Binding Level
-                        binders[i].extend(df['Peptide'].to_list())
+                        binders[i].extend(df['PlainPeptide'].to_list())
 
                 # first: Common binder from first and second tool
                 # second: Common binder from second and third tool
