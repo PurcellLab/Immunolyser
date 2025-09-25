@@ -758,7 +758,7 @@
                         // Build form data
                         var data = new FormData();
                         data.append("name", set.name);
-                        data.append("elems", set.elems);   // peptides from the clicked bar
+                        data.append("elems", JSON.stringify(set.elems));
                         data.append("taskId", taskId);
 
                         var xhr = new XMLHttpRequest();
