@@ -1380,7 +1380,7 @@ def download_gibbscluster_core(taskid, sample, replicate, cluster_attempt):
     logger.info(f"Serving core file: {core_file}")
 
     try:
-        return send_file(core_file, as_attachment=True)
+        return send_file(core_file, mimetype="text/plain", as_attachment=False)
     except Exception:
         logger.exception(f"Failed to send core file: {core_file}")
         return abort(500, description="Error sending core file.")
