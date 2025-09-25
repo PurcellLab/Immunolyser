@@ -40,7 +40,7 @@
 			<br><br>
 			<div class="col-md-7 mb-3">Control data
 				<i class="fa fa-question-circle" aria-hidden="true" data-toggle="tooltip" data-placement="right"
-				   title="Control data is optional.&#013;If provided, it should be a CSV file containing a 'Peptide' column."></i>
+					title="Control data is optional.&#013;If provided, it should be a CSV file containing a 'Peptide' column.&#013;If control data is added, peptides contained in the control file will be marked in an additional column."></i>
 			</div>
 			
 			<div id="control" class="form-row">
@@ -110,16 +110,16 @@
 
 		<!-- Section: MHC Typing -->
 		<fieldset id="mhcTypingDiv" class="mb-4 p-3 border rounded" style="display:none;">
-			<legend><h4>MHC-Typing predictions</h4></legend>
+			<legend><h4>MHC-Typing prediction</h4></legend>
 
 			<div class="form-row">
 				<h5 class="col-md-7">
-					Allele database size 
+					MHC I allele database size 
 					<i class="fa fa-question-circle" aria-hidden="true" data-toggle="tooltip" data-placement="right"
-					title="Choose which allele database to search. 
-					• Default list = top 40 most frequent alleles for each MHC class. 
-					• Full list = all alleles available in NetMHCpan 4.2 (Humans only). 
-					Mouse MHC already uses a predefined smaller list."></i>
+					title="Choose an MHC I allele database for the MHC-Typing prediction. 
+					• Default list = top 40 most frequent alleles per MHC I locus. 
+					• Full list = all alleles available in NetMHCpan 4.2 (Humans only). The use of top 40 database is recommended. 
+					The mouse MHC I database uses a list of 9 mouse MHC I alleles."></i>
 				</h5>
 				<select class="col-md-5" id="useFullDB" name="useFullDB">
 					<option value="no" selected>Use default list</option>
@@ -129,7 +129,7 @@
 			<br>
 
 			<div class="form-text small">
-				Default list contains the <b>top 40 most frequent alleles</b> per MHC class.  
+				The default list contains the <b>top 40 most frequent alleles</b> per MHC I class.  
 				<a href="/static/mhc-tp-default-search-alleles.csv" target="_blank">Download default allele list (CSV)</a>.  
 				<br>
 				For the full reference database, see:  
