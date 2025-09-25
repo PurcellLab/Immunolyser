@@ -863,7 +863,7 @@ def run_clust_search(input_file, ref_file, output_dir, species, use_mhc_tp_full_
         if species.lower() == "mouse":
             species_flag = ["-s", "mouse", "-t", "0.1"]
         elif species.lower() == "human":
-            species_flag = ["-s", "human"]
+            species_flag = ["-s", "human", "-t", "0."]
         else:
             raise ValueError("Invalid species. Choose either 'mouse' or 'human'.")
 
