@@ -355,65 +355,59 @@
     <h3>Peptide-HLA binding affinity prediction</h3>
         
     <p>
-        The following downloadable CSV files contain binding prediction results from each prediction tool. You can also download the majority-voted binders (rightmost column).  
+        The following downloadable CSV files contain <strong>majority-voted binding predictions</strong>.  
+        Each file includes <strong>all peptides from your uploaded data</strong>, along with predictions from all selected tools.
     </p>
-
+    
     <p>
-        Among others, the CSV file contains three key columns:  
+        Key columns in these files include:
         <ul>
-            <li><strong>Peptide</strong> – the binder sequence</li>
-            <li><strong>Binding Level</strong> – the binder type (i.e., strong or weak)</li>
+            <li><strong>Peptide</strong> – the original peptide sequence you uploaded</li>
+            <li><strong>Is Majority Voted Binder</strong> – indicates whether the peptide was identified as a majority-voted binder</li>
             <li><strong>Control</strong> – specifies whether the peptide is also present in the control group (if uploaded)</li>
         </ul>
-        The binders in the downloadable CSV files are <strong>sorted by predicted binding affinity</strong>.
     </p>
-
+    
     <p>
-        In addition to these, <strong>all columns from your originally uploaded files are also preserved</strong>.
+        In addition, the files contain <strong>tool-specific prediction columns</strong> such as ranks, binding levels, affinity scores, cores, and other outputs provided by each prediction tool.
+    </p>    
+    
+    <p>
+        This ensures that while you can easily see which peptides are <strong>majority-voted binders</strong>,  
+        you also retain full access to the <strong>individual predictions from each tool</strong> for every peptide.
     </p>
+    
+    <div id="binderReports">
 
-        <div id="binderReports">
-            
-            {% for sample, alleles in predicted_binders.items() %}
-                <h4>{{sample}}</h4>
-                <br>
-                <table class="table">
-                    
-                    <!-- Head of the table -->
-                    <thead>
-                    <tr>
-                        <th scope="col">Alleles</th>
-                        {% for method in predictionTools%}
-                            <th scope="col">{{method}}</th>
-                        {% endfor%}
-                            <!-- Hard coding table heading to show majority voting binder both MHC class 1 and 2 -->
-                            <th scope="col">Majority Voted</th>
-                    </tr>
-                    </thead>
-
-                    <!-- Body of the table -->
-                    <tbody>
-                    
-                    {% for allele,methods in alleles.items() %}
-
+        {% for sample, alleles in predicted_binders.items() %}
+            <div class="sample-block">
+                <h4 class="sample-title">{{ sample }}</h4>
+    
+                <table class="table table-bordered table-striped">
+                    <thead class="thead-light">
                         <tr>
-                            <th scope="row">{{allele}}</th>
-
-                            {% for method,replicates in methods.items() %}
-                            <td>
-                                {% for replicate,binders in replicates.items() %}
-                                    <a href="{{binders}}">{{replicate}}</a><br>
-                                {% endfor %}
-                            </td>
-                            {% endfor%}
+                            <th scope="col">Allele</th>
+                            <th scope="col">Majority Voted Binders</th>
                         </tr>
-                    {% endfor%}
+                    </thead>
+                    <tbody>
+                        {% for allele, methods in alleles.items() %}
+                            <tr>
+                                <td><strong>{{ allele }}</strong></td>
+                                <td>
+                                    {% for replicate, binders in methods['Majority_Voted'].items() %}
+                                        <a href="{{ binders }}" class="binder-link">{{ replicate }}</a><br>
+                                    {% endfor %}
+                                </td>
+                            </tr>
+                        {% endfor %}
                     </tbody>
                 </table>
-
-            {% endfor %}
-
-        </div>
+            </div>
+        {% endfor %}
+    
+    </div>
+    
 
         <!-- Section begin for Upset plot showing number of binder and overlap across tools. -->
 
