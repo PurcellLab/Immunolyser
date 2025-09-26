@@ -782,7 +782,7 @@ def getBinders():
                     for k in j:
                         df = pd.read_csv(os.path.join('app', k))
                         df = df[df['Binding Level'].notna()]   # 🔹 filter only rows with Binding Level
-                        binders[i].extend(df['PlainPeptide'].to_list())
+                        binders[i].extend(df['StrippedPeptide'].to_list())
 
                 # first: Common binder from first and second tool
                 # second: Common binder from second and third tool
@@ -805,7 +805,7 @@ def getBinders():
 
                     binders.extend([
                         {"sequence": seq, "value": val}
-                        for seq, val in zip(df['Peptides : PlainPeptide : Core_best'].dropna(),
+                        for seq, val in zip(df['Peptides : StrippedPeptide : Core_best'].dropna(),
                                             df[numerical_column])
                     ])
                 # remove duplicates while preserving sequence + value
@@ -936,7 +936,7 @@ def getSeqLogo():
     if peptides.shape[0] > 0 and peptides[peptides['peptide'].str.contains(':')].shape[0]>0:
         total_peptides = peptides.shape[0]
         peptideswithcores = peptides['peptide'].str.split(' : ',expand=True)
-        peptideswithcores.columns = ['Peptide' ,'PlainPeptide','Core']
+        peptideswithcores.columns = ['Peptide' ,'StrippedPeptide','Core']
 
         peptideswithcores[['Peptide','Core']].to_csv(binders_location,index=False)
 
