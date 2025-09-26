@@ -805,16 +805,12 @@ def saveMajorityVotedBinders(taskId, data, predictionTools, alleles_unformatted,
                     lambda x: 'Y' if x in majority_peptides else 'N'
                 )
 
-                # Group by StrippedPeptide to remove duplicates and keep the first occurrence
-                filtered_df = combined_df.groupby('StrippedPeptide').first().reset_index()
-
                 # Merge back the extra columns (outer join by StrippedPeptide)
                 for extra_df in extra_cols:
-                    filtered_df = filtered_df.merge(extra_df, on='StrippedPeptide', how='left')
+                    combined_df = combined_df.merge(extra_df, on='StrippedPeptide', how='left')
 
                 # Final deduplication — remove exact duplicate rows
-                filtered_df = filtered_df.drop_duplicates()
-
+                filtered_df = combined_df.drop_duplicates()
 
                 output_path = os.path.join(
                     project_root, 'app', 'static', 'images', taskId, sample,
