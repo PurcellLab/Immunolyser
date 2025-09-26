@@ -339,11 +339,13 @@ def generateBindingPredictions(taskId, alleles_unformatted, method, ALLELE_DICTI
                             # Check if the allele is compatible with the current tool
                             if compatibility_matrix.at[method.full_name, allele] == 'Yes':  # or 'No', depending on your matrix values
                                 # Run the command for compatible alleles
-                                run(
-                                    ['{}/app/tools/netMHCpan-4.2/netMHCpan'.format(project_root), '-xls', '-p', 
+                                subprocess.run(
+                                    ['{}/app/tools/netMHCpan-4.2/netMHCpan'.format(project_root),
+                                    '-xls', '-BA', '-p',
                                     '{}/{}/{}/{}'.format(data_mount, taskId, sample, replicate),
                                     '-a', get_allele_name_tool_specific(allele, 'netMHCpan 4.2 b', MHC_Class.One, ALLELE_DICTIONARY),
-                                    '-xlsfile', '{}/app/static/images/{}/{}/NetMHCpan/{}/{}/{}'.format(project_root,taskId, sample, replicate[:-13], allele.replace(':', '_'), replicate)],
+                                    '-xlsfile', '{}/app/static/images/{}/{}/NetMHCpan/{}/{}/{}'.format(
+                                        project_root, taskId, sample, replicate[:-13], allele.replace(':', '_'), replicate)],
                                     stdout=DEVNULL,  # Suppress standard output
                                 )
 
@@ -441,10 +443,10 @@ def saveBindersData(taskId, alleles, method, mhcclass):
                 input_file = input_file[input_file['Peptide'].apply(lambda x: isinstance(x, str) and x.strip() != '')]
 
                 # Adding Colunm to represen the peptides without the PTM changes
-                input_file['PlainPeptide'] = input_file.apply(lambda x : omitPTMContent(x['Peptide']),axis=1)
+                input_file['StrippedPeptide'] = input_file.apply(lambda x : omitPTMContent(x['Peptide']),axis=1)
 
                 # Adding PTM detected method
-                input_file['PTM detected'] = input_file.apply(lambda x: 'N' if x['Peptide'] == x['PlainPeptide'] else 'Y', axis=1)
+                input_file['PTM detected'] = input_file.apply(lambda x: 'N' if x['Peptide'] == x['StrippedPeptide'] else 'Y', axis=1)
 
 
                 # Initialsing the allele and binders collection
@@ -470,13 +472,13 @@ def saveBindersData(taskId, alleles, method, mhcclass):
                             # Tagging binders present in control group
                             f['Control'] = f['peptide'].apply(lambda x : 'Y' if x in control_peptides else '')
 
-                            # Renaming the peptide column to PlainPeptide
-                            f.rename(columns={'peptide': 'PlainPeptide'}, inplace=True)
+                            # Renaming the peptide column to StrippedPeptide
+                            f.rename(columns={'peptide': 'StrippedPeptide'}, inplace=True)
 
                             # Saving the filtered and tagged binders to a CSV
                             f\
-                                .sort_values(by=['presentation_percentile'])[['PlainPeptide', 'presentation_percentile', 'Binding Level', 'Control']]\
-                                .merge(input_file, on='PlainPeptide', how='left')\
+                                .sort_values(by=['presentation_percentile'])[['StrippedPeptide', 'presentation_percentile', 'Binding Level', 'affinity', 'Control']]\
+                                .merge(input_file, on='StrippedPeptide', how='left')\
                                 .to_csv('app/static/images/{}/{}/{}/{}/binders/{}/{}_{}_{}_binders.csv'.format(taskId, sample, method.short_name,
                                                                                                         replicate[:-13], allele.replace(':', '_'),
                                                                                                         replicate[:-13], allele.replace(':', '_'), method.short_name), index=False)
@@ -502,11 +504,11 @@ def saveBindersData(taskId, alleles, method, mhcclass):
                             # Tagging binders present in control group
                             f['Control'] = f['Peptide'].apply(lambda x : 'Y' if x in control_peptides else '')
 
-                            # Renaming the peptide column to PlainPeptide
-                            f.rename(columns={'Peptide': 'PlainPeptide'}, inplace=True)
+                            # Renaming the peptide column to StrippedPeptide
+                            f.rename(columns={'Peptide': 'StrippedPeptide'}, inplace=True)
 
-                            f.sort_values(by=['%Rank_bestAllele'])[['PlainPeptide', '%Rank_bestAllele', 'Binding Level', 'Control']] \
-                                .merge(input_file, on='PlainPeptide', how='left') \
+                            f.sort_values(by=['%Rank_bestAllele'])[['StrippedPeptide', '%Rank_bestAllele', 'Binding Level', 'Control']] \
+                                .merge(input_file, on='StrippedPeptide', how='left') \
                                 .to_csv(f'{project_root}/app/static/images/{taskId}/{sample}/{method.short_name}/{replicate[:-13]}/binders/{allele.replace(":", "_")}/{replicate[:-13]}_{allele.replace(":", "_")}_{method.short_name}_binders.csv', index=False)
 
                 # MixMHC2pred case
@@ -530,8 +532,8 @@ def saveBindersData(taskId, alleles, method, mhcclass):
                             # Tagging binders present in control group
                             f['Control'] = f['Peptide'].apply(lambda x : 'Y' if x in control_peptides else '')
 
-                            # Updating the name of binding results column Peptide to PlainPeptide
-                            f.rename(columns={'Peptide': 'PlainPeptide'}, inplace=True)
+                            # Updating the name of binding results column Peptide to StrippedPeptide
+                            f.rename(columns={'Peptide': 'StrippedPeptide'}, inplace=True)
 
                 # NetMHCpanII case
                 if method.short_name == Class_Two_Predictors.NetMHCpanII:
@@ -554,19 +556,19 @@ def saveBindersData(taskId, alleles, method, mhcclass):
                             # Tagging binders present in control group
                             f['Control'] = f['Peptide'].apply(lambda x : 'Y' if x in control_peptides else '')
 
-                            # Updating the name of binding results column Peptide to PlainPeptide
-                            f.rename(columns={'Peptide': 'PlainPeptide'}, inplace=True)
+                            # Updating the name of binding results column Peptide to StrippedPeptide
+                            f.rename(columns={'Peptide': 'StrippedPeptide'}, inplace=True)
 
-                            f.sort_values(by=['Rank'])[['PlainPeptide', 'Rank', 'Binding Level', 'Control']] \
-                                .merge(input_file, on='PlainPeptide', how='left') \
+                            f.sort_values(by=['Rank'])[['StrippedPeptide', 'Rank', 'Binding Level', 'Control']] \
+                                .merge(input_file, on='StrippedPeptide', how='left') \
                                 .to_csv(f'{project_root}/app/static/images/{taskId}/{sample}/{method.short_name}/{replicate[:-14]}/binders/{allele.replace(":", "_")}/{replicate[:-13]}_{allele.replace(":", "_")}_{method.short_name}_binders.csv', index=False)
 
                             s = f\
-                                .sort_values(by=['Rank'])[['PlainPeptide','Core','Rank','Binding Level','Control']]\
-                                .merge(input_file, on='PlainPeptide',how='left')
+                                .sort_values(by=['Rank'])[['StrippedPeptide','Core','Rank','Binding Level','Control']]\
+                                .merge(input_file, on='StrippedPeptide',how='left')
 
-                            # Adding special column to hold both PlainPeptide and Core_best
-                            s['Peptides : PlainPeptide : Core'] = s['Peptide'] + ' : ' + s['PlainPeptide'] + ' : ' + s['Core']
+                            # Adding special column to hold both StrippedPeptide and Core_best
+                            s['Peptides : StrippedPeptide : Core'] = s['Peptide'] + ' : ' + s['StrippedPeptide'] + ' : ' + s['Core']
 
                             s.to_csv(f'{project_root}/app/static/images/{taskId}/{sample}/{method.short_name}/{replicate[:-14]}/binders/{allele.replace(":", "_")}/{replicate[:-14]}_{allele.replace(":", "_")}_{method.short_name}_binders.csv', index=False)
 
@@ -596,11 +598,11 @@ def saveBindersData(taskId, alleles, method, mhcclass):
                             # Tagging binders present in control group
                             f['Control'] = f['Peptide'].apply(lambda x : 'Y' if x in control_peptides else '')
 
-                            # Updating the name of binding results column Peptide to PlainPeptide
-                            f.rename(columns={'Peptide': 'PlainPeptide'}, inplace=True)
+                            # Updating the name of binding results column Peptide to StrippedPeptide
+                            f.rename(columns={'Peptide': 'StrippedPeptide'}, inplace=True)
 
-                            f.sort_values(by=['Rank'])[['PlainPeptide', 'Rank', 'Binding Level', 'Control']] \
-                                .merge(input_file, on='PlainPeptide', how='left') \
+                            f.sort_values(by=['Rank'])[['StrippedPeptide', 'Rank', 'Binding Level', 'BA_score', 'core', 'Control']] \
+                                .merge(input_file, on='StrippedPeptide', how='left') \
                                 .to_csv(f'{project_root}/app/static/images/{taskId}/{sample}/{method.short_name}/{replicate[:-13]}/binders/{allele.replace(":", "_")}/{replicate[:-13]}_{allele.replace(":", "_")}_{method.short_name}_binders.csv', index=False)
 
 def getPredictionResuslts(taskId,alleles,methods_passed,samples):
@@ -768,22 +770,27 @@ def saveMajorityVotedBinders(taskId, data, predictionTools, alleles_unformatted,
 
                 for binder_file, tool_name in binder_files:
                     df = pd.read_csv(binder_file)
-                    df = df[df['Binding Level'].notna() & (df['Binding Level'] != '')]
 
-                    # Remove intermediate columns
+                    # Remove intermediate columns (but don't drop yet)
                     cols_to_remove = df.columns[
-                        df.columns.get_loc('PlainPeptide') + 1 : df.columns.get_loc('Control')
+                        df.columns.get_loc('StrippedPeptide') + 1 : df.columns.get_loc('Control')
                     ]
                     renamed_cols = {col: f"{tool_name}_{col}" for col in cols_to_remove}
-                    extra_df = df[['PlainPeptide'] + list(cols_to_remove)].rename(columns=renamed_cols)
+                    extra_df = df[['StrippedPeptide'] + list(cols_to_remove)].rename(columns=renamed_cols)
                     extra_cols.append(extra_df)
 
-                    df = df.drop(columns=cols_to_remove)
-                    all_data.append(df)
-
-                    peptides_in_file = set(df['PlainPeptide'].dropna().astype(str))
+                    # --- Voting logic goes here (Binding Level still exists) ---
+                    peptides_in_file = set(
+                        df.loc[df['Binding Level'].notna() & (df['Binding Level'] != ''), 'StrippedPeptide']
+                        .dropna()
+                        .astype(str)
+                    )
                     for peptide in peptides_in_file:
                         peptide_counts[peptide] += 1
+
+                    # Now it's safe to drop the intermediate columns
+                    df = df.drop(columns=cols_to_remove)
+                    all_data.append(df)
 
                 majority_threshold = len(binder_files) // 2
                 majority_peptides = [
@@ -794,17 +801,16 @@ def saveMajorityVotedBinders(taskId, data, predictionTools, alleles_unformatted,
                 # Combine all main data
                 combined_df = pd.concat(all_data, ignore_index=True)
 
-                # Filter only majority peptides
-                filtered_df = combined_df[
-                    combined_df['PlainPeptide'].isin(majority_peptides)
-                ]
+                combined_df['Is Majority Voted Binder'] = combined_df['StrippedPeptide'].apply(
+                    lambda x: 'Y' if x in majority_peptides else 'N'
+                )
 
-                # Group by PlainPeptide to remove duplicates and keep the first occurrence
-                filtered_df = filtered_df.groupby('PlainPeptide').first().reset_index()
+                # Group by StrippedPeptide to remove duplicates and keep the first occurrence
+                filtered_df = combined_df.groupby('StrippedPeptide').first().reset_index()
 
-                # Merge back the extra columns (outer join by PlainPeptide)
+                # Merge back the extra columns (outer join by StrippedPeptide)
                 for extra_df in extra_cols:
-                    filtered_df = filtered_df.merge(extra_df, on='PlainPeptide', how='left')
+                    filtered_df = filtered_df.merge(extra_df, on='StrippedPeptide', how='left')
 
                 # Final deduplication — remove exact duplicate rows
                 filtered_df = filtered_df.drop_duplicates()
