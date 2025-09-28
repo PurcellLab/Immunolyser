@@ -23,6 +23,7 @@ RUN apt-get update && apt-get install -y \
     tar -xzf ghostscript-9.26.tar.gz && \
     cd ghostscript-9.26 && \
     ./configure && make && make install && \
+    pip3 install --no-cache-dir gdown && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Clone the repository
@@ -32,7 +33,9 @@ RUN git clone https://github.com/prmunday/Immunolyser /app/Immunolyser
 WORKDIR /app/Immunolyser
 
 # Checkout the develop branch
-RUN git fetch --all && git checkout develop
+RUN git fetch origin develop && \
+    git checkout develop && \
+    git pull
 
 # Copy the seq2logo tar.gz file from the local tools folder to the container
 COPY /tools/seq2logo-2.1.all.tar.gz /app/Immunolyser/app/tools/
@@ -98,6 +101,24 @@ RUN wget https://github.com/GfellerLab/MixMHC2pred/releases/download/v2.0.2.2/Mi
 
 # Download Alleles_list_Mouse.txt and put it in PWMdef directory
 RUN wget http://ec2-18-188-210-66.us-east-2.compute.amazonaws.com:4000/data/Alleles_lists/Alleles_list_Mouse.txt -P /app/Immunolyser/app/tools/MixMHC2pred-2.0/PWMdef
+
+# Clone MHC-TP and switch to netmhcpan-data-update-2025 branch
+RUN git clone https://github.com/PurcellLab/MHC-TP.git /app/Immunolyser/app/tools/MHC-TP && \
+    cd /app/Immunolyser/app/tools/MHC-TP && \
+    git fetch origin netmhcpan-data-update-2025 && \
+    git checkout netmhcpan-data-update-2025
+
+# Set up Python 3.11 virtual environment and install the package
+RUN cd /app/Immunolyser/app/tools/MHC-TP && \
+    python3.11 -m venv hlapepclust-env && \
+    /bin/bash -c "source hlapepclust-env/bin/activate && pip install -e . && deactivate"
+
+# Download the large ref_data zip file and unzip it
+RUN mkdir -p /app/Immunolyser/app/tools/MHC-TP/data/ref_data && \
+    cd /app/Immunolyser/app/tools/MHC-TP/data/ref_data && \
+    python3 -m gdown 'https://drive.google.com/uc?id=1iAAvir1woMOnURkP46zr_ETqpW2oUgGD' && \
+    unzip Gibbs_motifs_human.zip && \
+    rm Gibbs_motifs_human.zip
 
 # Install mhcflurry
 RUN pip install mhcflurry
