@@ -837,7 +837,7 @@ def runHLAClust(taskId, data, species=None, use_mhc_tp_full_DB=None, logger=None
 
                             # Running the tool for every replicate
                             input_file = os.path.join(project_root, 'app', 'static', 'images', taskId, sample, 'gibbscluster', replicate[:-4])
-                            ref_file = os.path.join(project_root, 'app', 'tools', 'HLA-PepClust', 'data', 'ref_data')
+                            ref_file = os.path.join(project_root, 'app', 'tools', 'MHC-TP', 'data', 'ref_data')
                             output_dir = path
 
                             run_clust_search(
@@ -871,7 +871,7 @@ def run_clust_search(input_file, ref_file, output_dir, species, use_mhc_tp_full_
 
         # Construct base command
         command = [
-            f"{project_root}/app/tools/HLA-PepClust/hlapepclust-env/bin/clust-search",
+            f"{project_root}/app/tools/MHC-TP/hlapepclust-env/bin/clust-search",
             input_file,
             ref_file,
             "-im",
