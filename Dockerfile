@@ -110,7 +110,7 @@ RUN git clone https://github.com/PurcellLab/MHC-TP.git /app/Immunolyser/app/tool
 
 # Set up Python 3.11 virtual environment and install the package
 RUN cd /app/Immunolyser/app/tools/MHC-TP && \
-    python3.11 -m venv hlapepclust-env && \
+    python3 -m venv hlapepclust-env && \
     /bin/bash -c "source hlapepclust-env/bin/activate && pip install -e . && deactivate"
 
 # Download the large ref_data zip file and unzip it
