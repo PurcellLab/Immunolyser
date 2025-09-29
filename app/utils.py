@@ -747,77 +747,78 @@ def saveMajorityVotedBinders(taskId, data, predictionTools, alleles_unformatted,
     compatibility_matrix = pd.read_csv(compatibility_matrix_path, index_col=0)
 
     for sample, replicates in data.items():
-        for replicate in replicates:
-            for allele in compatibility_matrix.columns:
-                # Get tools compatible with this allele
-                compatible_tools = compatibility_matrix.index[compatibility_matrix[allele] == "Yes"].tolist()
+        if sample != 'Control':
+            for replicate in replicates:
+                for allele in compatibility_matrix.columns:
+                    # Get tools compatible with this allele
+                    compatible_tools = compatibility_matrix.index[compatibility_matrix[allele] == "Yes"].tolist()
 
-                binder_files = []
-                for predictionTool in compatible_tools:
-                    predictor_short_name = get_short_name(predictionTool)
-                    allele_sanitized = allele.replace(':', '_')
-                    search_path = f'app/static/images/{taskId}/{sample}/{predictor_short_name}/{replicate[:-4]}/binders/{allele_sanitized}/*.csv'
-                    print(f"Searching binders is: {search_path}")
+                    binder_files = []
+                    for predictionTool in compatible_tools:
+                        predictor_short_name = get_short_name(predictionTool)
+                        allele_sanitized = allele.replace(':', '_')
+                        search_path = f'app/static/images/{taskId}/{sample}/{predictor_short_name}/{replicate[:-4]}/binders/{allele_sanitized}/*.csv'
+                        print(f"Searching binders is: {search_path}")
 
-                    files = glob.glob(search_path)
-                    binder_files.extend([(f, predictor_short_name) for f in files])
-                    print(f"Found files: {binder_files}")
+                        files = glob.glob(search_path)
+                        binder_files.extend([(f, predictor_short_name) for f in files])
+                        print(f"Found files: {binder_files}")
 
-                # Majority voting logic
-                peptide_counts = defaultdict(int)
-                all_data = []
-                extra_cols = []
+                    # Majority voting logic
+                    peptide_counts = defaultdict(int)
+                    all_data = []
+                    extra_cols = []
 
-                for binder_file, tool_name in binder_files:
-                    df = pd.read_csv(binder_file)
+                    for binder_file, tool_name in binder_files:
+                        df = pd.read_csv(binder_file)
 
-                    # Remove intermediate columns (but don't drop yet)
-                    cols_to_remove = df.columns[
-                        df.columns.get_loc('StrippedPeptide') + 1 : df.columns.get_loc('Control')
+                        # Remove intermediate columns (but don't drop yet)
+                        cols_to_remove = df.columns[
+                            df.columns.get_loc('StrippedPeptide') + 1 : df.columns.get_loc('Control')
+                        ]
+                        renamed_cols = {col: f"{tool_name}_{col}" for col in cols_to_remove}
+                        extra_df = df[['StrippedPeptide'] + list(cols_to_remove)].rename(columns=renamed_cols)
+                        extra_cols.append(extra_df)
+
+                        # --- Voting logic goes here (Binding Level still exists) ---
+                        peptides_in_file = set(
+                            df.loc[df['Binding Level'].notna() & (df['Binding Level'] != ''), 'StrippedPeptide']
+                            .dropna()
+                            .astype(str)
+                        )
+                        for peptide in peptides_in_file:
+                            peptide_counts[peptide] += 1
+
+                        # Now it's safe to drop the intermediate columns
+                        df = df.drop(columns=cols_to_remove)
+                        all_data.append(df)
+
+                    majority_threshold = len(binder_files) // 2
+                    majority_peptides = [
+                        pep for pep, count in peptide_counts.items()
+                        if count > majority_threshold
                     ]
-                    renamed_cols = {col: f"{tool_name}_{col}" for col in cols_to_remove}
-                    extra_df = df[['StrippedPeptide'] + list(cols_to_remove)].rename(columns=renamed_cols)
-                    extra_cols.append(extra_df)
 
-                    # --- Voting logic goes here (Binding Level still exists) ---
-                    peptides_in_file = set(
-                        df.loc[df['Binding Level'].notna() & (df['Binding Level'] != ''), 'StrippedPeptide']
-                        .dropna()
-                        .astype(str)
+                    # Combine all main data
+                    combined_df = pd.concat(all_data, ignore_index=True)
+
+                    combined_df['Is Majority Voted Binder'] = combined_df['StrippedPeptide'].apply(
+                        lambda x: 'Y' if x in majority_peptides else 'N'
                     )
-                    for peptide in peptides_in_file:
-                        peptide_counts[peptide] += 1
 
-                    # Now it's safe to drop the intermediate columns
-                    df = df.drop(columns=cols_to_remove)
-                    all_data.append(df)
+                    # Merge back the extra columns (outer join by StrippedPeptide)
+                    for extra_df in extra_cols:
+                        combined_df = combined_df.merge(extra_df, on='StrippedPeptide', how='left')
 
-                majority_threshold = len(binder_files) // 2
-                majority_peptides = [
-                    pep for pep, count in peptide_counts.items()
-                    if count > majority_threshold
-                ]
+                    # Final deduplication — remove exact duplicate rows
+                    filtered_df = combined_df.drop_duplicates()
 
-                # Combine all main data
-                combined_df = pd.concat(all_data, ignore_index=True)
-
-                combined_df['Is Majority Voted Binder'] = combined_df['StrippedPeptide'].apply(
-                    lambda x: 'Y' if x in majority_peptides else 'N'
-                )
-
-                # Merge back the extra columns (outer join by StrippedPeptide)
-                for extra_df in extra_cols:
-                    combined_df = combined_df.merge(extra_df, on='StrippedPeptide', how='left')
-
-                # Final deduplication — remove exact duplicate rows
-                filtered_df = combined_df.drop_duplicates()
-
-                output_path = os.path.join(
-                    project_root, 'app', 'static', 'images', taskId, sample,
-                    'Majority_Voted', replicate[:-4], 'binders', allele.replace(':', '_'),
-                    f"{replicate[:-4]}_{allele.replace(':', '_')}_majority_voted_binders.csv"
-                )
-                filtered_df.to_csv(output_path, index=False)
+                    output_path = os.path.join(
+                        project_root, 'app', 'static', 'images', taskId, sample,
+                        'Majority_Voted', replicate[:-4], 'binders', allele.replace(':', '_'),
+                        f"{replicate[:-4]}_{allele.replace(':', '_')}_majority_voted_binders.csv"
+                    )
+                    filtered_df.to_csv(output_path, index=False)
 
 def runHLAClust(taskId, data, species=None, use_mhc_tp_full_DB=None, logger=None):
 
