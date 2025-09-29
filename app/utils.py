@@ -51,14 +51,14 @@ def plot_lenght_distribution(samples, hist="percent", taskId=None):
         # Optional: calculate error bars
         if len(peptideProportion) > 1:
             # Uncomment if using error bars later
-            # errors = pd.concat(peptideProportion, axis=1).apply(lambda x: stdev(x), axis=1)
+            errors = pd.concat(peptideProportion, axis=1).apply(lambda x: stdev(x), axis=1)
             fig.add_trace(go.Bar(
                 x=bardatacombined['Length'],
                 y=bardatacombined['Count'],
                 name=sample_name,
                 error_y=dict(
                     type='data',
-                    # array=errors,  # Optional
+                    array=errors,  # Optional
                     color='green',
                     thickness=1,
                     width=3,
