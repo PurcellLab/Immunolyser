@@ -580,7 +580,6 @@ def getExistingReport(taskId):
     predictionTools = [tool.short_name for tool in predictionTools]
 
     bindingImages = getHLAClustResults(taskId, data)
-    print(bindingImages)
 
     zip_path = zip_job_exports(taskId)
     zip_filename = os.path.basename(zip_path)
@@ -941,6 +940,10 @@ def getSeqLogo():
         peptideswithcores[['Peptide','Core']].to_csv(binders_location,index=False)
 
         nine_mers = peptideswithcores.drop_duplicates(subset='Core').shape[0]
+
+        if peptideswithcores[['Core']].drop_duplicates(subset='Core').shape[0] ==0:
+            return os.path.join('static','images',taskId,'seq-not-generated.jpg')
+        
         peptideswithcores[['Core']].drop_duplicates(subset='Core').to_csv(peptides_location_forseqlogo,index=False,header=False)
 
     else:
@@ -953,6 +956,10 @@ def getSeqLogo():
 
         peptides = peptides[peptides.peptide.apply(lambda x: len(x) == motif_length)]
         nine_mers = peptides.shape[0]
+
+        if peptides.shape[0] ==0:
+            return os.path.join('static','images',taskId,'seq-not-generated.jpg')
+        
         peptides.to_csv(peptides_location_forseqlogo,index=False,header=False)
 
     seqLogoLocation = os.path.join(project_root,'app','static','images',taskId,'seqLogoApi')

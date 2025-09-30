@@ -207,31 +207,34 @@
      
     {% endif %}
 
-    <br>
-    <h3>MHC-TP (MHC Typing Prediction)</h3>
+    {% if bindingImages %}
+        <br>
+        <h3>MHC-TP (MHC Typing Prediction)</h3>
 
-    <div class="hla_clust">
-        {% for sample, replicates in bindingImages.items() %}
-            <h5>{{ sample }}</h5>
-            <div>
-                <ul>
-                    {% for replicate, files in replicates.items() %}
-                        {% for file in files %}
-                            <li>
-                                <a href="{{ url_for('static', filename=file) }}" target="_blank">
-                                    {{ sample }} - {{ replicate }} - {{ file.split('/')[-2] }} - {{ file.split('/')[-1] }}
-                                </a>
-                            </li>
+        <div class="hla_clust">
+            {% for sample, replicates in bindingImages.items() %}
+                <h5>{{ sample }}</h5>
+                <div>
+                    <ul>
+                        {% for replicate, files in replicates.items() %}
+                            {% for file in files %}
+                                <li>
+                                    <a href="{{ url_for('static', filename=file) }}" target="_blank">
+                                        {{ sample }} - {{ replicate }} - {{ file.split('/')[-2] }} - {{ file.split('/')[-1] }}
+                                    </a>
+                                </li>
+                            {% endfor %}
                         {% endfor %}
-                    {% endfor %}
-                </ul>
-            </div>
-        {% endfor %}
-    </div>
+                    </ul>
+                </div>
+            {% endfor %}
+        </div>
 
-    <p class="text-justify">
-        A novel algorithm, MHC-TP, predicts MHC I alleles based on peptide clustering results, allowing in silico MHC typing of datasets, where genetic MHC typing is unavailable, ethically restricted, or cost-prohibitive for large-scale datasets.
-    </p>
+        <p class="text-justify">
+            A novel algorithm, MHC-TP, predicts MHC I alleles based on peptide clustering results, allowing in silico MHC typing of datasets, where genetic MHC typing is unavailable, ethically restricted, or cost-prohibitive for large-scale datasets.
+        </p>
+    
+    {% endif %}
 
     <script>
         function temp(taskId,sample,replicate,checked){
@@ -767,7 +770,15 @@
                                     // Show modal once backend finishes
                                     document.getElementById('modalHeading').innerHTML = "Peptide Overlap Motif";
                                     document.getElementById('modalHedingHref').href = "/static/images/" + taskId + "/selected-binders.txt?t=" + new Date().getTime();
-                                    document.getElementById('modalBinder').src = "static/images/" + taskId + "/seqLogoApi-001.jpg?t=" + new Date().getTime();
+
+                                    let imgPath = this.responseText.trim(); // backend returns path
+                                    if (imgPath.endsWith("seq-not-generated.jpg")) {
+                                        // fallback if no peptides for seqlogo
+                                        document.getElementById('modalBinder').src = "/static/others/seq-not-generated.jpg?t=" + new Date().getTime();
+                                    } else {
+                                        document.getElementById('modalBinder').src = "/static/images/" + taskId + "/seqLogoApi-001.jpg?t=" + new Date().getTime();
+                                    }
+
                                     $('#myModal').modal('show');
                                 } else {
                                     console.error("Error from /api/getSeqLogo:", this.status, this.responseText);
