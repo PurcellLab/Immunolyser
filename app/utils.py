@@ -414,17 +414,18 @@ def saveBindersData(taskId, alleles, method, mhcclass):
     compatibility_matrix = pd.read_csv(compatibility_matrix_path, index_col=0)
 
     if mhcclass == MHC_Class.One:
+        print("Entering IF: MHC Class I detected")
         control_replicates = glob.glob(f'{data_mount}/{taskId}/Control/*8to14mer.txt')
     elif mhcclass == MHC_Class.Two:
+        print("Entering IF: MHC Class II detected")
         control_replicates = glob.glob(f'{data_mount}/{taskId}/Control/*12to20mer.txt')
 
     if len(control_replicates) != 0:
+        print(f"Entering IF: Found {len(control_replicates)} control replicate files")
         for control_replicate in control_replicates:
             f = open(control_replicate,'r')
-            
             for peptide in f.readlines():
                 control_peptides.add(peptide.replace("\n",""))
-            
             f.close()
 
     print('Number of pre-processed peptides from control group:', len(control_peptides))
@@ -432,11 +433,14 @@ def saveBindersData(taskId, alleles, method, mhcclass):
     for sample in os.listdir('{}/{}'.format(data_mount,taskId)):
         for replicate in os.listdir('{}/{}/{}'.format(data_mount,taskId,sample)):
             if sample != 'Control' and (replicate[-12:] == '8to14mer.txt' or replicate[-13:]=='12to20mer.txt'):
+                print(f"Entering IF: Processing sample={sample}, replicate={replicate}")
 
                 # Original upload file used to derive all other columns present in the input file
                 if replicate[-12:] == '8to14mer.txt':
+                    print("Entering IF: Detected 8to14mer replicate")
                     input_file = pd.read_csv('{}/{}/{}/{}.csv'.format(data_mount,taskId,sample,replicate[:-13]))
                 elif replicate[-13:]=='12to20mer.txt':
+                    print("Entering IF: Detected 12to20mer replicate")
                     input_file = pd.read_csv('{}/{}/{}/{}.csv'.format(data_mount,taskId,sample,replicate[:-14]))
 
                 # Dropping null Peptides
@@ -448,162 +452,143 @@ def saveBindersData(taskId, alleles, method, mhcclass):
                 # Adding PTM detected method
                 input_file['PTM detected'] = input_file.apply(lambda x: 'N' if x['Peptide'] == x['StrippedPeptide'] else 'Y', axis=1)
 
-
                 # Initialsing the allele and binders collection
                 alleles_dict = {}
+
                 # MHCflurry case
                 if method.short_name == Class_One_Predictors.MHCflurry.short_name:
+                    print("Entering IF: Running MHCflurry case")
 
                     for allele in alleles.split(','):
-                        
-                        # Check if the allele is compatible with MHCflurry
-                        if compatibility_matrix.at[Class_One_Predictors.MHCflurry.full_name, allele] == 'Yes':  # or 'No', depending on your matrix values
-                            
+                        if compatibility_matrix.at[Class_One_Predictors.MHCflurry.full_name, allele] == 'Yes':
+                            print(f"  Compatible allele found for MHCflurry: {allele}")
                             f = pd.read_csv(f'{project_root}/app/static/images/{taskId}/{sample}/{Class_One_Predictors.MHCflurry}/{replicate[:-13]}/{allele.replace(":", "_")}/{replicate}')
 
                             f['Binding Level'] = ""
                             f['Control'] = ""
 
-                            # Tagging each binder as SB (Strong binder), WB (Weak binder), or blank
                             f['Binding Level'] = f['presentation_percentile'].apply(
                                 lambda x: 'SB' if float(x) <= 0.2 else ('WB' if float(x) <= 2 else '')
                             )
-
-                            # Tagging binders present in control group
                             f['Control'] = f['peptide'].apply(lambda x : 'Y' if x in control_peptides else '')
-
-                            # Renaming the peptide column to StrippedPeptide
                             f.rename(columns={'peptide': 'StrippedPeptide'}, inplace=True)
 
-                            # Saving the filtered and tagged binders to a CSV
-                            f\
-                                .sort_values(by=['presentation_percentile'])[['StrippedPeptide', 'presentation_percentile', 'Binding Level', 'affinity', 'Control']]\
+                            outpath = 'app/static/images/{}/{}/{}/{}/binders/{}/{}_{}_{}_binders.csv'.format(
+                                taskId, sample, method.short_name, replicate[:-13], allele.replace(':', '_'),
+                                replicate[:-13], allele.replace(':', '_'), method.short_name)
+                            f.sort_values(by=['presentation_percentile'])[['StrippedPeptide', 'presentation_percentile', 'Binding Level', 'affinity', 'Control']]\
                                 .merge(input_file, on='StrippedPeptide', how='left')\
-                                .to_csv('app/static/images/{}/{}/{}/{}/binders/{}/{}_{}_{}_binders.csv'.format(taskId, sample, method.short_name,
-                                                                                                        replicate[:-13], allele.replace(':', '_'),
-                                                                                                        replicate[:-13], allele.replace(':', '_'), method.short_name), index=False)
+                                .to_csv(outpath, index=False)
+                            print(f"Saved file: {outpath}")
 
                 # MixMHCpred case
                 if method.short_name == Class_One_Predictors.MixMHCpred.short_name:
+                    print("Entering IF: Running MixMHCpred case")
 
                     for allele in alleles.split(','):
-                        
-                        # Check if the allele is compatible with MixMHCpred
-                        if compatibility_matrix.at[Class_One_Predictors.MixMHCpred.full_name, allele] == 'Yes':  # or 'No', depending on your matrix values
-
+                        if compatibility_matrix.at[Class_One_Predictors.MixMHCpred.full_name, allele] == 'Yes':
+                            print(f"  Compatible allele found for MixMHCpred: {allele}")
                             f = pd.read_csv(f'{project_root}/app/static/images/{taskId}/{sample}/MixMHCpred/{replicate[:-13]}/{allele.replace(":", "_")}/{replicate}', skiprows=11, sep='\t')
 
                             f['Binding Level'] = ""
                             f['Control'] = ""
-                                            
-                            # Tagging each binder as SB (Strong binder), WB (Weak binder), or blank
                             f['Binding Level'] = f['%Rank_bestAllele'].apply(
                                 lambda x: 'SB' if float(x) <= 2 else ('WB' if float(x) <= 10 else '')
                             )
-             
-                            # Tagging binders present in control group
                             f['Control'] = f['Peptide'].apply(lambda x : 'Y' if x in control_peptides else '')
-
-                            # Renaming the peptide column to StrippedPeptide
                             f.rename(columns={'Peptide': 'StrippedPeptide'}, inplace=True)
 
-                            f.sort_values(by=['%Rank_bestAllele'])[['StrippedPeptide', '%Rank_bestAllele', 'Binding Level', 'Control']] \
-                                .merge(input_file, on='StrippedPeptide', how='left') \
-                                .to_csv(f'{project_root}/app/static/images/{taskId}/{sample}/{method.short_name}/{replicate[:-13]}/binders/{allele.replace(":", "_")}/{replicate[:-13]}_{allele.replace(":", "_")}_{method.short_name}_binders.csv', index=False)
+                            outpath = f'{project_root}/app/static/images/{taskId}/{sample}/{method.short_name}/{replicate[:-13]}/binders/{allele.replace(":", "_")}/{replicate[:-13]}_{allele.replace(":", "_")}_{method.short_name}_binders.csv'
+                            f.sort_values(by=['%Rank_bestAllele'])[['StrippedPeptide', '%Rank_bestAllele', 'Binding Level', 'Control']]\
+                                .merge(input_file, on='StrippedPeptide', how='left')\
+                                .to_csv(outpath, index=False)
+                            print(f"Saved file: {outpath}")
 
                 # MixMHC2pred case
                 if method.short_name == Class_Two_Predictors.MixMHC2pred.short_name:
+                    print("Entering IF: Running MixMHC2pred case")
 
                     for allele in alleles.split(','):
-                            
-                        # Check if the allele is compatible with MixMHCpred
-                        if compatibility_matrix.at[Class_Two_Predictors.MixMHC2pred.full_name, allele] == 'Yes':  # or 'No', depending on your matrix values
-                    
+                        if compatibility_matrix.at[Class_Two_Predictors.MixMHC2pred.full_name, allele] == 'Yes':
+                            print(f"  Compatible allele found for MixMHC2pred: {allele}")
                             f = pd.read_csv(f'{project_root}/app/static/images/{taskId}/{sample}/MixMHC2pred/{replicate[:-14]}/{allele.replace(":", "_")}/{replicate}', skiprows=19, sep='\t')
 
                             f['Binding Level'] = ""
                             f['Control'] = ""
-                                
-                            # Tagging each binder as SB (Strong binder), WB (Weak binder), or blank
                             f['Binding Level'] = f['%Rank_best'].apply(
                                 lambda x: 'SB' if float(x) <= 2 else ('WB' if float(x) <= 10 else '')
                             )
-
-                            # Tagging binders present in control group
                             f['Control'] = f['Peptide'].apply(lambda x : 'Y' if x in control_peptides else '')
-
-                            # Updating the name of binding results column Peptide to StrippedPeptide
                             f.rename(columns={'Peptide': 'StrippedPeptide'}, inplace=True)
+
+                            s = f\
+                                .sort_values(by=['%Rank_best'])[['StrippedPeptide','Core_best','%Rank_best','Binding Level','Control']]\
+                                .merge(input_file, on='StrippedPeptide',how='left')
+
+                            # Adding special column to hold both StrippedPeptide and Core_best
+                            s['Peptides : StrippedPeptide : Core_best'] = s['Peptide'] + ' : ' + s['StrippedPeptide'] + ' : ' + s['Core_best']
+
+                            outpath = 'app/static/images/{}/{}/{}/{}/binders/{}/{}_{}_{}_binders.csv'.format(taskId,sample,method.short_name,replicate[:-14],allele.replace(':', '_'),replicate[:-14],allele.replace(':', '_'),method.short_name)
+                            s.to_csv(outpath, index=False)
+                            print(f"Saved file: {outpath}")
 
                 # NetMHCpanII case
                 if method.short_name == Class_Two_Predictors.NetMHCpanII:
+                    print("Entering IF: Running NetMHCpanII case")
 
                     for allele in alleles.split(','):
-                        
-                        # Check if the allele is compatible with MixMHCpred
-                        if compatibility_matrix.at[Class_Two_Predictors.NetMHCpanII.full_name, allele] == 'Yes':  # or 'No', depending on your matrix values
-
+                        if compatibility_matrix.at[Class_Two_Predictors.NetMHCpanII.full_name, allele] == 'Yes':
+                            print(f"  Compatible allele found for NetMHCpanII: {allele}")
                             f = pd.read_table(f'{project_root}/app/static/images/{taskId}/{sample}/{Class_Two_Predictors.NetMHCpanII}/{replicate[:-14]}/{allele.replace(":", "_")}/{replicate}', skiprows=1)
 
                             f['Binding Level'] = ""
                             f['Control'] = ""
-                        
-                            # Tagging each binder as SB (Strong binder), WB (Weak binder), or blank
                             f['Binding Level'] = f['Rank'].apply(
                                 lambda x: 'SB' if float(x) <= 1 else ('WB' if float(x) <= 5 else '')
                             )
-
-                            # Tagging binders present in control group
                             f['Control'] = f['Peptide'].apply(lambda x : 'Y' if x in control_peptides else '')
-
-                            # Updating the name of binding results column Peptide to StrippedPeptide
                             f.rename(columns={'Peptide': 'StrippedPeptide'}, inplace=True)
 
-                            f.sort_values(by=['Rank'])[['StrippedPeptide', 'Rank', 'Binding Level', 'Control']] \
-                                .merge(input_file, on='StrippedPeptide', how='left') \
-                                .to_csv(f'{project_root}/app/static/images/{taskId}/{sample}/{method.short_name}/{replicate[:-14]}/binders/{allele.replace(":", "_")}/{replicate[:-13]}_{allele.replace(":", "_")}_{method.short_name}_binders.csv', index=False)
+                            outpath1 = f'{project_root}/app/static/images/{taskId}/{sample}/{method.short_name}/{replicate[:-14]}/binders/{allele.replace(":", "_")}/{replicate[:-13]}_{allele.replace(":", "_")}_{method.short_name}_binders.csv'
+                            f.sort_values(by=['Rank'])[['StrippedPeptide', 'Rank', 'Binding Level', 'Control']]\
+                                .merge(input_file, on='StrippedPeptide', how='left')\
+                                .to_csv(outpath1, index=False)
+                            print(f"Saved file: {outpath1}")
 
-                            s = f\
-                                .sort_values(by=['Rank'])[['StrippedPeptide','Core','Rank','Binding Level','Control']]\
+                            s = f.sort_values(by=['Rank'])[['StrippedPeptide','Core','Rank','Binding Level','Control']]\
                                 .merge(input_file, on='StrippedPeptide',how='left')
-
-                            # Adding special column to hold both StrippedPeptide and Core_best
                             s['Peptides : StrippedPeptide : Core'] = s['Peptide'] + ' : ' + s['StrippedPeptide'] + ' : ' + s['Core']
 
-                            s.to_csv(f'{project_root}/app/static/images/{taskId}/{sample}/{method.short_name}/{replicate[:-14]}/binders/{allele.replace(":", "_")}/{replicate[:-14]}_{allele.replace(":", "_")}_{method.short_name}_binders.csv', index=False)
+                            outpath2 = f'{project_root}/app/static/images/{taskId}/{sample}/{method.short_name}/{replicate[:-14]}/binders/{allele.replace(":", "_")}/{replicate[:-14]}_{allele.replace(":", "_")}_{method.short_name}_binders.csv'
+                            s.to_csv(outpath2, index=False)
+                            print(f"Saved file: {outpath2}")
 
-                            # Saving the predicted core and saving it in 9mer file
-                            s[['Core']]\
-                                .drop_duplicates(subset='Core')\
-                                .to_csv(os.path.join(data_mount, taskId, sample, replicate[:-14]+'_9mer.txt'), header=False, index=False)
+                            nine_mer_path = os.path.join(data_mount, taskId, sample, replicate[:-14]+'_9mer.txt')
+                            s[['Core']].drop_duplicates(subset='Core').to_csv(nine_mer_path, header=False, index=False)
+                            print(f"Saved file: {nine_mer_path}")
 
-                # netMHCpan case
+                # NetMHCpan case
                 if method.short_name == Class_One_Predictors.NetMHCpan.short_name:
+                    print("Entering IF: Running NetMHCpan case")
 
                     for allele in alleles.split(','):
-
-                        # Check if the allele is compatible with MixMHCpred
-                        if compatibility_matrix.at[Class_One_Predictors.NetMHCpan.full_name, allele] == 'Yes':  # or 'No', depending on your matrix values
-
+                        if compatibility_matrix.at[Class_One_Predictors.NetMHCpan.full_name, allele] == 'Yes':
+                            print(f"  Compatible allele found for NetMHCpan: {allele}")
                             f = pd.read_table(f'{project_root}/app/static/images/{taskId}/{sample}/NetMHCpan/{replicate[:-13]}/{allele.replace(":", "_")}/{replicate}', skiprows=1)
 
                             f['Binding Level'] = ""
                             f['Control'] = ""
-                        
-                            # Tagging each binder as SB (Strong binder), WB (Weak binder), or blank
                             f['Binding Level'] = f['Rank'].apply(
                                 lambda x: 'SB' if float(x) <= 0.5 else ('WB' if float(x) <= 2 else '')
                             )
-
-                            # Tagging binders present in control group
                             f['Control'] = f['Peptide'].apply(lambda x : 'Y' if x in control_peptides else '')
-
-                            # Updating the name of binding results column Peptide to StrippedPeptide
                             f.rename(columns={'Peptide': 'StrippedPeptide'}, inplace=True)
 
-                            f.sort_values(by=['Rank'])[['StrippedPeptide', 'Rank', 'Binding Level', 'BA_score', 'core', 'Control']] \
-                                .merge(input_file, on='StrippedPeptide', how='left') \
-                                .to_csv(f'{project_root}/app/static/images/{taskId}/{sample}/{method.short_name}/{replicate[:-13]}/binders/{allele.replace(":", "_")}/{replicate[:-13]}_{allele.replace(":", "_")}_{method.short_name}_binders.csv', index=False)
+                            outpath = f'{project_root}/app/static/images/{taskId}/{sample}/{method.short_name}/{replicate[:-13]}/binders/{allele.replace(":", "_")}/{replicate[:-13]}_{allele.replace(":", "_")}_{method.short_name}_binders.csv'
+                            f.sort_values(by=['Rank'])[['StrippedPeptide', 'Rank', 'Binding Level', 'BA_score', 'core', 'Control']]\
+                                .merge(input_file, on='StrippedPeptide', how='left')\
+                                .to_csv(outpath, index=False)
+                            print(f"Saved file: {outpath}")
 
 def getPredictionResuslts(taskId,alleles,methods_passed,samples):
 
