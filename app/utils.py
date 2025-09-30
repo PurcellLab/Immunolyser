@@ -533,7 +533,7 @@ def saveBindersData(taskId, alleles, method, mhcclass):
                             print(f"Saved file: {outpath}")
 
                 # NetMHCpanII case
-                if method.short_name == Class_Two_Predictors.NetMHCpanII:
+                if method.short_name == Class_Two_Predictors.NetMHCpanII.short_name:
                     print("Entering IF: Running NetMHCpanII case")
 
                     for allele in alleles.split(','):
@@ -549,19 +549,13 @@ def saveBindersData(taskId, alleles, method, mhcclass):
                             f['Control'] = f['Peptide'].apply(lambda x : 'Y' if x in control_peptides else '')
                             f.rename(columns={'Peptide': 'StrippedPeptide'}, inplace=True)
 
-                            outpath1 = f'{project_root}/app/static/images/{taskId}/{sample}/{method.short_name}/{replicate[:-14]}/binders/{allele.replace(":", "_")}/{replicate[:-13]}_{allele.replace(":", "_")}_{method.short_name}_binders.csv'
-                            f.sort_values(by=['Rank'])[['StrippedPeptide', 'Rank', 'Binding Level', 'Control']]\
-                                .merge(input_file, on='StrippedPeptide', how='left')\
-                                .to_csv(outpath1, index=False)
-                            print(f"Saved file: {outpath1}")
-
                             s = f.sort_values(by=['Rank'])[['StrippedPeptide','Core','Rank','Binding Level','Control']]\
                                 .merge(input_file, on='StrippedPeptide',how='left')
                             s['Peptides : StrippedPeptide : Core'] = s['Peptide'] + ' : ' + s['StrippedPeptide'] + ' : ' + s['Core']
 
-                            outpath2 = f'{project_root}/app/static/images/{taskId}/{sample}/{method.short_name}/{replicate[:-14]}/binders/{allele.replace(":", "_")}/{replicate[:-14]}_{allele.replace(":", "_")}_{method.short_name}_binders.csv'
-                            s.to_csv(outpath2, index=False)
-                            print(f"Saved file: {outpath2}")
+                            outpath = f'{project_root}/app/static/images/{taskId}/{sample}/{method.short_name}/{replicate[:-14]}/binders/{allele.replace(":", "_")}/{replicate[:-14]}_{allele.replace(":", "_")}_{method.short_name}_binders.csv'
+                            s.to_csv(outpath, index=False)
+                            print(f"Saved file: {outpath}")
 
                             nine_mer_path = os.path.join(data_mount, taskId, sample, replicate[:-14]+'_9mer.txt')
                             s[['Core']].drop_duplicates(subset='Core').to_csv(nine_mer_path, header=False, index=False)
