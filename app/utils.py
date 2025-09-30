@@ -900,21 +900,32 @@ def getHLAClustResults(taskId, data):
         if sample == 'Control':
             continue
 
-        bindingImages[sample] = {}
+        sample_dict = {}
 
         for replicate in replicates:
-            path = os.path.join('app', 'static', 'images', taskId, sample, 'hla_clust_output', replicate[:-4])
+            path = os.path.join(
+                'app', 'static', 'images', taskId, sample, 'hla_clust_output', replicate[:-4]
+            )
             
-            # Collect PNG images
-            png_files = sorted(glob.glob(os.path.join(path, '**', '*result.html'), recursive=True))
-            png_files = [os.path.relpath(f, 'app/static') for f in png_files]  # Relative paths
+            html_files = sorted(glob.glob(os.path.join(path, '**', '*result.html'), recursive=True))
+            html_files = [os.path.relpath(f, 'app/static') for f in html_files]
 
-            if not png_files:
-                print(f'No PNG files found for sample {sample}, replicate {replicate}')
+            if not html_files:
+                print(f'No result.html files found for sample {sample}, replicate {replicate}')
                 continue
 
-            bindingImages[sample][replicate[:-4]] = png_files
+            sample_dict[replicate[:-4]] = html_files
 
+        # 🔹 Only add the sample if it actually has replicates with files
+        if sample_dict:
+            bindingImages[sample] = sample_dict
+
+    # 🔹 Return False if everything was empty
+    if not bindingImages:
+        print("bindingImages is empty")
+        return False
+
+    print("bindingImages:", bindingImages)
     return bindingImages
 
 def generate_peptigram(csv_path, fasta_path, protein_ids, output_dir):
