@@ -165,13 +165,16 @@
                                             {% for cluster in clusters %}
                                                 <div class="image-container">
                                                     <img src="{{ url_for('static',filename='images/{0}/{1}/gibbscluster/{2}/logos/{3}'.format(taskId,sample,replicate,cluster[0]), width=10)}}" alt="" width="100%" title="Sample size : {{cluster[1]}}">
-                                                    <p style="text-align: center;">
-                                                        Best match : {{cluster[2]}}
-                                                        (<span class="motif-ref" data-image="{{ cluster[4] }}">ref</span>)
-                                                        <br>
-                                                        PCC score : {{cluster[3]}} 
-                                                    </p>
-
+                                                    
+                                                        {% if bindingImages %}
+                                                            <p style="text-align: center;">
+                                                                Best match : {{cluster[2]}}
+                                                                (<span class="motif-ref" data-image="{{ cluster[4] }}">ref</span>)
+                                                                <br>
+                                                                PCC score : {{cluster[3]}} 
+                                                            </p>
+                                                        {% endif %}
+                                                        
                                                     <!-- Download core button -->
                                                     <div style="text-align: center; margin-top: 5px;">
                                                         <a href="{{ url_for('download_gibbscluster_core', taskid=taskId, sample=sample, replicate=replicate, cluster_attempt=cluster[5]) }}"
