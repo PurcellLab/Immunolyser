@@ -4,8 +4,17 @@
 
 <br>
 
-    <h3>Peptide Length Distribution</h3>
-    
+    <h3>➤ Peptide Length Distribution</h3>
+
+    <br>
+
+    <p  style="background-color: #d3e3fe; padding: 10px;" class="text-justify"><b>ⓘ</b> The following histogram demonstrates the peptide length distribution of the sample(s) uploaded.
+        Peptides labelled with <code>#CONTAM</code> or <code>#DECOY</code> in the accession column have been filtered out.
+        Peptides with the length between 5 to 30 residues have been selected. The error bar in case of replicates
+        represents the standard deviation of the number of specifc n-mers across replicates. The switch button below the graph can be used to switch between the distributions presented in percentage and absolute numbers. Click the tool icons at the top right corner
+        for more operations. 
+    </p> 
+
     <div id="chart" class="chart"></div>
 
     <div class="form-row" style="display: flex; justify-content: flex-end;">
@@ -17,21 +26,18 @@
         <span>Absolute Values</span>
     </div>
 
-<br>
-
-    <p class="text-justify">The above histogram demonstrates the peptide length distribution of the sample(s) uploaded.
-                            Peptides labelled with <code>#CONTAM</code> or <code>#DECOY</code> in the accession column have been filtered out.
-                            Peptides with the length between 5 to 30 residues have been selected. The error bar in case of replicates
-                            represents the standard deviation of the number of specifc n-mers across replicates. The switch button above can be used to switch between the distributions presented in percentage and absolute numbers. Click the tool icons at the top right corner
-                            for more operations. 
-    </p> 
+    <br>
 
     <h3>
-    Peptide Overlap 
+    ➤ Peptide Overlap 
     <small class="text-muted">(Click bars to view motif & download peptides)</small>
     </h3>
-    
-    <div class="container" style="max-height: 100%; padding: 0px;">
+    <br>
+    <p  style="background-color: #d3e3fe; padding: 10px;" class="text-justify"><b>ⓘ</b> The UpSet plot depicts peptides after pre-processing: peptides labeled with <code>#CONTAM</code> or <code>#DECOY</code> are removed, as well as those with post-translational modifications (PTMs) and any resulting duplicates. For class I analysis, 8–14-mers are shown; for class II, 12–20-mers are shown. 
+        <strong>📥 Click any bar to view the peptide overlap motif and download the corresponding peptide list.</strong>
+    </p>
+    <br>
+    <div class="container" style="max-height: 100%;">
         <div class="row">
             <div id="overlapScrollBar" class="col-2" style=" word-break: break-word; overflow-x: hidden; overflow-y: auto; max-height: 1000px;">
 
@@ -61,18 +67,12 @@
         </div>
     </div>
 
-    <br>
-
-    <p class="text-justify">
-    The UpSet plot depicts peptides after pre-processing: peptides labeled with <code>#CONTAM</code> or <code>#DECOY</code> are removed, as well as those with post-translational modifications (PTMs) and any resulting duplicates. For class I analysis, 8–14-mers are shown; for class II, 12–20-mers are shown. 
-    <strong>📥 Click any bar to view the peptide overlap motif and download the corresponding peptide list.</strong>
-    </p>
-
     {% if showSeqLogoSection %}
 
     <br>
-    <h3>Peptide consensus binding motif analysis</h3>
+    <h3>➤ Peptide consensus binding motif analysis</h3>
     <br>
+    <p  style="background-color: #d3e3fe; padding: 10px;" class="text-justify"><b>ⓘ</b> The Seq2Logo depicts peptides after pre-processing. Peptides labelled with <code>#CONTAM</code> or <code>#DECOY</code> are removed. PTMs and resulting duplicates are also removed. For class I analysis, either 8-mers or 9-mers are used based on the user's choice. Class II analysis uses 9-mer cores predicted by netMHCIIpan-4.3.</p> 
 
     <div class="seqlogo">
         {% for sample, replicates in seqlogos.items() %}
@@ -98,16 +98,16 @@
             </div>
         {% endfor %}
     </div>
-
-        <br>
-
-        <p class="text-justify">The Seq2Logo depicts peptides after pre-processing (Peptides labelled with <code>#CONTAM</code> or <code>#DECOY</code> peptides removed, PTM and resulting duplicates removed). For class I analysis, either 8-mers or 9-mers are used based on the user's choice. Class II analysis uses 9-mer cores predicted by netMHCIIpan-4.3.</p> 
-        <br>
+    <br>
 
     {% endif %}
 
     {% if showGibbsSection %}
-        <h3>Peptide Sequence Clustering with Predicted MHC Allele Assignment</h3>
+        <h3>➤ Peptide Sequence Clustering with Predicted MHC Allele Assignment</h3>
+        <br>
+
+        <p class="text-justify">Gibbs Clustering has been applied to peptides after removal of peptides labelled as <code>#CONTAM</code> or <code>#DECOY</code>, PTMs and resulting duplicates. For class I, peptides clustering is performe based on 8-14-mers, for class II the analysis is based on 12-20-mers (duplicates removed). Each logo is labeled with the predicted allele and PCC (Pearson Correlation Coefficient) value, as determined by MHC-TP.</p> 
+
         <br>
 
         <div class="container" style="max-height: 100%;">
@@ -204,15 +204,15 @@
             </div>
         </div>
 
-        <br>
-        <br>
-        <p class="text-justify">Gibbs Clustering has been applied to peptides after removal of peptides labelled as <code>#CONTAM</code> or <code>#DECOY</code>, PTMs and resulting duplicates. For class I based on 8-14-mers, for class II based on 12-20-mers (duplicates removed). Each logo is labeled with the predicted allele and PCC (Pearson Correlation Coefficient) value, as determined by MHC-TP.</p> 
-     
+        <br>     
     {% endif %}
 
     {% if bindingImages %}
         <br>
-        <h3>MHC-TP (MHC Typing Prediction)</h3>
+        <h3>➤ MHC-TP (MHC Typing Prediction)</h3>
+
+        <p  style="background-color: #d3e3fe; padding: 10px;" class="text-justify"><b>ⓘ</b> We propose a novel algorithm, MHC-TP, to predict MHC I alleles based on peptide clustering results, allowing <i>in silico</i> MHC typing of datasets, where genetic MHC typing is unavailable, ethically restricted, or cost-prohibitive for large-scale datasets.
+        </p>
 
         <div class="hla_clust">
             {% for sample, replicates in bindingImages.items() %}
@@ -232,10 +232,6 @@
                 </div>
             {% endfor %}
         </div>
-
-        <p class="text-justify">
-            A novel algorithm, MHC-TP, predicts MHC I alleles based on peptide clustering results, allowing in silico MHC typing of datasets, where genetic MHC typing is unavailable, ethically restricted, or cost-prohibitive for large-scale datasets.
-        </p>
     
     {% endif %}
 
@@ -358,29 +354,23 @@
 <br>
     {% if predicted_binders is not none %}
 
-    <h3>Peptide-HLA binding affinity prediction</h3>
+    <h3>➤ Peptide-HLA/MHC binding affinity prediction</h3>
         
-    <p>
-        The following downloadable CSV files contain <strong>majority-voted binding predictions</strong>.  
+    <p  style="background-color: #d3e3fe; padding: 10px;" class="text-justify"><b>ⓘ</b> The following downloadable CSV files contain <strong>majority-voted binding predictions</strong>.  
         Each file includes <strong>all peptides from your uploaded data</strong>, along with predictions from all selected tools.
+        In addition, the files contain <strong>tool-specific prediction columns</strong> such as ranks, binding levels, affinity scores, cores, and other outputs provided by each prediction tool.
+        This ensures that while you can easily see which peptides are <strong>majority-voted binders</strong>,  
+        you also retain full access to the <strong>individual predictions from each tool</strong> for every peptide.
+        Binding prediction has been applied to a peptide list after removal of peptides labelled as <code>#CONTAM</code> or <code>#DECOY</code>, PTMs (for example, “A[+28.03]TFGVDESNAK” or “A(+28.03)TFGVDESNAK” are treated as “ATFGVDESNAK”), and resulting duplicates. For Class I, 8–14-mers were used as input, whereas for Class II 12–20-mers were used.
     </p>
     
     <p>
         Key columns in these files include:
         <ul>
-            <li><strong>Peptide</strong> – the original peptide sequence you uploaded</li>
+            <li><strong>Peptide</strong> – the original peptide sequences you uploaded</li>
             <li><strong>Is Majority Voted Binder</strong> – indicates whether the peptide was identified as a majority-voted binder</li>
             <li><strong>Control</strong> – specifies whether the peptide is also present in the control group (if uploaded)</li>
         </ul>
-    </p>
-    
-    <p>
-        In addition, the files contain <strong>tool-specific prediction columns</strong> such as ranks, binding levels, affinity scores, cores, and other outputs provided by each prediction tool.
-    </p>    
-    
-    <p>
-        This ensures that while you can easily see which peptides are <strong>majority-voted binders</strong>,  
-        you also retain full access to the <strong>individual predictions from each tool</strong> for every peptide.
     </p>
     
     <div id="binderReports">
@@ -419,12 +409,12 @@
 
         <br>
 
-        <p>
-            The following UpSet plot provides a visualization of the distribution and overlap of predicted binders across the uploaded samples. 
+        <p  style="background-color: #d3e3fe; padding: 10px;" class="text-justify"><b>ⓘ</b> The following UpSet plot provides a visualisation of the distribution and overlap of predicted binders across the uploaded samples. 
             Each sample represents one of the user-uploaded datasets, and the values correspond to peptides predicted as binders. 
             Users can explore results from any of the available binding prediction tools via the dropdown menu, or view the default option of majority-voted binders (across all tools). 
             On the left, a list of alleles of interest is provided—selecting an allele regenerates the plot for that allele. 
             Please note that this plot does not display binding results directly, but instead highlights how predicted binders are distributed and overlap across different samples.
+            Seq2Logos are generated based on 9-mer cores (duplicates removed) predicted by binding prediction tools.
         </p>
 
 
@@ -500,16 +490,6 @@
         </div>
         <br>
 
-        <p class="text-justify">
-            Binding prediction has been applied to a peptide list after removal of peptides labelled 
-            as <code>#CONTAM</code> or <code>#DECOY</code>, PTMs 
-            (for example, “A[+28.03]TFGVDESNAK” or “A(+28.03)TFGVDESNAK” are treated as “ATFGVDESNAK”), 
-            and resulting duplicates. For Class I, 8–14-mers were used as input, whereas for Class II 
-            12–20-mers were used. Seq2Logos are generated based on 9-mer cores (duplicates removed) 
-            predicted by binding prediction tools.
-        </p>
-        <br>
-
         <!-- Wrap violin area in a container -->
         <div id="violinSection" style="display:none; margin-top:20px;">
             <div id="violinPlotDiv" style="width:100%; height:600px;"></div>
@@ -517,8 +497,7 @@
             <br>
             <div id="violinPlotDescription" style="max-width:1200px;">
                 <h4>About the violin plot</h4>
-                <p>
-                    The violin plot visualises the <strong>distribution of predicted binding values</strong> 
+                <p  style="background-color: #d3e3fe; padding: 10px;" class="text-justify"><b>ⓘ</b> The violin plot visualises the <strong>distribution of predicted binding values</strong> 
                     for peptides that are a <strong>subset of the binders shown in the UpSet plot</strong>. 
                     Only peptides within tool-specific thresholds for strong or weak binders are included. 
                     Thresholds vary depending on the prediction tool and MHC class, for example:
