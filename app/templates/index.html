@@ -11,8 +11,12 @@
             <div style="text-align:justify;">
 
                 <br>
-                <p>Immunolyser is an automated web-based tool developed for immunologists to analyse immunopeptidomics data in a seamless pipeline based on the integration of multiple computational tools for peptide analysis. The pipeline generates a comprehensive report summarising the sequence conservation, clustering of similar peptides in groups, and prediction of binding affinity to various MHC allotypes based on the uploaded peptide data. The pipeline has a user-friendly interface available online, with no requirement of programming experience.
-
+                <p>Immunolyser 2.0 is an automated web-based tool developed for immunologists to analyse immunopeptidomics data in a seamless pipeline based on the integration of multiple computational tools for peptide analysis. The pipeline generates a comprehensive report summarising the sequence conservation, clustering of similar peptides in groups, and prediction of binding affinity to various MHC allotypes based on the uploaded peptide data. The pipeline has a user-friendly interface available online and a locally executable version, with no requirement of programming experience. Compared to it's 1.0 version, Immunolyser 2.0 has the following updates:</p>
+                <ul>
+                    <li>Expanded functionality allowing analysis of murine immunopeptidomic datasets. </li>
+                    <li>A novel algorithm, MHC-TP, to predict the MHC class I haplotype <i>in silico</i> where genetic MHC typing is unavailable, ethically restricted, or cost-prohibitive for large-scale datasets. </li>
+                    <li>An offline and operation system-independent version of Immunolyser to ensure data privacy and enable the analysis of datasets of any size.</li>
+                    <li>Upgraded Pepscanner module with an interactive visualisation of peptide alignment to source proteins and the option for users to upload a background proteome for source protein analysis. </li>
                 <br>
                 
                 <p>
@@ -20,8 +24,8 @@
                 </p>
 
                 <p>
-                    If you find Immunoloyser helpful, please consider citing us in your study:<br>
-                    <i>Prithvi Raj Munday, Joshua Fehring, Jerico Revote, Kirti Pandey, Mohammad Shahbazy, Katherine E Scull, Sri H. Ramarathinam, Pouya Faridi, Nathan P. Croft, Asolina Braun, Chen Li, and Anthony W. Purcell. Immunolyser: a web-based computational pipeline for analysing and mining immunopeptidomic data. Computational and Structural Biotechnology Journal, 2023.</i>
+                    If you find Immunolyser 2.0 helpful, please consider citing us in your study:<br>
+                    <i>Prithvi Raj Munday, Sanjay S.G. Krishna, Joshua Fehring, Nathan P. Croft, Anthony W. Purcell, Chen Li, and Asolina Braun. Immunolyser 2.0: an advanced computational pipeline for comprehensive analysis of immunopeptidomic data. Computational and Structural Biotechnology Journal, 2025. (Under review)</i>
                 </p>
                 
                 <H4>How to use Immunolyser?</H4>
@@ -39,7 +43,7 @@
                 <H4>Demo and example input</H4>
 
                 <p>
-                    A demo report has been generated to demonstrate the organisation and features of analysis results. It can be accessed by clicking on the <a href="{{ url_for('demo') }}">Demo</a> tab. To test the pipeline end-to-end, the example files (exported from PEAKs) can be downloaded from <a href="/static/temp/Study by Son, Eric T., et al.zip" target="_blank"> here</a> and uploaded in the demo <a href="{{ url_for('initialiser') }}">initialiser</a> module to run the analysis. The dataset provided and used to generate the demo report are from the recent immunopeptidomic study by Son, Eric T., et al. In addition, we attached <a href="/static/temp/demo data from multiple softwares.zip" target="_blank"> example input files</a> exported from other search engines, including Skyline, ProteinPilot, Spectronaut, and DIA-NN. 
+                    A demo report has been generated to demonstrate the organisation and features of analysis results. It can be accessed by clicking on the <a href="{{ url_for('demo') }}">Demo</a> tab. To test the pipeline end-to-end, the example files (exported from PEAKs) can be downloaded from <a href="/static/temp/Study by Son, Eric T., et al.zip" target="_blank"> here</a> and uploaded in the demo <a href="{{ url_for('initialiser') }}">initialiser</a> module to run the analysis. The dataset provided and used to generate the demo report are from the recent immunopeptidomic study by <a href="https://www.jci.org/articles/view/146771" target="_blank">Son, Eric T., et al</a>. In addition, we attached <a href="/static/temp/demo data from multiple softwares.zip" target="_blank"> example input files</a> exported from other search engines, including Skyline, ProteinPilot, Spectronaut, and DIA-NN. 
                 </p>
 
                 <H4>References</H4>
@@ -58,7 +62,7 @@
 
                 <H4>Feedback</H4>
                     <p>
-                        Your feedback will help us to improve. Please share your feedback at <a href="mailto:Chen.Li@monash.edu">Chen.Li@monash.edu</a>.
+                        Your feedback will help us to improve. Please send your feedback to <a href="mailto:Chen.Li@monash.edu">Chen.Li@monash.edu</a>.
                     </p>
             </div>
 
