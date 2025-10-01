@@ -742,6 +742,7 @@
                         data.append("name", set.name);
                         data.append("elems", JSON.stringify(set.elems));
                         data.append("taskId", taskId);
+                        data.append("plotType", "overlap-upset");
 
                         var xhr = new XMLHttpRequest();
                         xhr.withCredentials = true;
@@ -754,12 +755,15 @@
                                     document.getElementById('modalHedingHref').href = "/static/images/" + taskId + "/selected-binders.txt?t=" + new Date().getTime();
 
                                     let imgPath = this.responseText.trim(); // backend returns path
-                                    if (imgPath.endsWith("seq-not-generated.jpg")) {
+                                    if (imgPath.endsWith("seqlogo-for-class2-overlap_upset.jpg")) {
+                                        document.getElementById('modalBinder').src = "/static/others/seqlogo-for-class2-overlap_upset.jpg?t=" + new Date().getTime();
+                                    } else if (imgPath.endsWith("seq-not-generated.jpg")) {
                                         // fallback if no peptides for seqlogo
                                         document.getElementById('modalBinder').src = "/static/others/seq-not-generated.jpg?t=" + new Date().getTime();
                                     } else {
                                         document.getElementById('modalBinder').src = "/static/images/" + taskId + "/seqLogoApi-001.jpg?t=" + new Date().getTime();
                                     }
+
 
                                     $('#myModal').modal('show');
                                 } else {
@@ -889,6 +893,7 @@
                     props.onClick = (set) => {
                         var clickData = new FormData();
                         clickData.append("name", set.name);
+                        clickData.append("plotType", "binder-upset");
 
                         const peptideSequences = set.elems.map(e => {
                             return (typeof e === 'string') ? e : (e.name || e.sequence);
