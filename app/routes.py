@@ -910,18 +910,22 @@ def download_overlap_peptides():
     response.headers["Content-Type"] = "text/plain"
     return response
 
-import json
-
 @app.route("/api/getSeqLogo", methods=["POST"])
 def getSeqLogo():
 
     name = request.form['name']
-    print(name)
+    plot_type = request.form['plotType']
+
     name = str(name).replace('∩','and').replace('(','').replace(')','').replace(' ','_').strip()
 
     taskId = request.form['taskId']    
     if is_valid_uuid(taskId) == False:
         return f"The ID '{taskId}' is not a valid task ID."
+    
+    # MHC Class of Interest
+    with open(os.path.join('app', 'static', 'images', taskId, "mhcclass.txt")) as f:
+        mhcclass = f.readline()
+
 
     # <-- minimal change here: parse JSON list from JS
     elems = json.loads(request.form['elems'])
@@ -933,18 +937,21 @@ def getSeqLogo():
 
     # --- keep all your existing if/else logic below unchanged ---
     if peptides.shape[0] > 0 and peptides[peptides['peptide'].str.contains(':')].shape[0]>0:
+
+        print('Enter here for class 2 seq logo generation as : is present in the peptides')
+
         total_peptides = peptides.shape[0]
         peptideswithcores = peptides['peptide'].str.split(' : ',expand=True)
         peptideswithcores.columns = ['Peptide' ,'StrippedPeptide','Core']
 
         peptideswithcores[['Peptide','Core']].to_csv(binders_location,index=False)
 
-        nine_mers = peptideswithcores.drop_duplicates(subset='Core').shape[0]
+        nine_mers = peptideswithcores.shape[0]
 
         if peptideswithcores[['Core']].drop_duplicates(subset='Core').shape[0] ==0:
             return os.path.join('static','images',taskId,'seq-not-generated.jpg')
         
-        peptideswithcores[['Core']].drop_duplicates(subset='Core').to_csv(peptides_location_forseqlogo,index=False,header=False)
+        peptideswithcores[['Core']].to_csv(peptides_location_forseqlogo,index=False,header=False)
 
     else:
         total_peptides = peptides.shape[0]
@@ -956,6 +963,9 @@ def getSeqLogo():
 
         peptides = peptides[peptides.peptide.apply(lambda x: len(x) == motif_length)]
         nine_mers = peptides.shape[0]
+        
+        if mhcclass == MHC_Class.Two and plot_type == 'overlap-upset':
+            return os.path.join('static','images',taskId,'seqlogo-for-class2-overlap_upset.jpg')
 
         if peptides.shape[0] ==0:
             return os.path.join('static','images',taskId,'seq-not-generated.jpg')
