@@ -10,7 +10,7 @@ import uuid, logging, base64, re, shutil, glob, os, pandas as pd, subprocess, io
 from Bio import SeqIO
 from constants import *
 from email.mime.text import MIMEText
-from app.email_registry import save_email, get_email
+from app.email_registry import save_email, get_email, get_job_name
 from app.job_registry import insert_job, update_job_status
 
 project_root = os.path.dirname(os.path.realpath(os.path.join(__file__, "..")))
@@ -41,7 +41,7 @@ def submit_email(job_id):
     return "Job details registered", 200
 
 
-def send_email(to_email, job_id, success=True, error_msg=None):
+def send_email(to_email, job_id, success=True, error_msg=None, job_name=None):
 
     from_email = os.getenv("EMAIL_ADDRESS")
     password = os.getenv("EMAIL_APP_PASSWORD")
@@ -50,12 +50,21 @@ def send_email(to_email, job_id, success=True, error_msg=None):
         print("Email credentials are not set in environment variables.")
         return
 
+    # Format job display name
+    job_display = f"{job_name} ({job_id})" if job_name else job_id
+
     if success:
-        subject = f"Immunolyser job {job_id} Completed"
-        body = f"Your job {job_id} has completed successfully!\nAccess the results here: https://dev.immunolyser.cloud.edu.au/{job_id}"
+        subject = f"Immunolyser job {job_display} Completed"
+        body = (
+            f"Your job '{job_display}' has completed successfully!\n\n"
+            f"Access the results here:\nhttps://dev.immunolyser.cloud.edu.au/{job_id}"
+        )
     else:
-        subject = f"Immunolyser job {job_id} Failed"
-        body = f"Your job {job_id} failed with the following error:\n{error_msg}"
+        subject = f"Immunolyser job {job_display} Failed"
+        body = (
+            f"Your job '{job_display}' failed with the following error:\n\n"
+            f"{error_msg or 'Unknown error'}"
+        )
 
     msg = MIMEText(body)
     msg['Subject'] = subject
@@ -408,10 +417,12 @@ def submit_job(self, samples, motif_length, mhcclass, alleles_unformatted, predi
 
         # On job success
         email = get_email(taskId)
+        job_name = get_job_name(taskId)
+
         if email:
             logging.info(f"Found email '{email}' for completed task '{taskId}', attempting to send notification.")
             try:
-                send_email(email, taskId, success=True)
+                send_email(email, taskId, success=True, job_name=job_name)
                 logging.info(f"Email successfully sent to {email} for job {taskId}.")
             except Exception as e:
                 logging.error(f"Failed to send success email to {email} for job {taskId}: {e}")
@@ -425,9 +436,11 @@ def submit_job(self, samples, motif_length, mhcclass, alleles_unformatted, predi
         logging.error(f"Job {taskId} failed with error: {error_msg}")
 
         email = get_email(taskId)
+        job_name = get_job_name(taskId)
+
         if email:
             try:
-                send_email(email, taskId, success=False)
+                send_email(email, taskId, success=False, job_name=job_name)
                 logging.info(f"Failure email successfully sent to {email} for job {taskId}.")
             except Exception as e:
                 logging.error(f"Failed to send failure email to {email} for job {taskId}: {e}")
