@@ -30,14 +30,16 @@ ALLELE_DICTIONARY = pd.read_csv(os.path.join(project_root,'app','static','Immuno
 def submit_email(job_id):
     data = request.get_json()
     email = data.get('email')
+    job_name = data.get('job_name')
 
     if not email or '@' not in email:
         logging.warning(f"Invalid email submitted for job {job_id}: {email}")
         return "Invalid email", 400
 
-    save_email(job_id, email)
-    logging.info(f"Email {email} registered for job {job_id}")
-    return "Email registered", 200
+    save_email(job_id, email=email, job_name=job_name)
+    logging.info(f"Job {job_id} registered with email {email} and name {job_name}")
+    return "Job details registered", 200
+
 
 def send_email(to_email, job_id, success=True, error_msg=None):
 

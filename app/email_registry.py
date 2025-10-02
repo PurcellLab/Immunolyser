@@ -14,19 +14,20 @@ def init_email_registry():
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS email_registry (
                 job_id TEXT PRIMARY KEY,
-                email TEXT
+                email TEXT,
+                job_name TEXT
             )
         ''')
         conn.commit()
 
-def save_email(job_id, email):
-    """Save or update an email associated with a job ID."""
+def save_email(job_id, email, job_name=None):
+    """Save or update an email and optional job name associated with a job ID."""
     with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
         cursor.execute('''
-            REPLACE INTO email_registry (job_id, email)
-            VALUES (?, ?)
-        ''', (job_id, email))
+            REPLACE INTO email_registry (job_id, email, job_name)
+            VALUES (?, ?, ?)
+        ''', (job_id, email, job_name))
         conn.commit()
 
 def get_email(job_id):
@@ -34,5 +35,13 @@ def get_email(job_id):
     with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
         cursor.execute('SELECT email FROM email_registry WHERE job_id = ?', (job_id,))
+        row = cursor.fetchone()
+        return row[0] if row else None
+
+def get_job_name(job_id):
+    """Retrieve the job name associated with a job ID."""
+    with sqlite3.connect(DB_PATH) as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT job_name FROM email_registry WHERE job_id = ?', (job_id,))
         row = cursor.fetchone()
         return row[0] if row else None

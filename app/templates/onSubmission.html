@@ -15,8 +15,11 @@
 </div>
 
 <div id="emailSection" class="container mt-4">
-    <input type="email" id="emailInput" class="form-control" placeholder="Enter your email for notification">
-    <button class="btn btn-secondary mt-2" onclick="submitEmail()">Submit Email</button>
+    <input type="text" id="jobNameInput" class="form-control w-100 mb-2"
+           placeholder="Enter a name for your job">
+    <input type="email" id="emailInput" class="form-control w-100 mb-2"
+           placeholder="Enter your email for notification">
+    <button class="btn btn-secondary">Submit</button>
 </div>
 
 <script>
@@ -58,9 +61,9 @@ function checkStatus() {
 
 function submitEmail() {
     const email = document.getElementById('emailInput').value;
+    const jobName = document.getElementById('jobNameInput').value;
     const jobId = '{{ message.split("Task ID is ")[1] }}';
 
-    // Basic client-side email validation
     if (!/\S+@\S+\.\S+/.test(email)) {
         alert('Invalid email address!');
         return;
@@ -69,16 +72,16 @@ function submitEmail() {
     fetch(`/submit_email/${jobId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
+        body: JSON.stringify({ email, job_name: jobName })
     }).then(res => {
         if (res.ok) {
-            document.getElementById('emailSection').innerHTML = '<div class="text-success">Email submitted successfully!</div>';
+            document.getElementById('emailSection').innerHTML =
+                '<div class="text-success">Details submitted successfully!</div>';
         } else {
-            alert('Error submitting email.');
+            alert('Error submitting job details.');
         }
     });
 }
-
 
     function openReport(jobId) {
         window.open(`/${jobId}`, '_blank');
