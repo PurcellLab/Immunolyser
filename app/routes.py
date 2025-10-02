@@ -814,6 +814,26 @@ def getBinders():
 
                 binders = list(unique_binders.values())
 
+            elif tool == "NetMHCpanII":
+
+                for i in binder_files:
+                    df = pd.read_csv(os.path.join('app', i))
+                    df = df[df['Binding Level'].notna()]   # 🔹 filter only rows with Binding Level
+                    binding_col_idx = df.columns.get_loc('Binding Level')
+                    numerical_column = df.columns[binding_col_idx - 1]
+
+                    binders.extend([
+                        {"sequence": seq, "value": val}
+                        for seq, val in zip(df['Peptides : StrippedPeptide : Core'].dropna(),
+                                            df[numerical_column])
+                    ])
+                # remove duplicates while preserving sequence + value
+                unique_binders = {}
+                for b in binders:
+                    unique_binders[b['sequence']] = b  # overwrites duplicates with last value
+
+                binders = list(unique_binders.values())
+
             # Else. For specific prediction tool.
             else:
                 for i in binder_files:
