@@ -76,7 +76,7 @@
     <div style="padding-left: 18px;" class="input-group mb-3">
         <div class="custom-file">
             <input type="file" class="custom-file-input" id="background" style="cursor: pointer;" name="background" required accept=".fasta">
-            <label class="custom-file-label" for="background">Select the background proteome fasta file (optional)</label>
+            <label class="custom-file-label" for="background">Select the target proteome fasta file (optional)</label>
         </div>
         <i class="fa fa-question-circle" aria-hidden="true" style="cursor: pointer; padding-left: 10px; padding-top: 6px;" data-toggle="tooltip" data-placement="right" title="Please select the background fasta file.&#013;This is the file you would download from UniProt as proteome from any species. If you don't upload this, the human proteome with proteins reviewed by UniProt (Swiss-Prot reviewed) will be used as the background."></i>
     </div>
@@ -114,7 +114,7 @@
 <br>
 <br>
     <p class="text-justify" style="padding-right: 20px;">
-      <strong>Pepscanner</strong> is a tool which can be used to visualise the location of peptides present in the proteins of interest. It takes a CSV (comma separated values) file as an input along with the proteins of interest (optional). The uploaded file should have 'Peptide' and 'Accession' columns present in it. Pepscanner first extracts the protein sequences from a reference human proteome file and then plots the location of all the peptides (from the 'Peptide' column) on the selected proteins. Users also have an option to upload their choice of FASTA file which will be used as the background if uploaded.<br>If the proteins are not entered, the top occurring five proteins present in the 'Accession' column are selected automatically. A demo output using the 'Liver Set1 DDA.csv' file in our demo datasets has been generated to demonstrate the usage of Pepscanner. It can be accessed by using <a id="myLink" action="{{ url_for('pepscanner') }}" href="#" onclick="return pepscannerDemo();">this link.</a>
+      <strong>Pepscanner</strong> is a tool which can be used to visualise the location of peptides present in the proteins of interest. It takes a CSV (comma separated values) file as an input along with the proteins of interest (optional). The uploaded file should have 'Peptide' and 'Accession' columns present in it. Pepscanner first extracts the protein sequences from a reference human proteome file and then plots the location of all the peptides (from the 'Peptide' column) on the selected proteins. Users also have an option to upload their choice of FASTA file which will be used as the target proteome if uploaded.<br>If the proteins are not entered, the top occurring five proteins present in the 'Accession' column are selected automatically. A demo output using the 'Liver Set1 DDA.csv' file in our demo datasets has been generated to demonstrate the usage of Pepscanner. It can be accessed by using <a id="myLink" action="{{ url_for('pepscanner') }}" href="#" onclick="return pepscannerDemo();">this link.</a>
     </p>
 
     <p class="text-justify" style="padding-right: 20px;">
@@ -561,7 +561,7 @@
             if (!allowedExtensions.exec(fileName)) {
                 alert('Invalid file type. Please upload a FASTA file with a .fasta extension.');
                 event.target.value = ''; // Clear the input
-                fileInputLabel.textContent = 'Select the background FASTA file (optional)'; // Reset label text
+                fileInputLabel.textContent = 'Select the target proteome fasta file (optional)'; // Reset label text
                 return;
             }
 
@@ -571,7 +571,7 @@
                 if (!fileContent.startsWith('>')) {
                     alert('Invalid file format. The file does not appear to be a FASTA file.');
                     event.target.value = ''; // Clear the input
-                    fileInputLabel.textContent = 'Select the background FASTA file (optional)'; // Reset label text
+                    fileInputLabel.textContent = 'Select the target proteome fasta file (optional)'; // Reset label text
                 }
             };
             reader.readAsText(file);
