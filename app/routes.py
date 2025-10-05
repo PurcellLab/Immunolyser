@@ -57,7 +57,7 @@ def send_email(to_email, job_id, success=True, error_msg=None, job_name=None):
         subject = f"Immunolyser job {job_display} Completed"
         body = (
             f"Your job '{job_display}' has completed successfully!\n\n"
-            f"Access the results here:\nhttps://dev.immunolyser.cloud.edu.au/{job_id}"
+            f"Access the results here:\nhttps://immunolyser.erc.monash.edu/{job_id}"
         )
     else:
         subject = f"Immunolyser job {job_display} Failed"
