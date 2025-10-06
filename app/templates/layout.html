@@ -24,14 +24,21 @@
 <body class="Site">
     <div class="wrapper">
 
-        <!-- Banner Start -->
-        <div class="alert alert-warning text-center m-0 p-3" role="alert" style="font-weight: bold; font-size: 1rem;">
-            We’re excited to announce the release of <strong>Immunolyser 2.0</strong>! 
-            Click <a href="https://immunolyser.cloud.edu.au/" target="_blank">here</a> to access the new version, 
-            which offers a more comprehensive analysis of human and mouse immunopeptidomic data.  <br>
-            Note: Version 1.0 will be retired at the end of this year.
-        </div>
-        <!-- Banner End -->
+<!-- Banner Start -->
+<div class="alert alert-warning text-center m-0 p-3" role="alert" 
+     style="font-weight: bold; font-size: 1rem; color: #b71c1c;">
+    We’re excited to announce the release of <strong>Immunolyser 2.0</strong>! 
+    Click <a href="https://immunolyser.erc.monash.edu/" target="_blank">here</a> 
+    to access the new version, which offers a more comprehensive analysis of human and mouse immunopeptidomic data. 
+    <br>
+    <strong>Accessing your previous jobs:</strong> To view jobs from version 1.0, append your job ID to the version 1 URL. 
+    For example, if your job ID is <code>52e7e01f-c7e6-4ffc-a552-4e7cc46eef53</code>, visit 
+    <code>https://v1.immunolyser.cloud.edu.au/[your-job-id]</code> replacing <code>[your-job-id]</code> with your actual job ID.
+    <br>
+    Note: Version 1.0 will be retired at the end of this year.
+</div>
+<!-- Banner End -->
+
 
         <div class="container-fluid text-center top-container">
             <img src="{{ url_for('static',filename='others/down.png')}}">
