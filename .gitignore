@@ -1,5 +1,5 @@
 app/tools
-app/static/images/*
+app/static/images
 app/__pycache__/*
 __pycache__/
 immunolyser-data/*
