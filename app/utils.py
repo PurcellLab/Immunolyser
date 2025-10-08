@@ -30,13 +30,11 @@ def plot_lenght_distribution(samples, hist="percent", taskId=None):
         if hist == 'percent':
             for replicate, data in sample.items():
                 peptideProportion[replicate] = data.groupby('Length').count()['Peptide'] / data.shape[0] * 100
-            title = 'The relative frequency distribution of the peptide lengths'
             yaxis_label = '% Peptides'
             file_suffix = 'percentage'
         else:
             for replicate, data in sample.items():
                 peptideProportion[replicate] = data.groupby('Length').count()['Peptide']
-            title = 'The frequency distribution of the peptide lengths'
             yaxis_label = 'Number of Peptides'
             file_suffix = 'absolute'
 
@@ -72,7 +70,6 @@ def plot_lenght_distribution(samples, hist="percent", taskId=None):
             ))
 
     fig.update_layout(
-        title=title,
         xaxis=dict(title='<i>Length</i>'),
         yaxis=dict(title=f'<i>{yaxis_label}</i>')
     )
