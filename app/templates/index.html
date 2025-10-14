@@ -6,12 +6,18 @@
         <div class="col-md-12 text-center">
             <h1>Welcome to Immunolyser 2.0</h1>
 
-            <br>
-
             <div style="text-align:justify;">
+                
+               <div style="display: flex; justify-content: center; align-items: center; margin-top: 50px;">
+                    <video width="800" controls>
+                        <source src="{{ url_for('static', filename='temp/immunolyser2_walkthrough_14102025.mp4') }}" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                </div>
 
                 <br>
                 <p>Immunolyser 2.0 is an automated web-based tool developed for immunologists to analyse immunopeptidomics data in a seamless pipeline based on the integration of multiple computational tools for peptide analysis. The pipeline generates a comprehensive report summarising the sequence conservation, clustering of similar peptides in groups, and prediction of binding affinity to various MHC allotypes based on the uploaded peptide data. The pipeline has a user-friendly interface available online and a locally executable version, with no requirement of programming experience. Compared to its 1.0 version, Immunolyser 2.0 has the following updates:</p>
+            
                 <ul>
                     <li>Expanded functionality allowing analysis of murine immunopeptidomic datasets. </li>
                     <li>A novel algorithm, MHC-TP, to predict the MHC class I haplotype <i>in silico</i> where genetic MHC typing is unavailable, ethically restricted, or cost-prohibitive for large-scale datasets. </li>
