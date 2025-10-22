@@ -21,21 +21,22 @@ def init_job_registry():
                 status TEXT,
                 submission_time TEXT,
                 completed_time TEXT,
-                error_message TEXT
+                error_message TEXT,
+                country TEXT
             )
         ''')
         conn.commit()
 
-def insert_job(job_id, ip_address, mhc_class, species, alleles,
+def insert_job(job_id, country, mhc_class, species, alleles,
                user_agent=None, referrer=None, status="PENDING"):
     with sqlite3.connect(DB_PATH) as conn:
         cursor = conn.cursor()
         cursor.execute('''
             INSERT OR REPLACE INTO job_registry
-            (job_id, ip_address, mhc_class, species, alleles, user_agent, referrer, status, submission_time)
+            (job_id, country, mhc_class, species, alleles, user_agent, referrer, status, submission_time)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
-            job_id, ip_address, mhc_class, species, alleles,
+            job_id, country, mhc_class, species, alleles,
             user_agent, referrer, status, datetime.utcnow().isoformat()
         ))
         conn.commit()

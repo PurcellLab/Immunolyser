@@ -12,6 +12,7 @@ from constants import *
 from email.mime.text import MIMEText
 from app.email_registry import save_email, get_email, get_job_name
 from app.job_registry import insert_job, update_job_status
+from geoip2.database import Reader
 
 project_root = os.path.dirname(os.path.realpath(os.path.join(__file__, "..")))
 
@@ -23,8 +24,19 @@ logger = logging.getLogger(__name__)
 # Configure logging format and level as needed
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
+GEOIP_DB_PATH = os.path.join(project_root,'app','static', 'temp', 'GeoLite2-Country_20251021', 'GeoLite2-Country.mmdb')
+
 # Load Allele dictionary
 ALLELE_DICTIONARY = pd.read_csv(os.path.join(project_root,'app','static','Immunolyser2.0_Allele_Dictionary.csv'))
+
+def get_country_from_request(request):
+    ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+    try:
+        with Reader(GEOIP_DB_PATH) as reader:
+            response = reader.country(ip)
+            return response.country.name
+    except Exception:
+        return "Unknown"
 
 @app.route('/submit_email/<job_id>', methods=['POST'])
 def submit_email(job_id):
@@ -128,6 +140,8 @@ def initialiser():
         use_mhc_tp_full_DB = request.form.get('useFullDB', 'no')
         
         ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
+        country = get_country_from_request(request)
+
         user_agent = request.headers.get('User-Agent')
         referrer = request.referrer
 
@@ -148,7 +162,7 @@ def initialiser():
 
         insert_job(
             job_id=task.id,
-            ip_address=ip_address,
+            country=country,
             mhc_class=mhcclass,
             species=species,
             alleles=alleles_unformatted,
