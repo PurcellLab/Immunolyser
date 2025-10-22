@@ -1450,3 +1450,7 @@ def download_gibbscluster_core(taskid, sample, replicate, cluster_attempt):
     except Exception:
         logger.exception(f"Failed to send core file: {core_file}")
         return abort(500, description="Error sending core file.")
+
+@app.route('/privacy')
+def privacy():
+    return render_template('privacy.html')

@@ -66,15 +66,9 @@ input[type=text]:focus, input[type=password]:focus {
 }
 .bottom-container {
     background: #333;
-    padding:5px;
-    border-top:2px solid #0f0f0f;
-    /* position:absolute; */
-    bottom:0;
-}
-
-.wrapper {
-    min-height: 100%;
-    position:relative;
+    padding: 10px 5px;   /* give more vertical space */
+    border-top: 2px solid #0f0f0f;
+    width: 100%;
 }
 
 .container-term {
@@ -85,11 +79,17 @@ input[type=text]:focus, input[type=password]:focus {
 }
 footer {
     text-align: center;
-    height: 50px;
     color: white;
-    padding: 5px;
-    margin-top: 10px;
-    bottom: 0px;
+    padding: 10px 0;
+    background-color: #333;
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+}
+.wrapper {
+    min-height: 100%;
+    position: relative;
+    padding-bottom: 70px;  /* leave space for footer */
 }
 
 .btn-submit {
