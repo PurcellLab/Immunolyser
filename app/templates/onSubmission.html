@@ -45,7 +45,14 @@ function checkStatus() {
             } else if (data.status === 'failure') {
                 btn.classList.add('btn-danger');
                 btn.innerText = 'Failure';
-                statusMessage.innerHTML = `<button class="btn btn-danger" onclick="showTraceback('${encodeURIComponent(data.traceback)}')">Click to see trace</button>`;
+                
+                statusMessage.innerHTML = ''; // clear previous content
+                const failBtn = document.createElement('button');
+                failBtn.className = 'btn btn-danger';
+                failBtn.innerText = 'Click to see trace';
+                failBtn.addEventListener('click', () => showTraceback(data.traceback));
+                statusMessage.appendChild(failBtn);
+                
                 emailSection.style.display = 'none';
             } else if (data.status === 'pending') {
                 btn.classList.add('btn-warning');

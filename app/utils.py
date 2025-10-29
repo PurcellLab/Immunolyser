@@ -77,6 +77,7 @@ def plot_lenght_distribution(samples, hist="percent", taskId=None):
     graphJSON = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
     return graphJSON
     
+STANDARD_AA = set("ACDEFGHIKLMNPQRSTVWY")
 # The following method filters the data to remove contamination.
 # This method is specific to a PEAKS output file for peptides.
 def filterPeaksFile(samples, minLen=1, maxLen=133):
@@ -113,8 +114,10 @@ def filterPeaksFile(samples, minLen=1, maxLen=133):
 
         print('Number of peptides after keeping peptides with lenght from {} to {} : {}'.format(minLen, maxLen, temp.shape[0]))
 
-#       Filtering the control peptides out
-        # temp = temp[temp.apply(lambda x : x['Peptide'] not in control_peptides,axis=1)]        
+#       Final check: validate amino acids
+        invalid_peptides = temp[~temp['Peptide'].apply(lambda p: set(p).issubset(STANDARD_AA))]
+        if not invalid_peptides.empty:
+            raise Exception(f"File '{file_name}' contains peptides with invalid amino acids.")
     
         samples[file_name] = temp
 
