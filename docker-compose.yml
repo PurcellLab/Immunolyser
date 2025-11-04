@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   flask:
     build: .
@@ -12,7 +10,7 @@ services:
     volumes:
       - ./data_files:/data
       - ./tools:/tools
-      - ./data_files_2:/app/Immunolyser/app/static/images  # <== Added bind mount
+      - ./data_files_2:/app/Immunolyser/app/static/images
     command: ["flask"]
     depends_on:
       - redis
@@ -26,7 +24,7 @@ services:
     volumes:
       - ./data_files:/data
       - ./tools:/tools
-      - ./data_files_2:/app/Immunolyser/app/static/images  # <== Added bind mount
+      - ./data_files_2:/app/Immunolyser/app/static/images
     command: ["celery"]
     depends_on:
       - redis
