@@ -31,6 +31,7 @@ Flask-WTF==0.14.3
 flatbuffers==24.3.25
 fonttools==4.46.0
 gast==0.6.0
+geoip2==5.1.0
 google-pasta==0.2.0
 gprofiler-official==1.0.0
 greenlet==3.0.3

@@ -22,7 +22,8 @@ def init_job_registry():
                 submission_time TEXT,
                 completed_time TEXT,
                 error_message TEXT,
-                country TEXT
+                country TEXT,
+                referrer TEXT
             )
         ''')
         conn.commit()
