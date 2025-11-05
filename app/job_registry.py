@@ -4,8 +4,14 @@ import sqlite3
 import os
 from datetime import datetime
 
-project_root = os.path.dirname(os.path.realpath(os.path.join(__file__, "..")))
-DB_PATH = os.path.join(project_root, 'results.sqlite')
+# Use the environment variable as the DB path
+DB_PATH = os.environ.get('IMMUNOLYSER_DATA')
+if not DB_PATH:
+    raise RuntimeError("IMMUNOLYSER_DATA environment variable is not set!")
+
+# If DB_PATH is a folder, append the database filename
+if os.path.isdir(DB_PATH):
+    DB_PATH = os.path.join(DB_PATH, 'results.sqlite')
 
 def init_job_registry():
     with sqlite3.connect(DB_PATH) as conn:

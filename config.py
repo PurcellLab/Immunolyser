@@ -1,5 +1,13 @@
 import os
 
+# Use the environment variable as the DB path
+DB_PATH = os.environ.get('IMMUNOLYSER_DATA')
+if not DB_PATH:
+    raise RuntimeError("IMMUNOLYSER_DATA environment variable is not set!")
+
+# If DB_PATH is a folder, append the database filename
+if os.path.isdir(DB_PATH):
+    DB_PATH = os.path.join(DB_PATH, 'results.sqlite')
 class Config(object):
     SECRET_KEY = os.environ.get('SECRET_KEY') or b'6\xe9\xda\xead\x81\xf7\x8d\xbbH\x87\xe8m\xdd3%'
 
@@ -14,7 +22,7 @@ class Config(object):
         CELERY_BROKER_URL = 'redis://redis:6379/0'  # Use redis container name in Docker
     else:
         CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Use localhost on the server
-    CELERY_RESULT_BACKEND='db+sqlite:///results.sqlite'  # SQLite
+    CELERY_RESULT_BACKEND = f'db+sqlite:///{DB_PATH}'
     CELERY_DEFAULT_QUEUE='celery'  # Ensure all tasks are routed to 'celery' queue
     DEBUG = True
     PIN = '123'

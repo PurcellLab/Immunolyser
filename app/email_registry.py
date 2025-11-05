@@ -3,9 +3,14 @@
 import sqlite3
 import os
 
-project_root = os.path.dirname(os.path.realpath(os.path.join(__file__, "..")))
+# Use the environment variable as the DB path
+DB_PATH = os.environ.get('IMMUNOLYSER_DATA')
+if not DB_PATH:
+    raise RuntimeError("IMMUNOLYSER_DATA environment variable is not set!")
 
-DB_PATH = os.path.join(project_root, 'results.sqlite')
+# If DB_PATH is a folder, append the database filename
+if os.path.isdir(DB_PATH):
+    DB_PATH = os.path.join(DB_PATH, 'results.sqlite')
 
 def init_email_registry():
     """Create the email_registry table if it doesn't exist."""
