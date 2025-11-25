@@ -163,7 +163,7 @@ EXPOSE 5000
 EXPOSE 5555
 
 # Set a default environment variable for IMMUNOLYSER_DATA
-ENV IMMUNOLYSER_DATA=/app/data
+ENV IMMUNOLYSER_DATA=/data
 
 # Copy entrypoint script
 COPY entrypoint.sh /entrypoint.sh
