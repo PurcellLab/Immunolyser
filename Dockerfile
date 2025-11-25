@@ -5,6 +5,7 @@ WORKDIR /app
 
 # Install build tools, R, tcsh, and other required dependencies
 RUN apt-get update && apt-get install -y \
+    bash \
     git \
     tar \
     build-essential \
@@ -26,16 +27,11 @@ RUN apt-get update && apt-get install -y \
     pip3 install --no-cache-dir gdown && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Clone the repository
-RUN git clone https://github.com/prmunday/Immunolyser /app/Immunolyser
+# Clone the repository and checkout the develop branch in one go
+RUN git clone --branch develop --single-branch https://github.com/prmunday/Immunolyser /app/Immunolyser
 
 # Change to the repository directory
 WORKDIR /app/Immunolyser
-
-# Checkout the develop branch
-RUN git fetch origin develop && \
-    git checkout develop && \
-    git pull
 
 # Copy the seq2logo tar.gz file from the local tools folder to the container
 COPY /tools/seq2logo-2.1.all.tar.gz /app/Immunolyser/app/tools/
@@ -171,9 +167,6 @@ ENV IMMUNOLYSER_DATA=/app/data
 # Copy entrypoint script
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
-
-# Create the results.sqlite file
-RUN touch /results.sqlite
 
 # Set the entrypoint script
 ENTRYPOINT ["/entrypoint.sh"]
