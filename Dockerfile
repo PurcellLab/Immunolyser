@@ -100,19 +100,19 @@ RUN wget https://github.com/GfellerLab/MixMHC2pred/releases/download/v2.0.2.2/Mi
 RUN wget http://ec2-18-188-210-66.us-east-2.compute.amazonaws.com:4000/data/Alleles_lists/Alleles_list_Mouse.txt -P /app/Immunolyser/app/tools/MixMHC2pred-2.0/PWMdef
 
 # Clone MHC-TP and switch to netmhcpan-data-update-2025 branch
-RUN git clone https://github.com/PurcellLab/MHC-TP.git /app/Immunolyser/app/tools/MHC-TP && \
-    cd /app/Immunolyser/app/tools/MHC-TP && \
+RUN git clone https://github.com/PurcellLab/MHC-TP.git /app/Immunolyser/app/tools/HLA-PepClust && \
+    cd /app/Immunolyser/app/tools/HLA-PepClust && \
     git fetch origin netmhcpan-data-update-2025 && \
     git checkout netmhcpan-data-update-2025
 
 # Set up Python 3.11 virtual environment and install the package
-RUN cd /app/Immunolyser/app/tools/MHC-TP && \
+RUN cd /app/Immunolyser/app/tools/HLA-PepClust && \
     python3 -m venv hlapepclust-env && \
     /bin/bash -c "source hlapepclust-env/bin/activate && pip install -e . && deactivate"
 
 # Download the large ref_data zip file and unzip it
-RUN mkdir -p /app/Immunolyser/app/tools/MHC-TP/data/ref_data && \
-    cd /app/Immunolyser/app/tools/MHC-TP/data/ref_data && \
+RUN mkdir -p /app/Immunolyser/app/tools/HLA-PepClust/data/ref_data && \
+    cd /app/Immunolyser/app/tools/HLA-PepClust/data/ref_data && \
     python3 -m gdown 'https://drive.google.com/uc?id=1iAAvir1woMOnURkP46zr_ETqpW2oUgGD' && \
     unzip Gibbs_motifs_human.zip && \
     rm Gibbs_motifs_human.zip
