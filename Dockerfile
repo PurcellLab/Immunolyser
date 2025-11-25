@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y \
     libreadline-dev \
     libsqlite3-dev \
     zlib1g-dev \
+    sqlite3 \
     r-base \
     man-db \
     ncompress \
