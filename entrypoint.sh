@@ -1,20 +1,17 @@
 #!/bin/bash
 set -e
 
-# Activate the virtual environment
+# Activate virtual environment
 source lenv/bin/activate
 
-# Set Flask environment variables
-export FLASK_APP=firstdemo.py
-export FLASK_ENV=development
-export IMMUNOLYSER_DATA=${IMMUNOLYSER_DATA}
-
-# Ensure SQLite database exists and tables are created
+# DB path
 DB_FILE="${IMMUNOLYSER_DATA}/results.sqlite"
 
-if [ ! -f "$DB_FILE" ]; then
-    echo "Creating new SQLite database at $DB_FILE"
-    sqlite3 "$DB_FILE" <<SQL
+# Only Flask initializes the database
+if [ "$1" = "flask" ]; then
+    if [ ! -f "$DB_FILE" ]; then
+        echo "Creating new SQLite database at $DB_FILE"
+        sqlite3 "$DB_FILE" <<SQL
 CREATE TABLE IF NOT EXISTS email_registry (
     job_id TEXT PRIMARY KEY,
     email TEXT,
@@ -36,11 +33,12 @@ CREATE TABLE IF NOT EXISTS job_registry (
     referrer TEXT
 );
 SQL
-else
-    echo "Database already exists at $DB_FILE, skipping creation"
+    else
+        echo "Database already exists at $DB_FILE, skipping creation"
+    fi
 fi
 
-# Run the appropriate process
+# Run the service
 if [ "$1" = "flask" ]; then
     flask run --host=0.0.0.0 --port=5000
 elif [ "$1" = "celery" ]; then
