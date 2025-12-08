@@ -13,6 +13,12 @@ from email.mime.text import MIMEText
 from app.email_registry import save_email, get_email, get_job_name
 from app.job_registry import insert_job, update_job_status
 from geoip2.database import Reader
+from werkzeug.routing import BaseConverter
+
+class UUIDConverter(BaseConverter):
+    regex = r"[0-9a-fA-F-]{36}"
+
+app.url_map.converters['uuid'] = UUIDConverter
 
 project_root = os.path.dirname(os.path.realpath(os.path.join(__file__, "..")))
 
@@ -468,14 +474,22 @@ def analytics():
 
     return render_template("error.html",analytics=True, msg = 'initialiser')
 
-@app.route('/job-confirmation/<task_id>')
+@app.route('/job-confirmation/<uuid:task_id>')
 def job_confirmation(task_id):
+
+    if not is_valid_uuid(task_id):
+        abort(404)
+
     message = f'Request for Immunolyser report has been received. Task ID is {task_id}'
     return render_template('onSubmission.html', message=message)
 
 # GET method to check the status of the job. Job state is managed by Celery
-@app.route('/check_status/<job_id>', methods=['GET'])
+@app.route('/check_status/<uuid:job_id>', methods=['GET'])
 def check_status(job_id):
+
+    if not is_valid_uuid(job_id):
+            abort(404)
+
     job = submit_job.AsyncResult(job_id)
     if job.state == 'SUCCESS':
         return jsonify({'status': 'success'}), 200
@@ -486,7 +500,7 @@ def check_status(job_id):
     else:
         return jsonify({'status': job.state}), 200
 
-@app.route('/<taskId>')
+@app.route('/<uuid:taskId>')
 def getExistingReport(taskId):
 
     global DEMO_TASK_ID
@@ -496,7 +510,7 @@ def getExistingReport(taskId):
         demo = True
         pass
     elif is_valid_uuid(taskId) == False:
-        return f"The given ID is not a valid task ID."
+        abort(404)   # do NOT return user-controlled content
 
     # Confirming the project root is correct
     os.chdir(project_root)
@@ -1377,6 +1391,10 @@ def zip_job_exports(taskId):
 
 @app.route("/download-peptide-zip/<taskId>/<filename>")
 def download_job_data_files_zip(taskId, filename):
+
+    if not is_valid_uuid(taskId):
+        return "Invalid task ID", 400
+    
     # Define a safe base directory where files are stored
     safe_base_dir = os.path.join(project_root, "app", "static", "images", taskId)
     
@@ -1396,6 +1414,10 @@ def download_job_data_files_zip(taskId, filename):
     
 @app.route('/download_seq2logo_peptides/<taskid>/<sample>/<replicate>')
 def download_seq2logo_peptides(taskid, sample, replicate):
+
+    if not is_valid_uuid(taskid):
+        return "Invalid task ID", 400
+    
     logger.info(f"Download request for peptides: taskid={taskid}, sample={sample}, replicate={replicate}")
 
     motif_length_path = os.path.join(project_root, 'app', 'static', 'images', taskid, 'motif_length.txt')
