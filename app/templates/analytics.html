@@ -989,8 +989,24 @@
 
                         const layout = {
                             title: 'Binder Violin Plot (Sets + Overlaps)',
-                            yaxis: { title: 'Binding Value' },
-                            xaxis: { title: 'Set / Overlap' },
+                            yaxis: { 
+                                title: 'Binding Value',
+                                automargin: true 
+                            },
+                            xaxis: { 
+                                title: 'Set / Overlap',
+                                automargin: true, // Automatically adjusts margin to fit labels
+                                tickangle: 45,    // Rotates labels 45 degrees so they don't overlap
+                                tickfont: {
+                                    size: 12      // Optional: shrink font slightly if you have many columns
+                                }
+                            },
+                            margin: {
+                                b: 150,           // Manually increase bottom margin as a safety net
+                                l: 50,
+                                r: 50,
+                                t: 80
+                            },
                             width: 1200,
                             height: 600
                         };
