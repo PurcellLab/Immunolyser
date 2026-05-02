@@ -813,6 +813,10 @@ def createGibbsBar():
     replicate = request.form['replicate']
     sample = request.form['sample']
 
+    _safe = re.compile(r'^[a-zA-Z0-9_\-\.]+$')
+    if not (_safe.match(sample) and _safe.match(replicate) and _safe.match(str(cluster))):
+        abort(400)
+
     print(f'generateGibbs : Passed params : Cluster={cluster}, taskId={taskId}, replicate={replicate}, sample={sample}')
 
     # Motif length
