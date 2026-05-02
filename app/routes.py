@@ -607,8 +607,7 @@ def submit_job(self, samples, motif_length, mhcclass, alleles_unformatted, predi
     
 @app.route("/analytics")
 def analytics():
-
-    return render_template("error.html",analytics=True, msg = 'initialiser')
+    return redirect(url_for('initialiser'))
 
 @app.route('/job-confirmation/<uuid:task_id>')
 def job_confirmation(task_id):

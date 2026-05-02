@@ -8,9 +8,11 @@
                 <li class="nav-item {% if initialiser %}active{% endif %}">
                   <a class="nav-link" href="{{ url_for('initialiser') }}">Initialiser</a>
                 </li>
-                <li class="nav-item {% if analytics %}active{% endif %}">
-                  <a class="nav-link" href="{{ url_for('analytics') }}">Generic Analysis</a>
+                {% if taskId is defined and taskId %}
+                <li class="nav-item active">
+                  <a class="nav-link" href="/{{ taskId }}">Generic Analysis</a>
                 </li>
+                {% endif %}
                 <li class="nav-item {% if pepscanner %}active{% endif %}">
                   <a class="nav-link" href="{{ url_for('pepscanner') }}">Pepscanner</a>
                 </li>
