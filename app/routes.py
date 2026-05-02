@@ -64,47 +64,163 @@ def submit_email(job_id):
     return "Job details registered", 200
 
 
+def _build_email_html(job_display, job_id, success, results_url):
+    header_color = "#1a2744"
+    btn_color = "cornflowerblue"
+    link_color = "#0d6efd"
+    if success:
+        status_line = "Your results are ready."
+        status_color = "#2e7d32"
+        body_text = f"Your Immunolyser job <strong>{job_display}</strong> has completed successfully."
+        cta_block = f"""
+        <tr>
+          <td align="center" style="padding:24px 0 8px;">
+            <a href="{results_url}" target="_blank"
+               style="background:{btn_color};color:#ffffff;text-decoration:none;
+                      padding:14px 32px;border-radius:6px;font-size:16px;
+                      font-weight:bold;display:inline-block;">
+              View Results
+            </a>
+          </td>
+        </tr>
+        <tr>
+          <td align="center" style="padding:0 0 24px;font-size:13px;color:#666;">
+            Or copy this link: <a href="{results_url}" style="color:{link_color};">{results_url}</a>
+          </td>
+        </tr>"""
+    else:
+        status_line = "Your job could not be completed."
+        status_color = "#c62828"
+        body_text = (
+            f"Your Immunolyser job <strong>{job_display}</strong> encountered an error and could not finish.<br><br>"
+            f"Please check your input files and try again. If the problem persists, contact us at "
+            f"<a href='mailto:Chen.Li@monash.edu' style='color:{link_color};'>Chen.Li@monash.edu</a> "
+            f"and quote your Job ID below."
+        )
+        cta_block = ""
+
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f4f6f8;font-family:Arial,Helvetica,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f8;padding:32px 0;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0"
+             style="background:#ffffff;border-radius:8px;overflow:hidden;
+                    box-shadow:0 2px 8px rgba(0,0,0,0.08);max-width:600px;width:100%;">
+
+        <!-- Header -->
+        <tr>
+          <td align="center" style="background:{header_color};padding:28px 40px;">
+            <span style="color:#ffffff;font-size:26px;font-weight:bold;letter-spacing:1px;">
+              Immunolyser 2.0
+            </span>
+          </td>
+        </tr>
+
+        <!-- Status bar -->
+        <tr>
+          <td align="center"
+              style="background:{status_color};color:#ffffff;padding:10px 40px;
+                     font-size:15px;font-weight:bold;">
+            {status_line}
+          </td>
+        </tr>
+
+        <!-- Body -->
+        <tr>
+          <td style="padding:32px 40px 8px;font-size:15px;color:#333;line-height:1.6;">
+            {body_text}
+          </td>
+        </tr>
+
+        {cta_block}
+
+        <!-- Job ID -->
+        <tr>
+          <td style="padding:0 40px 32px;">
+            <div style="background:#f4f6f8;border-radius:4px;padding:12px 16px;
+                        font-size:12px;color:#666;word-break:break-all;">
+              <strong>Job ID:</strong> {job_id}
+            </div>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td align="center"
+              style="background:#f4f6f8;border-top:1px solid #dee2e6;
+                     padding:20px 40px;font-size:12px;color:#999;line-height:1.6;">
+            Immunolyser 2.0 &mdash; Monash University<br>
+            <a href="https://immunolyser.erc.monash.edu" style="color:#999;">
+              immunolyser.erc.monash.edu
+            </a>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>"""
+
+
+def _build_email_plain(job_display, job_id, success, results_url):
+    if success:
+        return (
+            f"Your Immunolyser job '{job_display}' has completed successfully.\n\n"
+            f"View your results:\n{results_url}\n\n"
+            f"Job ID: {job_id}\n\n"
+            f"Immunolyser 2.0 — Monash University\n"
+            f"https://immunolyser.erc.monash.edu"
+        )
+    else:
+        return (
+            f"Your Immunolyser job '{job_display}' encountered an error and could not finish.\n\n"
+            f"Please check your input files and try again. If the problem persists, "
+            f"contact Chen.Li@monash.edu and quote your Job ID:\n\n"
+            f"Job ID: {job_id}\n\n"
+            f"Immunolyser 2.0 — Monash University\n"
+            f"https://immunolyser.erc.monash.edu"
+        )
+
+
 def send_email(to_email, job_id, success=True, error_msg=None, job_name=None):
+    from email.mime.multipart import MIMEMultipart
 
     from_email = os.getenv("EMAIL_ADDRESS")
     password = os.getenv("EMAIL_APP_PASSWORD")
 
     if not from_email or not password:
-        print("Email credentials are not set in environment variables.")
+        logging.warning("Email credentials are not set in environment variables.")
         return
 
-    # Format job display name
-    job_display = f"{job_name} ({job_id})" if job_name else job_id
+    job_display = job_name if job_name else job_id
+    results_url = f"https://immunolyser.erc.monash.edu/{job_id}"
 
-    if success:
-        subject = f"Immunolyser job {job_display} Completed"
-        body = (
-            f"Your job '{job_display}' has completed successfully!\n\n"
-            f"Access the results here:\nhttps://immunolyser.erc.monash.edu/{job_id}"
-        )
-    else:
-        subject = f"Immunolyser job {job_display} Failed"
-        body = (
-            f"Your job '{job_display}' failed with the following error:\n\n"
-            f"{error_msg or 'Unknown error'}"
-        )
+    subject = (
+        f"Immunolyser: '{job_display}' is ready"
+        if success else
+        f"Immunolyser: '{job_display}' could not be completed"
+    )
 
-    msg = MIMEText(body)
+    msg = MIMEMultipart("alternative")
     msg['Subject'] = subject
-    msg['From'] = from_email
+    msg['From'] = f"Immunolyser <{from_email}>"
     msg['To'] = to_email
 
+    msg.attach(MIMEText(_build_email_plain(job_display, job_id, success, results_url), "plain"))
+    msg.attach(MIMEText(_build_email_html(job_display, job_id, success, results_url), "html"))
+
     try:
-        print("Connecting to SMTP server...")
         server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
-        print("Logging in...")
         server.login(from_email, password)
-        print("Sending email...")
         server.sendmail(from_email, [to_email], msg.as_string())
-        print("Email sent.")
         server.quit()
+        logging.info(f"Email sent to {to_email} for job {job_id}.")
     except Exception as e:
-        print(f"Failed to send email: {e}")
+        logging.error(f"Failed to send email to {to_email} for job {job_id}: {e}")
+        raise
 
 @app.route("/initialiser", methods=["POST", "GET"])
 def initialiser():

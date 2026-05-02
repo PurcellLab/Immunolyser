@@ -60,9 +60,9 @@ input[type=text]:focus, input[type=password]:focus {
 }
 
 .top-container {
-    background: #ccc;
-    padding:5px;
-    border-bottom:2px solid #0f0f0f;
+    background: #ffffff;
+    padding: 12px 5px;
+    border-bottom: 1px solid #dee2e6;
 }
 .bottom-container {
     background: #333;
