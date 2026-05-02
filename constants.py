@@ -51,3 +51,6 @@ def get_short_name(full_name: str) -> str:
 class MHC_Class:
     One = "I"
     Two = "II"
+
+APP_VERSION = "2.1.0"
+APP_VERSION_DATE = "May 2026"

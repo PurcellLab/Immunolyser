@@ -24,6 +24,9 @@
               <span class="navbar-text">
                 {% if analytics %}Task ID: {{taskId}}{% endif %}
               </span>
+              <span class="navbar-text ml-2">
+                <small class="text-muted">v{{ app_version }}</small>
+              </span>
               <span id="taskId" hidden>{{taskId}}</span>
             </div>
           </nav>
