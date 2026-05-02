@@ -10,7 +10,7 @@ import uuid, logging, base64, re, shutil, glob, os, pandas as pd, subprocess, io
 from Bio import SeqIO
 from constants import *
 from email.mime.text import MIMEText
-from app.email_registry import save_email, get_email, get_job_name
+from app.email_registry import save_email, get_email, get_job_name, claim_email_send
 from app.job_registry import insert_job, update_job_status
 from geoip2.database import Reader
 from werkzeug.routing import BaseConverter
@@ -31,6 +31,11 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
 GEOIP_DB_PATH = os.path.join(project_root,'app','static', 'temp', 'GeoLite2-Country_20251021', 'GeoLite2-Country.mmdb')
+
+@app.context_processor
+def inject_version():
+    from constants import APP_VERSION, APP_VERSION_DATE
+    return dict(app_version=APP_VERSION, app_version_date=APP_VERSION_DATE)
 
 # Load Allele dictionary
 ALLELE_DICTIONARY = pd.read_csv(os.path.join(project_root,'app','static','Immunolyser2.0_Allele_Dictionary.csv'))
@@ -179,10 +184,13 @@ def initialiser():
 
         return redirect(url_for('job_confirmation', task_id=task.id))
 
-@celery.task(name='app.submit_job', bind=True)
-def submit_job(self, samples, motif_length, mhcclass, alleles_unformatted, predictionTools, species, use_mhc_tp_full_DB):    
+@celery.task(name='app.submit_job', bind=True, soft_time_limit=7200, time_limit=7260)
+def submit_job(self, samples, motif_length, mhcclass, alleles_unformatted, predictionTools, species, use_mhc_tp_full_DB):
 
     try:
+        # Normalise: treat None and "" the same way throughout the task
+        alleles_unformatted = alleles_unformatted or ""
+
         # Have to take this input from user
         maxLen = 30
         minLen = 5
@@ -301,9 +309,15 @@ def submit_job(self, samples, motif_length, mhcclass, alleles_unformatted, predi
         # Samples and file uploaded
         logger.info("Samples and files uploaded: %s", data)
 
+        if alleles_unformatted:
+            allele_count = len(alleles_unformatted.split(','))
+            max_alleles = app.config.get('MAX_ALLELES', 6)
+            if allele_count > max_alleles:
+                raise Exception(f"Too many alleles submitted ({allele_count}). Maximum allowed is {max_alleles}.")
+
         valid_alleles_present, message = cross_check_the_allele(alleles_unformatted, ALLELE_DICTIONARY)
 
-        if alleles_unformatted != "" and not valid_alleles_present:
+        if alleles_unformatted and not valid_alleles_present:
             raise Exception(f"Valid alleles not passed for the job.")
 
         # saving motif length selected in a file
@@ -440,12 +454,15 @@ def submit_job(self, samples, motif_length, mhcclass, alleles_unformatted, predi
         job_name = get_job_name(taskId)
 
         if email:
-            logging.info(f"Found email '{email}' for completed task '{taskId}', attempting to send notification.")
-            try:
-                send_email(email, taskId, success=True, job_name=job_name)
-                logging.info(f"Email successfully sent to {email} for job {taskId}.")
-            except Exception as e:
-                logging.error(f"Failed to send success email to {email} for job {taskId}: {e}")
+            if claim_email_send(taskId):
+                logging.info(f"Found email '{email}' for completed task '{taskId}', attempting to send notification.")
+                try:
+                    send_email(email, taskId, success=True, job_name=job_name)
+                    logging.info(f"Email successfully sent to {email} for job {taskId}.")
+                except Exception as e:
+                    logging.error(f"Failed to send success email to {email} for job {taskId}: {e}")
+            else:
+                logging.info(f"Email already sent for job {taskId}; skipping duplicate.")
         else:
             logging.info(f"No email found for task {taskId}; skipping email notification.")
 
@@ -459,11 +476,14 @@ def submit_job(self, samples, motif_length, mhcclass, alleles_unformatted, predi
         job_name = get_job_name(taskId)
 
         if email:
-            try:
-                send_email(email, taskId, success=False, job_name=job_name)
-                logging.info(f"Failure email successfully sent to {email} for job {taskId}.")
-            except Exception as e:
-                logging.error(f"Failed to send failure email to {email} for job {taskId}: {e}")
+            if claim_email_send(taskId):
+                try:
+                    send_email(email, taskId, success=False, job_name=job_name)
+                    logging.info(f"Failure email successfully sent to {email} for job {taskId}.")
+                except Exception as e:
+                    logging.error(f"Failed to send failure email to {email} for job {taskId}: {e}")
+            else:
+                logging.info(f"Email already sent for job {taskId}; skipping duplicate.")
         else:
             logging.info(f"No email found for task {taskId}; skipping failure notification.")
 
@@ -1329,6 +1349,9 @@ def cross_check_the_allele(items, allele_dict):
     # Ensure the required column is present
     if 'Allele name standardised' not in allele_dict.columns:
         return False, "'Allele name standardised' column not found in the DataFrame."
+
+    if not items:
+        return True, "No alleles specified."
 
     # Get the list of alleles from the DataFrame
     valid_alleles = allele_dict['Allele name standardised'].tolist()

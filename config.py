@@ -24,6 +24,9 @@ class Config(object):
         CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Use localhost on the server
     CELERY_RESULT_BACKEND = f'db+sqlite:///{DB_PATH}'
     CELERY_DEFAULT_QUEUE='celery'  # Ensure all tasks are routed to 'celery' queue
+    # Redis re-delivers tasks whose visibility timeout is exceeded. Long jobs (many alleles)
+    # can run for several hours, so set this well above the worst-case job duration.
+    CELERY_BROKER_TRANSPORT_OPTIONS = {'visibility_timeout': 43200}  # 12 hours
     DEBUG = True
     PIN = '123'
 

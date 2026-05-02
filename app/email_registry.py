@@ -20,9 +20,15 @@ def init_email_registry():
             CREATE TABLE IF NOT EXISTS email_registry (
                 job_id TEXT PRIMARY KEY,
                 email TEXT,
-                job_name TEXT
+                job_name TEXT,
+                email_sent INTEGER DEFAULT 0
             )
         ''')
+        # Migrate existing databases that pre-date the email_sent column
+        try:
+            cursor.execute('ALTER TABLE email_registry ADD COLUMN email_sent INTEGER DEFAULT 0')
+        except sqlite3.OperationalError:
+            pass  # column already exists
         conn.commit()
 
 def save_email(job_id, email, job_name=None):
@@ -50,3 +56,14 @@ def get_job_name(job_id):
         cursor.execute('SELECT job_name FROM email_registry WHERE job_id = ?', (job_id,))
         row = cursor.fetchone()
         return row[0] if row else None
+
+def claim_email_send(job_id):
+    """Atomically mark the email as sent. Returns True if this caller won the race, False if already sent."""
+    with sqlite3.connect(DB_PATH) as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            'UPDATE email_registry SET email_sent = 1 WHERE job_id = ? AND email_sent = 0',
+            (job_id,)
+        )
+        conn.commit()
+        return cursor.rowcount == 1
