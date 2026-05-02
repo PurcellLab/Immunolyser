@@ -35,7 +35,7 @@ RUN git clone --branch develop --single-branch https://github.com/prmunday/Immun
 WORKDIR /app/Immunolyser
 
 # Copy the seq2logo tar.gz file from the local tools folder to the container
-COPY /tools/seq2logo-2.1.all.tar.gz /app/Immunolyser/app/tools/
+COPY app/tools/seq2logo-2.1.all.tar.gz /app/Immunolyser/app/tools/
 
 # Create a tools directory and extract the tar.gz file there
 RUN mkdir -p /app/Immunolyser/app/tools && \
@@ -43,7 +43,7 @@ RUN mkdir -p /app/Immunolyser/app/tools && \
     rm /app/Immunolyser/app/tools/seq2logo-2.1.all.tar.gz
 
 # Copy the gibbscluster tar.gz file to the container
-COPY /tools/gibbscluster-2.0f.Linux.tar.gz /app/Immunolyser/app/tools/
+COPY app/tools/gibbscluster-2.0f.Linux.tar.gz /app/Immunolyser/app/tools/
 
 # Extract gibbscluster tar.gz
 RUN mkdir -p /app/Immunolyser/app/tools && \
@@ -61,21 +61,21 @@ RUN sed -i \
     /app/Immunolyser/app/tools/gibbscluster-2.0/GibbsCluster-2.0e_SA.pl
 
 # Copy the netMHCpan tar.gz file to the container
-COPY /tools/netMHCpan-4.2b.Linux.tar.gz /app/Immunolyser/app/tools/
+COPY app/tools/netMHCpan-4.2c.Linux.tar.gz /app/Immunolyser/app/tools/
 
 # Uncompress and untar the netMHCpan package
 RUN mkdir -p /app/Immunolyser/app/tools && \
-    cat /app/Immunolyser/app/tools/netMHCpan-4.2b.Linux.tar.gz | gunzip | tar xvf - -C /app/Immunolyser/app/tools && \
-    rm /app/Immunolyser/app/tools/netMHCpan-4.2b.Linux.tar.gz && \
+    cat /app/Immunolyser/app/tools/netMHCpan-4.2c.Linux.tar.gz | gunzip | tar xvf - -C /app/Immunolyser/app/tools && \
+    rm /app/Immunolyser/app/tools/netMHCpan-4.2c.Linux.tar.gz && \
     mkdir -p /app/Immunolyser/app/tools/netMHCpan-4.2/tmp
 
 # Copy the netMHCIIpan tar.gz file to the container
-COPY /tools/netMHCIIpan-4.3i.Linux.tar.gz /app/Immunolyser/app/tools/
+COPY app/tools/netMHCIIpan-4.3j.Linux.tar.gz /app/Immunolyser/app/tools/
 
 # Uncompress and untar the netMHCIIpan package
 RUN mkdir -p /app/Immunolyser/app/tools && \
-    tar -xvf /app/Immunolyser/app/tools/netMHCIIpan-4.3i.Linux.tar.gz -C /app/Immunolyser/app/tools && \
-    rm /app/Immunolyser/app/tools/netMHCIIpan-4.3i.Linux.tar.gz && \
+    tar -xvf /app/Immunolyser/app/tools/netMHCIIpan-4.3j.Linux.tar.gz -C /app/Immunolyser/app/tools && \
+    rm /app/Immunolyser/app/tools/netMHCIIpan-4.3j.Linux.tar.gz && \
     man -d /app/Immunolyser/app/tools/netMHCIIpan-4.3/netMHCIIpan.1 | compress > /app/Immunolyser/app/tools/netMHCIIpan-4.3/netMHCIIpan.Z
 
 # Update netMHCIIpan configuration to use the correct NMHOME path
@@ -84,7 +84,7 @@ RUN sed -i 's|setenv\s*NMHOME\s*/tools/src/netMHCIIpan-4.3|setenv NMHOME ${PWD}/
 
 # Update netMHCpan configuration to use the correct NMHOME and TMPDIR paths
 RUN sed -i \
-    -e 's|setenv\s*NMHOME\s*/net/sund-nas.win.dtu.dk/storage/services/www/packages/netMHCpan/4.1/netMHCpan-4.2|setenv NMHOME ${PWD}/app/tools/netMHCpan-4.2|' \
+    -e 's|setenv\s*NMHOME\s*/tools/src/netMHCpan-4.2|setenv NMHOME ${PWD}/app/tools/netMHCpan-4.2|' \
     -e 's|setenv\s*TMPDIR\s*/tmp|setenv TMPDIR $NMHOME/tmp|' \
     /app/Immunolyser/app/tools/netMHCpan-4.2/netMHCpan
 
@@ -143,7 +143,7 @@ RUN wget https://www.python.org/ftp/python/2.7.18/Python-2.7.18.tgz && \
     tar xvf Python-2.7.18.tgz
 
 # Build and install Python 2.7.18
-WORKDIR Python-2.7.18
+WORKDIR /app/Immunolyser/Python-2.7.18
 RUN ./configure && \
     make && \
     make install
