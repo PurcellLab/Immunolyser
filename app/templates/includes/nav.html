@@ -1,35 +1,45 @@
-    <header>
-        <nav class="navbar navbar-expand-lg navbar-light bg-light">
-            <div class="collapse navbar-collapse" id="navbarText">
-              <ul class="navbar-nav mr-auto">
-                <li class="nav-item {% if index %}active{% endif %}">
-                  <a class="nav-link" href="{{ url_for('index') }}">Home<span class="sr-only">(current)</span></a>
-                </li>
-                <li class="nav-item {% if initialiser %}active{% endif %}">
-                  <a class="nav-link" href="{{ url_for('initialiser') }}">Initialiser</a>
-                </li>
-                {% if taskId is defined and taskId %}
-                <li class="nav-item active">
-                  <a class="nav-link" href="/{{ taskId }}">Generic Analysis</a>
-                </li>
-                {% endif %}
-                <li class="nav-item {% if pepscanner %}active{% endif %}">
-                  <a class="nav-link" href="{{ url_for('pepscanner') }}">Pepscanner</a>
-                </li>
-                <li class="nav-item {% if demo %}active{% endif %}">
-                  <a class="nav-link" href="{{ url_for('demo') }}" target="_blank">Demo</a>
-                </li>
-                <!-- <li class="nav-item {% if help %}active{% endif %}">
-                  <a class="nav-link" href="{{ url_for('help') }}">Help</a>
-                </li> -->
-              </ul>
-              <span class="navbar-text">
-                {% if analytics %}Task ID: {{taskId}}{% endif %}
-              </span>
-              <span class="navbar-text ml-2">
-                <small class="text-muted">v{{ app_version }}</small>
-              </span>
-              <span id="taskId" hidden>{{taskId}}</span>
-            </div>
-          </nav>
-    </header>
+<nav class="navbar navbar-expand-lg navbar-dark">
+    <a class="navbar-brand" href="{{ url_for('index') }}">
+        <img src="{{ url_for('static', filename='others/immunolyser2logo.png') }}" alt="Immunolyser 2.0">
+    </a>
+
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarMain"
+            aria-controls="navbarMain" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navbarMain">
+        <ul class="navbar-nav mr-auto">
+            <li class="nav-item {% if index %}active{% endif %}">
+                <a class="nav-link" href="{{ url_for('index') }}">
+                    Home{% if index %}<span class="sr-only">(current)</span>{% endif %}
+                </a>
+            </li>
+            <li class="nav-item {% if initialiser %}active{% endif %}">
+                <a class="nav-link" href="{{ url_for('initialiser') }}">Initialiser</a>
+            </li>
+            {% if taskId is defined and taskId %}
+            <li class="nav-item active">
+                <a class="nav-link" href="/{{ taskId }}">Analysis Report</a>
+            </li>
+            {% endif %}
+            <li class="nav-item {% if pepscanner %}active{% endif %}">
+                <a class="nav-link" href="{{ url_for('pepscanner') }}">Pepscanner</a>
+            </li>
+            <li class="nav-item {% if demo %}active{% endif %}">
+                <a class="nav-link" href="{{ url_for('demo') }}" target="_blank">Demo</a>
+            </li>
+        </ul>
+
+        <span class="navbar-text">
+            {% if analytics %}
+                <span class="mr-2" title="Current task identifier">
+                    <i class="fa fa-tag" aria-hidden="true"></i> {{ taskId }}
+                </span>
+            {% endif %}
+            <small>v{{ app_version }}</small>
+        </span>
+
+        <span id="taskId" hidden>{{ taskId }}</span>
+    </div>
+</nav>

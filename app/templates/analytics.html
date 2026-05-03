@@ -2,15 +2,28 @@
 
 {% block content %}
 
-<br>
+<div class="report-layout">
 
-    <fieldset class="mb-4 p-3 border rounded">
+    <!-- Table of Contents Sidebar (hidden on small screens) -->
+    <nav class="toc-sidebar d-none d-lg-flex flex-column" aria-label="Report sections">
+        <p class="toc-title">Contents</p>
+        <a href="#section-length"  class="toc-link">Peptide Length</a>
+        <a href="#section-overlap" class="toc-link">Peptide Overlap</a>
+        <a href="#section-motif"   class="toc-link">Binding Motifs</a>
+        <a href="#section-gibbs"   class="toc-link">Gibbs Clusters</a>
+        <a href="#section-mhctp"   class="toc-link">MHC-TP</a>
+        <a href="#section-binding" class="toc-link">Binding Affinity</a>
+    </nav>
 
-        <h3>➤ Peptide Length Distribution</h3>
+    <div class="report-main">
+
+    <fieldset class="report-section" id="section-length">
+
+        <h3>Peptide Length Distribution</h3>
 
         <br>
 
-        <p  style="background-color: #d3e3fe; padding: 10px;" class="text-justify"><b>ⓘ</b> The following histogram demonstrates the peptide length distribution of the sample(s) uploaded.
+        <p class="section-info"><b>ⓘ</b> The following histogram demonstrates the peptide length distribution of the sample(s) uploaded.
             Peptides labelled with <code>#CONTAM</code> or <code>#DECOY</code> in the accession column have been filtered out.
             Peptides with a length of 5 to 30 residues have been selected. The error bar in case of replicates
             represents the standard deviation of the number of specific n-mers across replicates. The switch button below the graph can be used to display relative frequency or absolute numbers. Click the tool icons at the top right corner
@@ -31,12 +44,10 @@
     </fieldset>
 
 
-    <fieldset class="mb-4 p-3 border rounded">
-        <h3>
-        ➤ Peptide Overlap 
-        </h3>
+    <fieldset class="report-section" id="section-overlap">
+        <h3>Peptide Overlap</h3>
         <br>
-        <p  style="background-color: #d3e3fe; padding: 10px;" class="text-justify"><b>ⓘ</b> The UpSet plot depicts peptides after pre-processing: peptides labelled with <code>#CONTAM</code> or <code>#DECOY</code> have been removed, as well as post-translational modifications (PTMs) and any resulting duplicates. For MHC class I analysis, 8–14-mers; for class II, 12–20-mers are used for the analysis. 
+        <p class="section-info"><b>ⓘ</b> The UpSet plot depicts peptides after pre-processing: peptides labelled with <code>#CONTAM</code> or <code>#DECOY</code> have been removed, as well as post-translational modifications (PTMs) and any resulting duplicates. For MHC class I analysis, 8–14-mers; for class II, 12–20-mers are used for the analysis. 
             <strong>📥 Click any bar to view the peptide overlap motif (only for MHC I) and download the corresponding peptide list.</strong>
         </p>
         <br>
@@ -80,10 +91,10 @@
 
     {% if showSeqLogoSection %}
 
-    <fieldset class="mb-4 p-3 border rounded">
-        <h3>➤ Peptide consensus binding motif analysis</h3>
+    <fieldset class="report-section" id="section-motif">
+        <h3>Peptide Consensus Binding Motif Analysis</h3>
         <br>
-        <p  style="background-color: #d3e3fe; padding: 10px;" class="text-justify"><b>ⓘ</b> The Seq2Logo depicts peptides after pre-processing. Peptides labelled with <code>#CONTAM</code> or <code>#DECOY</code> are removed. PTMs and resulting duplicates are also removed. For MHC class I analysis, either 8-mers or 9-mers are used based on the user's choice. Class II analysis uses 9-mer cores predicted by netMHCIIpan-4.3.</p> 
+        <p class="section-info"><b>ⓘ</b> The Seq2Logo depicts peptides after pre-processing. Peptides labelled with <code>#CONTAM</code> or <code>#DECOY</code> are removed. PTMs and resulting duplicates are also removed. For MHC class I analysis, either 8-mers or 9-mers are used based on the user's choice. Class II analysis uses 9-mer cores predicted by netMHCIIpan-4.3.</p> 
 
         <div class="seqlogo">
             {% for sample, replicates in seqlogos.items() %}
@@ -116,11 +127,11 @@
 
     {% if showGibbsSection %}
 
-        <fieldset class="mb-4 p-3 border rounded">
-            <h3>➤ Peptide Sequence Clustering with Predicted MHC Allele Assignment</h3>
+        <fieldset class="report-section" id="section-gibbs">
+            <h3>Peptide Sequence Clustering with Predicted MHC Allele Assignment</h3>
             <br>
 
-            <p  style="background-color: #d3e3fe; padding: 10px;" class="text-justify"><b>ⓘ</b> Gibbs Clustering has been applied to peptides after removal of peptides labelled as <code>#CONTAM</code> or <code>#DECOY</code>, PTMs and resulting duplicates. For MHC class I analysis is based on 8-14-mers, for MHC class II the analysis based on 12-20-mers (duplicates removed). Each logo is labelled with the predicted source allotype and PCC (Pearson Correlation Coefficient) value, as determined by MHC-TP.</p> 
+            <p class="section-info"><b>ⓘ</b> Gibbs Clustering has been applied to peptides after removal of peptides labelled as <code>#CONTAM</code> or <code>#DECOY</code>, PTMs and resulting duplicates. For MHC class I analysis is based on 8-14-mers, for MHC class II the analysis based on 12-20-mers (duplicates removed). Each logo is labelled with the predicted source allotype and PCC (Pearson Correlation Coefficient) value, as determined by MHC-TP.</p> 
 
             <br>
 
@@ -231,11 +242,10 @@
 
     {% if bindingImages %}
 
-        <fieldset class="mb-4 p-3 border rounded">
-            
-            <h3>➤ MHC-TP (MHC Typing Prediction)</h3>
+        <fieldset class="report-section" id="section-mhctp">
+            <h3>MHC-TP (MHC Typing Prediction)</h3>
 
-            <p  style="background-color: #d3e3fe; padding: 10px;" class="text-justify"><b>ⓘ</b> We propose a novel algorithm, MHC-TP, to predict MHC I alleles based on peptide clustering results, allowing <i>in silico</i> MHC typing of datasets, where genetic MHC typing is unavailable, ethically restricted, or cost-prohibitive for large-scale datasets.
+            <p class="section-info"><b>ⓘ</b> We propose a novel algorithm, MHC-TP, to predict MHC I alleles based on peptide clustering results, allowing <i>in silico</i> MHC typing of datasets, where genetic MHC typing is unavailable, ethically restricted, or cost-prohibitive for large-scale datasets.
             </p>
 
             <div class="hla_clust">
@@ -379,11 +389,10 @@
 <br>
     {% if predicted_binders is not none %}
 
-        <fieldset class="mb-4 p-3 border rounded">
-
-            <h3>➤ Peptide-HLA/MHC binding affinity prediction</h3>
+        <fieldset class="report-section" id="section-binding">
+            <h3>Peptide-HLA/MHC Binding Affinity Prediction</h3>
                 
-            <p  style="background-color: #d3e3fe; padding: 10px;" class="text-justify"><b>ⓘ</b> The following downloadable CSV files contain <strong>majority-voted binding predictions</strong>.  
+            <p class="section-info"><b>ⓘ</b> The following downloadable CSV files contain <strong>majority-voted binding predictions</strong>.  
                 Each file includes <strong>all peptides from your uploaded data</strong>, along with predictions from all selected tools.
                 In addition, the files contain <strong>tool-specific prediction columns</strong> such as ranks, binding levels, affinity scores, cores, and other outputs provided by each prediction tool.
                 This ensures that, while you can easily see which peptides are <strong>majority-voted binders</strong>,  
@@ -436,7 +445,7 @@
 
             <br>
 
-            <p  style="background-color: #d3e3fe; padding: 10px;" class="text-justify"><b>ⓘ</b> The below UpSet plot provides a visualisation of the overlap of predicted binders across the uploaded samples. 
+            <p class="section-info"><b>ⓘ</b> The below UpSet plot provides a visualisation of the overlap of predicted binders across the uploaded samples. 
                 Each sample represents one of the user-uploaded datasets, and the values correspond to peptides predicted as binders. 
                 Users can explore results from any of the available binding prediction tools via the dropdown menu, or view the default option of majority-voted binders (across all tools). 
                 On the left, a list of alleles of interest is provided—selecting an allele regenerates the plot for that allele. 
@@ -536,7 +545,7 @@
                 <br>
                 <div id="violinPlotDescription" style="max-width:1200px;">
                     <h4>Violin plot</h4>
-                    <p  style="background-color: #d3e3fe; padding: 10px;" class="text-justify"><b>ⓘ</b> The violin plot visualises the <strong>distribution of predicted binding values</strong> 
+                    <p class="section-info"><b>ⓘ</b> The violin plot visualises the <strong>distribution of predicted binding values</strong> 
                         for peptides that are a <strong>subset of the binders shown in the UpSet plot</strong>. 
                         Only peptides within tool-specific thresholds for strong or weak binders are included. 
                         Thresholds vary depending on the prediction tool and MHC class, for example:
@@ -612,7 +621,10 @@
 
     {% endif %}
         
-    <a href="{{ url_for('download_job_data_files_zip', taskId=taskId, filename=zip_filename) }}" class="btn btn-sm btn-outline-primary">
+    </div><!-- /.report-main -->
+</div><!-- /.report-layout -->
+
+    <a href="{{ url_for('download_job_data_files_zip', taskId=taskId, filename=zip_filename) }}" class="btn btn-sm btn-outline-primary mt-2">
         Download data files used to generate report (ZIP)
     </a>        
 
@@ -678,7 +690,8 @@
             infinite: true,
             slidesToShow: 3,
             slidesToScroll: 1,
-            arrows:true
+            arrows: true,
+            adaptiveHeight: false
             });
         });
 
@@ -715,7 +728,8 @@
                     infinite: true,
                     slidesToShow: 3,
                     slidesToScroll: 1,
-                    arrows: true
+                    arrows: true,
+                    adaptiveHeight: false
                 });
             }
         }
@@ -1107,5 +1121,31 @@
             }
         });
 
+    </script>
+
+    <script>
+    // ToC scroll-spy: highlight the active section as the user scrolls
+    (function () {
+        var sections = ['section-length','section-overlap','section-motif','section-gibbs','section-mhctp','section-binding'];
+        var links = {};
+        sections.forEach(function(id) {
+            var el = document.getElementById(id);
+            var link = document.querySelector('.toc-link[href="#' + id + '"]');
+            if (el && link) links[id] = { el: el, link: link };
+        });
+
+        if (Object.keys(links).length === 0) return;
+
+        var observer = new IntersectionObserver(function(entries) {
+            entries.forEach(function(entry) {
+                var id = entry.target.id;
+                if (links[id]) {
+                    links[id].link.classList.toggle('active', entry.isIntersecting);
+                }
+            });
+        }, { rootMargin: '-15% 0px -70% 0px', threshold: 0 });
+
+        Object.values(links).forEach(function(obj) { observer.observe(obj.el); });
+    })();
     </script>
 {% endblock %}

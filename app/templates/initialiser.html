@@ -9,8 +9,8 @@
 	<form onSubmit="return checkAlleles();" id="login" action="" method="post" enctype="multipart/form-data" novalidate>
 		
 		<!-- Section: Data input -->
-		<fieldset class="mb-4 p-3 border rounded">
-			<legend><h4>Data input</h4></legend>
+		<fieldset class="form-section">
+			<legend>Data Input</legend>
 
 			<div class="form-row">
 				<div class="col-md-7 mb-3">Sample name 
@@ -34,8 +34,12 @@
 				</div>
 			</div>
 
-			<input id="add_sample" type="button" value="Add Sample" onclick="addSample()">
-			<input id="remove_sample" type="button" value="Remove Sample" onclick="deleteSample()">
+			<button id="add_sample" type="button" class="btn btn-sm btn-outline-primary mr-2" onclick="addSample()">
+				<i class="fa fa-plus" aria-hidden="true"></i> Add Sample
+			</button>
+			<button id="remove_sample" type="button" class="btn btn-sm btn-outline-secondary" onclick="deleteSample()">
+				<i class="fa fa-minus" aria-hidden="true"></i> Remove Sample
+			</button>
 
 			<br><br>
 			<div class="col-md-7 mb-3">Control data
@@ -53,8 +57,8 @@
 		</fieldset>
 
 		<!-- Section: Motif length -->
-		<fieldset class="mb-4 p-3 border rounded" id="motif_length_section" hidden>
-			<legend><h4>Motif length</h4></legend>
+		<fieldset class="form-section" id="motif_length_section" hidden>
+			<legend>Motif Length</legend>
 
 			<div class="form-row mb-3">
 				<h5 class="col-md-7">Preferred length of motifs</h5>
@@ -66,8 +70,8 @@
 		</fieldset>
 
 		<!-- Section: Binding predictions -->
-		<fieldset class="mb-4 p-3 border rounded">
-			<legend><h4>MHC binding predictions</h4></legend>
+		<fieldset class="form-section">
+			<legend>MHC Binding Predictions</legend>
 
 			<div class="form-row">
 				<h5 class="col-md-7">Species</h5>
@@ -109,8 +113,8 @@
 		</fieldset>
 
 		<!-- Section: MHC Typing -->
-		<fieldset id="mhcTypingDiv" class="mb-4 p-3 border rounded" style="display:none;">
-			<legend><h4>MHC-Typing prediction</h4></legend>
+		<fieldset id="mhcTypingDiv" class="form-section" style="display:none;">
+			<legend>MHC-Typing Prediction</legend>
 
 			<div class="form-row">
 				<h5 class="col-md-7">
@@ -138,9 +142,9 @@
 		</fieldset>
 
 		<!-- Submit -->
-		<p> 
-			<input class="col-md-12 mb-3 btn btn-primary" id="submit" name="submit" type="submit" value="Submit">
-		</p>
+		<div class="mt-3 mb-4">
+			<input class="btn-submit" id="submit" name="submit" type="submit" value="Submit Job">
+		</div>
 	</form>
 </div>
 

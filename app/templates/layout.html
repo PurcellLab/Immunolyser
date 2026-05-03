@@ -1,87 +1,77 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Immunolyser 2.0</title>
+
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick.css"/>
+    <link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick-theme.css"/>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}"/>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap-select.css') }}"/>
 
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-    
-    <!-- Add the slick-theme.css if you want default styling -->
-    <link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick.css"/>
-    <!-- Add the slick-theme.css if you want default styling -->
-    <link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick-theme.css"/>
-
-    <link rel="stylesheet" href="{{ url_for('static',filename='css/main.css')}}"/>
-    <link rel="stylesheet" href="{{ url_for('static',filename='css/bootstrap-select.css')}}"/>
-    <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/earlyaccess/hanna.css">
-
 </head>
-<body class="Site">
-    <div class="wrapper">
+<body>
 
-        <!-- Banner Start -->
-        <div class="alert alert-success alert-dismissible text-center m-0 p-2" role="alert">
-            <strong>Immunolyser v{{ app_version }} ({{ app_version_date }}):</strong>
-            Job queue reliability and email notification fixes applied.
-            <a href="{{ url_for('index') }}#whats-new" class="alert-link">See what's new.</a>
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+    <!-- Sticky Header: version banner + navbar with logo -->
+    <header class="site-header">
+        <!-- Version Banner -->
+        <div class="version-banner alert-dismissible d-flex align-items-center justify-content-center" role="alert" id="version-banner">
+            <span>
+                <strong>Immunolyser v{{ app_version }} ({{ app_version_date }}):</strong>
+                Job queue reliability and email notification fixes applied.
+                <a href="{{ url_for('index') }}#whats-new">See what's new.</a>
+            </span>
+            <button type="button" class="close ml-3" data-dismiss="alert" aria-label="Close"
+                    onclick="document.getElementById('version-banner').style.display='none';">
                 <span aria-hidden="true">&times;</span>
             </button>
         </div>
-        <!-- Banner End -->
 
-        <div class="container-fluid text-center top-container">
-            <img src="{{ url_for('static',filename='others/immunolyser2logo.png')}}" alt="Immunolyser 2.0" style="max-height:80px; width:auto;">
-        </div>
+        {% include "includes/nav.html" %}
+    </header>
 
-        <div class="lds-hourglass" id="lds-hourglass" hidden></div>
+    <!-- Loading Spinner -->
+    <div class="lds-hourglass" id="lds-hourglass" hidden></div>
 
-        <div class="container" id='main-content'>
-            {% include "includes/nav.html" %}
-
+    <!-- Main page body (flex: 1 via CSS so footer sticks to bottom) -->
+    <div id="page-body">
+        <div class="container" id="main-content">
             {% block content %}
             {% endblock %}
 
-            <!-- Include the modal template -->
             {% include 'includes/modal.html' %}
         </div>
-
-            {% include "includes/footer.html" %}
-            <script type="text/javascript" src="//cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick.min.js"></script>
     </div>
-</body>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
-<script src="{{ url_for('static',filename='bootstrap-select.js')}}"></script>
 
-<script>
-	$(document).ready(function(){
-		$('[data-toggle="tooltip"]').tooltip({
-			animation: true,
-			delay: {show: 0, hide: 250}
-		}); 
+    {% include "includes/footer.html" %}
 
-        // Add the following code if you want the name of the file appear on select
-        $(".custom-file-input").on("change", function() {
-        var fileName = $(this).val().split("\\").pop();
-        $(this).siblings(".custom-file-label").addClass("selected").html(fileName);
+    <script type="text/javascript" src="//cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+    <script src="{{ url_for('static', filename='bootstrap-select.js') }}"></script>
+
+    <script>
+        $(document).ready(function () {
+            $('[data-toggle="tooltip"]').tooltip({ animation: true, delay: { show: 0, hide: 250 } });
+
+            $(".custom-file-input").on("change", function () {
+                var fileName = $(this).val().split("\\").pop();
+                $(this).siblings(".custom-file-label").addClass("selected").html(fileName);
+            });
         });
-	});
 
-    function showTraceback(encodedTraceback) {
-        // Decode the traceback before displaying it
-        const decodedTraceback = decodeURIComponent(encodedTraceback);
-        document.getElementById('tracebackContent').innerText = decodedTraceback;
-        $('#tracebackModal').modal('show');  // Show the modal
-    }
-</script>
-
-</html>    
+        function showTraceback(encodedTraceback) {
+            const decodedTraceback = decodeURIComponent(encodedTraceback);
+            document.getElementById('tracebackContent').innerText = decodedTraceback;
+            $('#tracebackModal').modal('show');
+        }
+    </script>
+</body>
+</html>
