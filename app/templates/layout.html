@@ -28,8 +28,7 @@
                 Job queue reliability and email notification fixes applied.
                 <a href="{{ url_for('index') }}#whats-new">See what's new.</a>
             </span>
-            <button type="button" class="close ml-3" aria-label="Close"
-                    onclick="var el=document.getElementById('version-banner'); el.style.display='none';">
+            <button type="button" class="close ml-3" id="banner-close" aria-label="Close">
                 <span aria-hidden="true">&times;</span>
             </button>
         </div>
@@ -60,6 +59,10 @@
     <script>
         $(document).ready(function () {
             $('[data-toggle="tooltip"]').tooltip({ animation: true, delay: { show: 0, hide: 250 } });
+
+            $('#banner-close').on('click', function () {
+                $('#version-banner').hide();
+            });
 
             $(".custom-file-input").on("change", function () {
                 var fileName = $(this).val().split("\\").pop();
