@@ -22,14 +22,14 @@
     <!-- Sticky Header: version banner + navbar with logo -->
     <header class="site-header">
         <!-- Version Banner -->
-        <div class="version-banner alert-dismissible d-flex align-items-center justify-content-center" role="alert" id="version-banner">
+        <div class="version-banner d-flex align-items-center justify-content-center" id="version-banner">
             <span>
                 <strong>Immunolyser v{{ app_version }} ({{ app_version_date }}):</strong>
                 Job queue reliability and email notification fixes applied.
                 <a href="{{ url_for('index') }}#whats-new">See what's new.</a>
             </span>
-            <button type="button" class="close ml-3" data-dismiss="alert" aria-label="Close"
-                    onclick="document.getElementById('version-banner').style.display='none';">
+            <button type="button" class="close ml-3" aria-label="Close"
+                    onclick="var el=document.getElementById('version-banner'); el.style.display='none';">
                 <span aria-hidden="true">&times;</span>
             </button>
         </div>

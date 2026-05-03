@@ -13,6 +13,8 @@
     --color-border:        #d1d9e6;
     --color-success:       #198754;
     --header-height:       64px;
+    --banner-height:       34px;
+    --total-header:        98px; /* navbar + version banner */
     --radius:              0.4rem;
     --shadow-sm:           0 1px 3px rgba(0,0,0,0.08);
     --shadow-md:           0 2px 8px rgba(0,0,0,0.10);
@@ -104,7 +106,9 @@ hr {
 .site-header .navbar-brand img {
     max-height: 44px;
     width: auto;
-    filter: brightness(0) invert(1);
+    background: white;
+    padding: 3px 10px;
+    border-radius: 6px;
 }
 .site-header .navbar-toggler {
     border-color: rgba(255,255,255,0.4);
@@ -269,6 +273,7 @@ input[type=text]:focus, input[type=password]:focus {
     padding: 1.25rem 1.5rem;
     margin-bottom: 1.5rem;
     box-shadow: var(--shadow-sm);
+    scroll-margin-top: calc(var(--total-header) + 0.75rem);
 }
 .report-section h3 {
     font-size: 1.1rem;
@@ -293,8 +298,8 @@ input[type=text]:focus, input[type=password]:focus {
    ============================================================ */
 .toc-sidebar {
     position: sticky;
-    top: calc(var(--header-height) + 1rem);
-    max-height: calc(100vh - var(--header-height) - 2rem);
+    top: calc(var(--total-header) + 0.5rem);
+    max-height: calc(100vh - var(--total-header) - 1rem);
     overflow-y: auto;
     width: 190px;
     flex-shrink: 0;
@@ -357,19 +362,19 @@ input[type=text]:focus, input[type=password]:focus {
 }
 .your-class .image-container {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     padding: 4px;
+    text-align: center;
 }
-.your-class img {
+.your-class .image-container img {
     max-height: 210px;
     width: auto;
-    opacity: 0;
-    transition: opacity 0.25s ease;
 }
-.slick-initialized .your-class img,
-.slick-initialized img {
-    opacity: 1;
+.your-class > img {
+    max-height: 210px;
+    width: auto;
 }
 .slick-prev:before,
 .slick-next:before {
