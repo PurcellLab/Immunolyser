@@ -10,6 +10,7 @@ import uuid, logging, base64, re, shutil, glob, os, pandas as pd, subprocess, io
 from Bio import SeqIO
 from constants import *
 from email.mime.text import MIMEText
+from markupsafe import escape
 from app.email_registry import save_email, get_email, get_job_name, claim_email_send
 from app.job_registry import insert_job, update_job_status
 from geoip2.database import Reader
@@ -55,8 +56,8 @@ def submit_email(job_id):
     email = data.get('email')
     job_name = data.get('job_name')
 
-    if not email or '@' not in email:
-        logging.warning(f"Invalid email submitted for job {job_id}: {email}")
+    if not email or not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+        logging.warning(f"Invalid email submitted for job {job_id}")
         return "Invalid email", 400
 
     save_email(job_id, email=email, job_name=job_name)
@@ -68,10 +69,11 @@ def _build_email_html(job_display, job_id, success, results_url):
     header_color = "#1a2744"
     btn_color = "cornflowerblue"
     link_color = "#0d6efd"
+    safe_display = escape(job_display)
     if success:
         status_line = "Your results are ready."
         status_color = "#2e7d32"
-        body_text = f"Your Immunolyser job <strong>{job_display}</strong> has completed successfully."
+        body_text = f"Your Immunolyser job <strong>{safe_display}</strong> has completed successfully."
         cta_block = f"""
         <tr>
           <td align="center" style="padding:24px 0 8px;">
@@ -92,7 +94,7 @@ def _build_email_html(job_display, job_id, success, results_url):
         status_line = "Your job could not be completed."
         status_color = "#c62828"
         body_text = (
-            f"Your Immunolyser job <strong>{job_display}</strong> encountered an error and could not finish.<br><br>"
+            f"Your Immunolyser job <strong>{safe_display}</strong> encountered an error and could not finish.<br><br>"
             f"Please check your input files and try again. If the problem persists, contact us at "
             f"<a href='mailto:Chen.Li@monash.edu' style='color:{link_color};'>Chen.Li@monash.edu</a> "
             f"and quote your Job ID below."
@@ -1090,9 +1092,14 @@ def download_overlap_peptides():
         return f"The ID '{task_id}' is not a valid task ID.", 400
 
     peptide_sets = {}
+    safe_base = os.path.realpath(os.path.join(data_mount, task_id))
 
     for sample in selected_samples:
-        dir_path = os.path.join(data_mount, task_id, sample)
+        if not re.match(r'^[a-zA-Z0-9_\- ]+$', sample):
+            return "Invalid sample name.", 400
+        dir_path = os.path.join(safe_base, sample)
+        if not os.path.realpath(dir_path).startswith(safe_base):
+            return "Forbidden.", 403
         peptides = set()
         if os.path.exists(dir_path):
             for fname in os.listdir(dir_path):
@@ -1538,14 +1545,12 @@ def download_job_data_files_zip(taskId, filename):
         return "Invalid task ID", 400
     
     # Define a safe base directory where files are stored
-    safe_base_dir = os.path.join(project_root, "app", "static", "images", taskId)
-    
-    # Prevent directory traversal by joining the path and normalizing it
-    safe_filename = os.path.normpath(filename)  # Normalize the path to prevent traversal
-    full_path = os.path.join(safe_base_dir, safe_filename)
+    safe_base_dir = os.path.realpath(os.path.join(project_root, "app", "static", "images", taskId))
 
-    # Ensure the file is inside the base directory
-    if not full_path.startswith(safe_base_dir):
+    full_path = os.path.realpath(os.path.join(safe_base_dir, filename))
+
+    # Ensure the resolved path is still inside the base directory (blocks traversal and symlinks)
+    if not full_path.startswith(safe_base_dir + os.sep):
         return "Forbidden", 403
 
     # Check if the file exists

@@ -1,5 +1,6 @@
 app/tools
 app/static/images
+.env
 app/__pycache__/*
 __pycache__/
 immunolyser-data/*

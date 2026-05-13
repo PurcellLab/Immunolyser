@@ -9,7 +9,9 @@ if not DB_PATH:
 if os.path.isdir(DB_PATH):
     DB_PATH = os.path.join(DB_PATH, 'results.sqlite')
 class Config(object):
-    SECRET_KEY = os.environ.get('SECRET_KEY') or b'6\xe9\xda\xead\x81\xf7\x8d\xbbH\x87\xe8m\xdd3%'
+    SECRET_KEY = os.environ.get('SECRET_KEY')
+    if not SECRET_KEY:
+        raise RuntimeError("SECRET_KEY environment variable must be set!")
 
     # Location to store all the data
     IMMUNOLYSER_DATA = os.environ.get('IMMUNOLYSER_DATA')
@@ -27,8 +29,8 @@ class Config(object):
     # Redis re-delivers tasks whose visibility timeout is exceeded. Long jobs (many alleles)
     # can run for several hours, so set this well above the worst-case job duration.
     CELERY_BROKER_TRANSPORT_OPTIONS = {'visibility_timeout': 43200}  # 12 hours
-    DEBUG = True
-    PIN = '123'
+    DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
+
 
     # Job input limites saved by variable. Used by both server and the client.
     SAMPLE_NAME_MAX_LENGTH = 30
