@@ -40,7 +40,7 @@ fi
 
 # Run the service
 if [ "$1" = "flask" ]; then
-    flask run --host=0.0.0.0 --port=5000
+    gunicorn --workers 2 --bind 0.0.0.0:5000 --timeout 120 firstdemo:app
 elif [ "$1" = "celery" ]; then
     celery -A app.celery worker --loglevel=info --concurrency=1
 else
