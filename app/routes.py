@@ -1691,6 +1691,172 @@ def cleanup_expired_jobs():
         update_job_status(job_id, 'EXPIRED', logger=logger)
 
 
+@app.route('/export/<uuid:taskId>')
+def export_report(taskId):
+    """Generate a self-contained offline HTML report for a job."""
+    taskId = str(taskId)
+    os.chdir(project_root)
+
+    output_path = os.path.join('app', 'static', 'images', taskId, 'allele_compatibility_matrix.csv')
+    if not os.path.exists(output_path):
+        abort(404)
+
+    allele_compatibility_matrix = pd.read_csv(output_path, index_col=0)
+    all_predictors = get_all_predictors()
+    predictionTools_obj = [p for p in all_predictors if p.full_name in allele_compatibility_matrix.index]
+
+    with open(os.path.join('app', 'static', 'images', taskId, 'mhcclass.txt')) as f:
+        mhcclass = f.readline()
+    with open(os.path.join('app', 'static', 'images', taskId, 'motif_length.txt')) as f:
+        motif_length = f.readline()
+
+    alleles_unformatted = ','.join(set(allele_compatibility_matrix.columns))
+    dirName = os.path.join(data_mount, taskId)
+
+    data = {}
+    for sample_name in [f.name for f in os.scandir(dirName) if f.is_dir()]:
+        replicates = [fn for fn in os.listdir(os.path.join(dirName, sample_name)) if fn.endswith('.csv')]
+        if replicates:
+            data[sample_name] = replicates
+
+    sample_data = {}
+    for sample_name, file_names in data.items():
+        sample_data[sample_name] = {}
+        for rep in file_names:
+            sample_data[sample_name][rep] = pd.read_csv(os.path.join(dirName, sample_name, rep))
+    for sample_name in sample_data:
+        sample_data[sample_name] = filterPeaksFile(sample_data[sample_name], minLen=5, maxLen=30)
+
+    bar_percent = plot_lenght_distribution(sample_data, hist='percent', taskId=taskId)
+    bar_density = plot_lenght_distribution(sample_data, hist='density', taskId=taskId)
+    seqlogos = getSeqLogosImages(sample_data, task_id=taskId, motif_length=motif_length, logger=logger)
+    gibbsImages = getGibbsImages(logger, taskId, sample_data)
+
+    showSeqLogoSection = True
+    showGibbsSection = True
+    if mhcclass == MHC_Class.Two:
+        hideMajorityVotedOption = False
+        if alleles_unformatted == '':
+            showSeqLogoSection = False
+    else:
+        hideMajorityVotedOption = True
+
+    predicted_binders = None
+    if alleles_unformatted != '':
+        predicted_binders = getPredictionResuslts(taskId, alleles_unformatted, predictionTools_obj, sample_data.keys())
+
+    upsetLayout = getPredictionResusltsForUpset(taskId, alleles_unformatted, predictionTools_obj, sample_data.keys())
+    overlapLayout = getOverLapData(sample_data)
+    predictionTools = [t.short_name for t in predictionTools_obj]
+    bindingImages = getHLAClustResults(taskId, data)
+
+    # --- Pre-compute overlap UpSet data (replaces /api/getOverlapPeptides) ---
+    overlap_upset_data = []
+    for sample in os.listdir(dirName):
+        sample_dir = os.path.join(dirName, sample)
+        if not os.path.isdir(sample_dir):
+            continue
+        peptides = set()
+        for fname in os.listdir(sample_dir):
+            if fname.endswith('8to14mer.txt') or fname.endswith('12to20mer.txt'):
+                peptides.update(pd.read_csv(os.path.join(sample_dir, fname), header=None)[0].to_list())
+        if peptides:
+            overlap_upset_data.append({'name': sample, 'elems': list(peptides)})
+
+    # --- Pre-compute binders UpSet data (replaces /api/getBinders) ---
+    # binders_data[allele][tool] = [{name: sample, elems: [{sequence, value}]}]
+    predictionTools_all = ['MHCflurry', 'NetMHCpan', 'MixMHCpred', 'MixMHC2pred', 'NetMHCpanII']
+    binders_data = {}
+
+    if predicted_binders:
+        for allele_raw in upsetLayout.keys():
+            binders_data[allele_raw] = {}
+            allele_key = allele_raw  # already has _ instead of :
+            samples_for_allele = upsetLayout[allele_raw]  # {sample: [replicates]}
+
+            for tool in predictionTools:
+                res = []
+                for sample, rep_list in samples_for_allele.items():
+                    binder_files = []
+                    for rep in rep_list:
+                        try:
+                            path = predicted_binders[sample][allele_key][tool][rep]
+                            binder_files.append(path)
+                        except KeyError:
+                            continue
+
+                    binders = []
+                    for fpath in binder_files:
+                        try:
+                            df = pd.read_csv(os.path.join('app', fpath))
+                            df = df[df['Binding Level'].notna()]
+                            if 'Peptide' in df.columns:
+                                seq_col = 'Peptide'
+                            elif 'StrippedPeptide' in df.columns:
+                                seq_col = 'StrippedPeptide'
+                            else:
+                                seq_col = df.columns[0]
+                            binding_col_idx = df.columns.get_loc('Binding Level')
+                            val_col = df.columns[binding_col_idx - 1]
+                            for seq, val in zip(df[seq_col], df[val_col]):
+                                binders.append({'sequence': str(seq), 'value': float(val)})
+                        except Exception:
+                            logger.exception(f"export: failed reading binder file {fpath}")
+                    seen = {}
+                    for b in binders:
+                        seen[b['sequence']] = b
+                    res.append({'name': sample, 'elems': list(seen.values())})
+                binders_data[allele_raw][tool] = res
+
+    # --- Build image map: static URL → base64 data URI ---
+    image_map = {}
+    static_images_dir = os.path.join(project_root, 'app', 'static', 'images', taskId)
+    if os.path.isdir(static_images_dir):
+        for root, _dirs, files in os.walk(static_images_dir):
+            for fname in files:
+                if not fname.lower().endswith(('.jpg', '.jpeg', '.png', '.gif')):
+                    continue
+                fpath = os.path.join(root, fname)
+                rel = os.path.relpath(fpath, os.path.join(project_root, 'app', 'static'))
+                url_key = '/static/' + rel.replace(os.sep, '/')
+                try:
+                    with open(fpath, 'rb') as img_f:
+                        b64 = base64.b64encode(img_f.read()).decode('utf-8')
+                    ext = fname.lower().rsplit('.', 1)[-1]
+                    mime = 'image/jpeg' if ext in ('jpg', 'jpeg') else f'image/{ext}'
+                    image_map[url_key] = f'data:{mime};base64,{b64}'
+                except Exception:
+                    logger.exception(f"export: failed encoding image {fpath}")
+
+    html_content = render_template(
+        'export.html',
+        taskId=taskId,
+        mhcclass=mhcclass,
+        motif_length=motif_length,
+        alleles_unformatted=alleles_unformatted,
+        peptide_percent=bar_percent,
+        peptide_density=bar_density,
+        seqlogos=seqlogos,
+        gibbsImages=gibbsImages,
+        upsetLayout=upsetLayout,
+        predicted_binders=predicted_binders,
+        predictionTools=predictionTools,
+        showSeqLogoSection=showSeqLogoSection,
+        showGibbsSection=showGibbsSection,
+        hideMajorityVotedOption=hideMajorityVotedOption,
+        bindingImages=bindingImages,
+        overlapLayout=overlapLayout,
+        image_map=image_map,
+        overlap_upset_data_json=json.dumps(overlap_upset_data),
+        binders_data_json=json.dumps(binders_data),
+    )
+
+    response = make_response(html_content)
+    response.headers['Content-Disposition'] = f'attachment; filename=immunolyser_report_{taskId}.html'
+    response.headers['Content-Type'] = 'text/html; charset=utf-8'
+    return response
+
+
 @app.route('/privacy')
 def privacy():
     return render_template('privacy.html')
