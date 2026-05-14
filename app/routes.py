@@ -67,7 +67,7 @@ def submit_email(job_id):
     return "Job details registered", 200
 
 
-def _build_email_html(job_display, job_id, success, results_url):
+def _build_email_html(job_display, job_id, success, results_url, base_url="https://immunolyser.erc.monash.edu"):
     header_color = "#1a2744"
     btn_color = "cornflowerblue"
     link_color = "#0d6efd"
@@ -156,8 +156,8 @@ def _build_email_html(job_display, job_id, success, results_url):
               style="background:#f4f6f8;border-top:1px solid #dee2e6;
                      padding:20px 40px;font-size:12px;color:#999;line-height:1.6;">
             Immunolyser 2.0 &mdash; Monash University<br>
-            <a href="https://immunolyser.erc.monash.edu" style="color:#999;">
-              immunolyser.erc.monash.edu
+            <a href="{base_url}" style="color:#999;">
+              {base_url.replace("https://", "").replace("http://", "")}
             </a>
           </td>
         </tr>
@@ -176,7 +176,7 @@ def _build_email_plain(job_display, job_id, success, results_url):
             f"View your results:\n{results_url}\n\n"
             f"Job ID: {job_id}\n\n"
             f"Immunolyser 2.0 — Monash University\n"
-            f"https://immunolyser.erc.monash.edu"
+            f"{app.config.get('BASE_URL', 'https://immunolyser.erc.monash.edu')}"
         )
     else:
         return (
@@ -185,7 +185,7 @@ def _build_email_plain(job_display, job_id, success, results_url):
             f"contact Chen.Li@monash.edu and quote your Job ID:\n\n"
             f"Job ID: {job_id}\n\n"
             f"Immunolyser 2.0 — Monash University\n"
-            f"https://immunolyser.erc.monash.edu"
+            f"{app.config.get('BASE_URL', 'https://immunolyser.erc.monash.edu')}"
         )
 
 
@@ -197,7 +197,7 @@ def send_email(to_email, job_id, success=True, error_msg=None, job_name=None):
         return
 
     job_display = job_name if job_name else job_id
-    results_url = f"https://immunolyser.erc.monash.edu/{job_id}"
+    results_url = f"{app.config.get('BASE_URL', 'https://immunolyser.erc.monash.edu')}/{job_id}"
 
     subject = (
         f"Immunolyser: '{job_display}' is ready"
@@ -210,8 +210,9 @@ def send_email(to_email, job_id, success=True, error_msg=None, job_name=None):
     msg['From'] = f"Immunolyser <{from_email}>"
     msg['To'] = to_email
 
+    base_url = app.config.get('BASE_URL', 'https://immunolyser.erc.monash.edu')
     msg.attach(MIMEText(_build_email_plain(job_display, job_id, success, results_url), "plain"))
-    msg.attach(MIMEText(_build_email_html(job_display, job_id, success, results_url), "html"))
+    msg.attach(MIMEText(_build_email_html(job_display, job_id, success, results_url, base_url), "html"))
 
     try:
         server = smtplib.SMTP('smtp.monash.edu', 25)

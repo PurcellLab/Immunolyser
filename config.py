@@ -32,6 +32,8 @@ class Config(object):
     DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
 
+    BASE_URL = os.environ.get('BASE_URL', 'https://immunolyser.erc.monash.edu')
+
     # Days before job data is deleted from the server
     DATA_RETENTION_DAYS = int(os.environ.get('DATA_RETENTION_DAYS', 30))
 
