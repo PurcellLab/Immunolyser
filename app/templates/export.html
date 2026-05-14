@@ -210,11 +210,12 @@
     // ---- Length distribution chart ----
     var graphs  = {{ peptide_percent | safe }};
     var graphsd = {{ peptide_density | safe }};
-    Plotly.plot('chart', graphs, {});
+    Plotly.newPlot('chart', graphs.data, graphs.layout);
 
     function myfunction() {
         var cb = document.getElementById('customSwitch1');
-        Plotly.newPlot('chart', cb.checked ? graphsd : graphs, {});
+        var fig = cb.checked ? graphsd : graphs;
+        Plotly.newPlot('chart', fig.data, fig.layout);
     }
 
     // ---- Overlap UpSet (pre-computed data, no server call) ----
