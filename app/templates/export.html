@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Immunolyser Report — {{ taskId }}</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <style>{{ bootstrap_css | safe }}</style>
     <style>
         body { font-family: Arial, sans-serif; padding: 20px; }
         .report-section { border: 1px solid #ddd; border-radius: 6px; padding: 20px; margin-bottom: 30px; }
@@ -195,12 +194,9 @@
 <script id="export-overlap-data" type="application/json">{{ overlap_upset_data_json | safe }}</script>
 <script id="export-binders-data" type="application/json">{{ binders_data_json | safe }}</script>
 
-<!-- CDN libraries -->
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
-<script src="https://d14fo0winaifog.cloudfront.net/plotly-basic.js"></script>
-<script src="https://unpkg.com/@upsetjs/bundle"></script>
+<!-- Inlined libraries — fully offline, no CDN required -->
+<script>{{ plotly_js | safe }}</script>
+<script>{{ upsetjs_js | safe }}</script>
 
 <script>
     // ---- Embedded data ----

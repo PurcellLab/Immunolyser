@@ -1850,6 +1850,9 @@ def export_report(taskId):
         image_map=image_map,
         overlap_upset_data_json=json.dumps(overlap_upset_data),
         binders_data_json=json.dumps(binders_data),
+        plotly_js=open(os.path.join(project_root, 'app', 'static', 'vendor', 'plotly-basic.min.js')).read(),
+        upsetjs_js=open(os.path.join(project_root, 'app', 'static', 'vendor', 'upsetjs.min.js')).read(),
+        bootstrap_css=open(os.path.join(project_root, 'app', 'static', 'vendor', 'bootstrap.min.css')).read(),
     )
 
     response = make_response(html_content)
