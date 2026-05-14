@@ -539,17 +539,17 @@ def saveBindersData(taskId, alleles, method, mhcclass):
                     for allele in alleles.split(','):
                         if compatibility_matrix.at[Class_Two_Predictors.NetMHCpanII.full_name, allele] == 'Yes':
                             print(f"  Compatible allele found for NetMHCpanII: {allele}")
-                            f = pd.read_table(f'{project_root}/app/static/images/{taskId}/{sample}/{Class_Two_Predictors.NetMHCpanII}/{replicate[:-14]}/{allele.replace(":", "_")}/{replicate}', skiprows=1)
+                            f = pd.read_table(f'{project_root}/app/static/images/{taskId}/{sample}/{Class_Two_Predictors.NetMHCpanII}/{replicate[:-14]}/{allele.replace(":", "_")}/{replicate}', skiprows=2)
 
                             f['Binding Level'] = ""
                             f['Control'] = ""
-                            f['Binding Level'] = f['Rank'].apply(
+                            f['Binding Level'] = f['EL_rank'].apply(
                                 lambda x: 'SB' if float(x) <= 1 else ('WB' if float(x) <= 5 else '')
                             )
                             f['Control'] = f['Peptide'].apply(lambda x : 'Y' if x in control_peptides else '')
                             f.rename(columns={'Peptide': 'StrippedPeptide'}, inplace=True)
 
-                            s = f.sort_values(by=['Rank'])[['StrippedPeptide','Core','Rank','Binding Level','Control']]\
+                            s = f.sort_values(by=['EL_rank'])[['StrippedPeptide','Core','EL_rank','Binding Level','Control']]\
                                 .merge(input_file, on='StrippedPeptide',how='left')
                             s['Peptides : StrippedPeptide : Core'] = s['Peptide'] + ' : ' + s['StrippedPeptide'] + ' : ' + s['Core']
 
@@ -568,18 +568,18 @@ def saveBindersData(taskId, alleles, method, mhcclass):
                     for allele in alleles.split(','):
                         if compatibility_matrix.at[Class_One_Predictors.NetMHCpan.full_name, allele] == 'Yes':
                             print(f"  Compatible allele found for NetMHCpan: {allele}")
-                            f = pd.read_table(f'{project_root}/app/static/images/{taskId}/{sample}/NetMHCpan/{replicate[:-13]}/{allele.replace(":", "_")}/{replicate}', skiprows=1)
+                            f = pd.read_table(f'{project_root}/app/static/images/{taskId}/{sample}/NetMHCpan/{replicate[:-13]}/{allele.replace(":", "_")}/{replicate}', skiprows=2)
 
                             f['Binding Level'] = ""
                             f['Control'] = ""
-                            f['Binding Level'] = f['Rank'].apply(
+                            f['Binding Level'] = f['EL_rank'].apply(
                                 lambda x: 'SB' if float(x) <= 0.5 else ('WB' if float(x) <= 2 else '')
                             )
                             f['Control'] = f['Peptide'].apply(lambda x : 'Y' if x in control_peptides else '')
                             f.rename(columns={'Peptide': 'StrippedPeptide'}, inplace=True)
 
                             outpath = f'{project_root}/app/static/images/{taskId}/{sample}/{method.short_name}/{replicate[:-13]}/binders/{allele.replace(":", "_")}/{replicate[:-13]}_{allele.replace(":", "_")}_{method.short_name}_binders.csv'
-                            f.sort_values(by=['Rank'])[['StrippedPeptide', 'Rank', 'Binding Level', 'BA_score', 'core', 'Control']]\
+                            f.sort_values(by=['EL_rank'])[['StrippedPeptide', 'EL_rank', 'Binding Level', 'BA_score', 'core', 'Control']]\
                                 .merge(input_file, on='StrippedPeptide', how='left')\
                                 .to_csv(outpath, index=False)
                             print(f"Saved file: {outpath}")
