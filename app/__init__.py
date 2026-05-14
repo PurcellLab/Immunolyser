@@ -36,7 +36,7 @@ api.init_app(app)
 
 from app import routes
 
-celery.conf.beat_schedule = {
+celery.conf.CELERYBEAT_SCHEDULE = {
     'warn-expiring-jobs': {
         'task': 'app.routes.warn_expiring_jobs',
         'schedule': crontab(hour=8, minute=0),
