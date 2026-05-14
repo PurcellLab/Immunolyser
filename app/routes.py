@@ -191,10 +191,9 @@ def send_email(to_email, job_id, success=True, error_msg=None, job_name=None):
     from email.mime.multipart import MIMEMultipart
 
     from_email = os.getenv("EMAIL_ADDRESS")
-    password = os.getenv("EMAIL_APP_PASSWORD")
 
-    if not from_email or not password:
-        logging.warning("Email credentials are not set in environment variables.")
+    if not from_email:
+        logging.warning("EMAIL_ADDRESS is not set in environment variables.")
         return
 
     job_display = job_name if job_name else job_id
@@ -215,13 +214,12 @@ def send_email(to_email, job_id, success=True, error_msg=None, job_name=None):
     msg.attach(MIMEText(_build_email_html(job_display, job_id, success, results_url), "html"))
 
     try:
-        server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
-        server.login(from_email, password)
+        server = smtplib.SMTP('smtp.monash.edu', 25)
         server.sendmail(from_email, [to_email], msg.as_string())
         server.quit()
-        logging.info(f"Email sent to {to_email} for job {job_id}.")
+        logging.info(f"Email sent for job {job_id}.")
     except Exception as e:
-        logging.error(f"Failed to send email to {to_email} for job {job_id}: {e}")
+        logging.error(f"Failed to send email for job {job_id}: {e}")
         raise
 
 @app.route("/initialiser", methods=["POST", "GET"])
