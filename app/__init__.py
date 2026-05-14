@@ -2,6 +2,7 @@ from flask import Flask, render_template
 from flask_restplus import Api
 from config import Config
 from celery import Celery
+from celery.schedules import crontab
 import os
 
 def make_celery(app):
@@ -34,6 +35,17 @@ celery = make_celery(app)
 api.init_app(app)
 
 from app import routes
+
+celery.conf.beat_schedule = {
+    'warn-expiring-jobs': {
+        'task': 'app.routes.warn_expiring_jobs',
+        'schedule': crontab(hour=8, minute=0),
+    },
+    'cleanup-expired-jobs': {
+        'task': 'app.routes.cleanup_expired_jobs',
+        'schedule': crontab(hour=9, minute=0),
+    },
+}
 
 @app.after_request
 def security_headers(response):

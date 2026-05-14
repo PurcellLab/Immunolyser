@@ -6,13 +6,15 @@ from app.utils import *
 from pathlib import Path
 from app.Pepscan import PepScan
 from collections import Counter,OrderedDict
-import uuid, logging, base64, re, shutil, glob, os, pandas as pd, subprocess, io, requests, zipfile, json, smtplib, datetime, traceback
+import uuid, logging, base64, re, shutil, glob, os, pandas as pd, subprocess, io, requests, zipfile, json, smtplib, traceback
+from datetime import datetime, timedelta
 from Bio import SeqIO
 from constants import *
 from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from markupsafe import escape
-from app.email_registry import save_email, get_email, get_job_name, claim_email_send
-from app.job_registry import insert_job, update_job_status
+from app.email_registry import save_email, get_email, get_job_name, claim_email_send, get_jobs_due_for_warning, claim_warning_send
+from app.job_registry import insert_job, update_job_status, get_jobs_older_than, get_completed_time
 from geoip2.database import Reader
 from werkzeug.routing import BaseConverter
 
@@ -188,8 +190,6 @@ def _build_email_plain(job_display, job_id, success, results_url):
 
 
 def send_email(to_email, job_id, success=True, error_msg=None, job_name=None):
-    from email.mime.multipart import MIMEMultipart
-
     from_email = os.getenv("EMAIL_ADDRESS")
 
     if not from_email:
@@ -762,24 +762,35 @@ def getExistingReport(taskId):
     zip_path = zip_job_exports(taskId)
     zip_filename = os.path.basename(zip_path)
 
+    retention_days = app.config.get('DATA_RETENTION_DAYS', 30)
+    expiry_date = None
+    completed_time_str = get_completed_time(str(taskId))
+    if completed_time_str:
+        try:
+            completed_dt = datetime.fromisoformat(completed_time_str)
+            expiry_date = (completed_dt + timedelta(days=retention_days)).strftime('%Y-%m-%d')
+        except ValueError:
+            pass
+
     return render_template(
-        'analytics.html', 
-        overlapLayout=overlapLayout, 
-        taskId=taskId, 
-        analytics=True, 
-        demo=demo, 
-        peptide_percent=bar_percent, 
-        peptide_density=bar_density, 
-        seqlogos=seqlogos, 
-        gibbsImages=gibbsImages, 
-        upsetLayout=upsetLayout, 
-        predicted_binders=predicted_binders, 
+        'analytics.html',
+        overlapLayout=overlapLayout,
+        taskId=taskId,
+        analytics=True,
+        demo=demo,
+        peptide_percent=bar_percent,
+        peptide_density=bar_density,
+        seqlogos=seqlogos,
+        gibbsImages=gibbsImages,
+        upsetLayout=upsetLayout,
+        predicted_binders=predicted_binders,
         predictionTools=predictionTools,  # List of short_names here
         showSeqLogoSection=showSeqLogoSection,
-        showGibbsSection=showGibbsSection, 
+        showGibbsSection=showGibbsSection,
         hideMajorityVotedOption=hideMajorityVotedOption,
         bindingImages=bindingImages,
-        zip_filename=zip_filename
+        zip_filename=zip_filename,
+        expiry_date=expiry_date
     )
 
 # Method to manage experiment ID
@@ -1617,6 +1628,68 @@ def download_gibbscluster_core(taskid, sample, replicate, cluster_attempt):
     except Exception:
         logger.exception(f"Failed to send core file: {core_file}")
         return abort(500, description="Error sending core file.")
+
+@celery.task(name='app.routes.warn_expiring_jobs')
+def warn_expiring_jobs():
+    """Send warning emails to users whose job data will be deleted in 5 days."""
+    retention_days = app.config.get('DATA_RETENTION_DAYS', 30)
+    warning_threshold_days = retention_days - 5
+    cutoff = (datetime.utcnow() - timedelta(days=warning_threshold_days)).isoformat()
+    jobs = get_jobs_due_for_warning(cutoff)
+    logger.info(f"warn_expiring_jobs: found {len(jobs)} jobs due for warning.")
+    for job_id, email, job_name in jobs:
+        if not claim_warning_send(job_id):
+            continue
+        job_display = job_name if job_name else job_id
+        delete_date = (datetime.utcnow() - timedelta(days=warning_threshold_days) + timedelta(days=5)).strftime('%Y-%m-%d')
+        try:
+            subject = f"Immunolyser: your job data will be deleted on {delete_date}"
+            body = (
+                f"<p>Dear Immunolyser user,</p>"
+                f"<p>Your job <strong>{escape(job_display)}</strong> was completed more than "
+                f"{warning_threshold_days} days ago. Job data is retained for {retention_days} days, "
+                f"so the files will be permanently deleted on <strong>{delete_date}</strong>.</p>"
+                f"<p>If you need your results, please download them before that date.</p>"
+                f"<p>The Immunolyser Team</p>"
+            )
+            msg = MIMEMultipart('alternative')
+            msg['Subject'] = subject
+            msg['From'] = app.config.get('EMAIL_ADDRESS', 'noreply@immunolyser.erc.monash.edu')
+            msg['To'] = email
+            msg.attach(MIMEText(body, 'html'))
+            with smtplib.SMTP('smtp.monash.edu', 25) as server:
+                server.sendmail(msg['From'], [email], msg.as_string())
+            logger.info(f"Warning email sent for job_id={job_id} to {email}")
+        except Exception:
+            logger.exception(f"Failed to send warning email for job_id={job_id}")
+
+
+@celery.task(name='app.routes.cleanup_expired_jobs')
+def cleanup_expired_jobs():
+    """Delete files for jobs older than DATA_RETENTION_DAYS and mark them EXPIRED."""
+    retention_days = app.config.get('DATA_RETENTION_DAYS', 30)
+    cutoff = (datetime.utcnow() - timedelta(days=retention_days)).isoformat()
+    job_ids = get_jobs_older_than(cutoff)
+    logger.info(f"cleanup_expired_jobs: found {len(job_ids)} jobs to expire.")
+    for job_id in job_ids:
+        # Delete job data directory
+        job_data_dir = os.path.join(data_mount, job_id)
+        if os.path.isdir(job_data_dir):
+            try:
+                shutil.rmtree(job_data_dir)
+                logger.info(f"Deleted data dir for job_id={job_id}: {job_data_dir}")
+            except Exception:
+                logger.exception(f"Failed to delete data dir for job_id={job_id}")
+        # Delete static images directory
+        images_dir = os.path.join(project_root, 'app', 'static', 'images', job_id)
+        if os.path.isdir(images_dir):
+            try:
+                shutil.rmtree(images_dir)
+                logger.info(f"Deleted images dir for job_id={job_id}: {images_dir}")
+            except Exception:
+                logger.exception(f"Failed to delete images dir for job_id={job_id}")
+        update_job_status(job_id, 'EXPIRED', logger=logger)
+
 
 @app.route('/privacy')
 def privacy():

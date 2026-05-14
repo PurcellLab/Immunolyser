@@ -32,6 +32,9 @@ class Config(object):
     DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
 
+    # Days before job data is deleted from the server
+    DATA_RETENTION_DAYS = int(os.environ.get('DATA_RETENTION_DAYS', 30))
+
     # Job input limites saved by variable. Used by both server and the client.
     SAMPLE_NAME_MAX_LENGTH = 30
     MAX_SAMPLES = 10

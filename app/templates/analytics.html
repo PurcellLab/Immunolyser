@@ -17,6 +17,16 @@
 
     <div class="report-main">
 
+    {% if expiry_date %}
+    <div class="alert alert-warning alert-dismissible fade show" role="alert" style="margin-bottom: 1rem;">
+        <strong>Data expiry notice:</strong> This job's files will be permanently deleted on <strong>{{ expiry_date }}</strong>.
+        Please download your results before that date.
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+    {% endif %}
+
     <fieldset class="report-section" id="section-length">
 
         <h3>Peptide Length Distribution</h3>
