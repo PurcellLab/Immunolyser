@@ -323,14 +323,19 @@ def generateBindingPredictions(taskId, alleles_unformatted, method, ALLELE_DICTI
                                 # Run the command for compatible alleles
                                 mixmhc_outdir = f'{project_root}/app/static/images/{taskId}/{sample}/MixMHCpred/{replicate[:-13]}/{allele.replace(":", "_")}'
                                 os.makedirs(mixmhc_outdir, exist_ok=True)
-                                call(
+                                mixmhc_allele = get_allele_name_tool_specific(allele, 'mixMHCpred 3.0', MHC_Class.One, ALLELE_DICTIONARY)
+                                print(f"  Running MixMHCpred: allele={mixmhc_allele}, input={data_mount}/{taskId}/{sample}/{replicate}")
+                                result = subprocess.run(
                                     [
                                         f'{project_root}/app/tools/MixMHCpred/MixMHCpred',
                                         '-i', f'{data_mount}/{taskId}/{sample}/{replicate}',
                                         '-o', f'{mixmhc_outdir}/{replicate}',
-                                        '-a', get_allele_name_tool_specific(allele, 'mixMHCpred 3.0', MHC_Class.One, ALLELE_DICTIONARY)
-                                    ]
+                                        '-a', mixmhc_allele
+                                    ],
+                                    capture_output=True, text=True
                                 )
+                                if result.returncode != 0:
+                                    print(f"  MixMHCpred ERROR (rc={result.returncode}): {result.stderr[:500]}")
 
                     elif(method.short_name==Class_One_Predictors.NetMHCpan.short_name):
 
