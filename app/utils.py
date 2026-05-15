@@ -325,6 +325,8 @@ def generateBindingPredictions(taskId, alleles_unformatted, method, ALLELE_DICTI
                                 os.makedirs(mixmhc_outdir, exist_ok=True)
                                 mixmhc_allele = get_allele_name_tool_specific(allele, 'mixMHCpred 3.0', MHC_Class.One, ALLELE_DICTIONARY)
                                 print(f"  Running MixMHCpred: allele={mixmhc_allele}, input={data_mount}/{taskId}/{sample}/{replicate}")
+                                mixmhc_env = os.environ.copy()
+                                mixmhc_env['PATH'] = f'{project_root}/lenv/bin:' + mixmhc_env.get('PATH', '/usr/bin:/bin')
                                 result = subprocess.run(
                                     [
                                         f'{project_root}/app/tools/MixMHCpred/MixMHCpred',
@@ -332,7 +334,7 @@ def generateBindingPredictions(taskId, alleles_unformatted, method, ALLELE_DICTI
                                         '-o', f'{mixmhc_outdir}/{replicate}',
                                         '-a', mixmhc_allele
                                     ],
-                                    capture_output=True, text=True
+                                    capture_output=True, text=True, env=mixmhc_env
                                 )
                                 if result.returncode != 0:
                                     print(f"  MixMHCpred ERROR (rc={result.returncode}): {result.stderr[:500]}")
