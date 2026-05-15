@@ -74,31 +74,46 @@
 {% if showGibbsSection %}
 <fieldset class="report-section" id="section-gibbs">
     <h3>Peptide Sequence Clustering with Predicted MHC Allele Assignment</h3>
-    <p class="section-info"><b>ⓘ</b> Gibbs Clustering applied after removing contaminants, decoys, PTMs, and duplicates. Each logo shows the predicted source allotype and PCC value (MHC-TP). This export shows the highest-KLD cluster only.</p>
+    <p class="section-info"><b>ⓘ</b> Gibbs Clustering applied after removing contaminants, decoys, PTMs, and duplicates. Each logo shows the predicted source allotype and PCC value (MHC-TP).</p>
     <div class="seqlogo">
-        {% for sample, replicates in gibbsImages.items() %}
+        {% for sample, replicates in gibbsAllData.items() %}
             <h4>{{ sample }}</h4>
-            {% for replicate, gibbs in replicates.items() %}
-                <h5>{{ replicate }}</h5>
-                {% for bar_plot, clusters in gibbs.items() %}
-                <div class="your-class">
-                    <div class="image-container">
-                        <img src="{{ img_src(bar_plot) }}" alt="KLD bar chart">
+            {% for replicate, cluster_options in replicates.items() %}
+                <div>
+                    <div class="row" style="margin-left:30px; margin-bottom:10px;">
+                        <h5>{{ replicate }}</h5>
+                        <select style="margin-left:10px;" class="col-3 custom-select custom-select-sm"
+                                onchange="updateClusterOffline('{{ sample }}','{{ replicate }}',this)">
+                            <option value="" selected>Clustering with highest KLD</option>
+                            <option value="1">One cluster</option>
+                            <option value="2">Two clusters</option>
+                            <option value="3">Three clusters</option>
+                            <option value="4">Four clusters</option>
+                            <option value="5">Five clusters</option>
+                            <option value="6">Six clusters</option>
+                        </select>
                     </div>
-                    {% for cluster in clusters %}
-                    <div class="image-container">
-                        <img src="{{ img_src(cluster[0]) }}"
-                             alt="" title="Sample size: {{ cluster[1] }}" style="width:100%;">
-                        {% if bindingImages %}
-                        <p style="text-align:center; font-size:0.85em;">
-                            Best match: {{ cluster[2] }}<br>
-                            PCC score: {{ cluster[3] }}
-                        </p>
-                        {% endif %}
+                    {% for n_key, cluster_data in cluster_options.items() %}
+                    <div id="{{ sample }}_{{ replicate }}_n{{ n_key }}"
+                         class="your-class gibbs-cluster-view"
+                         {% if n_key != '' %}style="display:none;"{% endif %}>
+                        <div class="image-container">
+                            <img src="{{ img_src(cluster_data.bar_plot) }}" alt="KLD bar chart">
+                        </div>
+                        {% for cluster in cluster_data.clusters %}
+                        <div class="image-container">
+                            <img src="{{ img_src(cluster[0]) }}" alt="" title="Sample size: {{ cluster[1] }}" style="width:100%;">
+                            {% if bindingImages %}
+                            <p style="text-align:center; font-size:0.85em;">
+                                Best match: {{ cluster[2] }}<br>
+                                PCC score: {{ cluster[3] }}
+                            </p>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
                     </div>
                     {% endfor %}
                 </div>
-                {% endfor %}
             {% endfor %}
         {% endfor %}
     </div>
@@ -310,6 +325,14 @@
                 violinDiv.style.display = 'block';
             }
         }
+    }
+
+    function updateClusterOffline(sample, replicate, selectElem) {
+        var n = selectElem.value;
+        var prefix = sample + '_' + replicate + '_n';
+        document.querySelectorAll('[id^="' + prefix + '"]').forEach(function(el) { el.style.display = 'none'; });
+        var target = document.getElementById(prefix + n);
+        if (target) target.style.display = '';
     }
 
     function alleleUpsetSelectOffline(elem) {

@@ -221,6 +221,66 @@ def getGibbsImages(logger, taskId, samples_data):
 
     return gibbsImages
 
+
+def getGibbsImagesAll(logger, taskId, samples_data):
+    """Like getGibbsImages but returns every available cluster count for offline export."""
+    logger.info(f'getGibbsImagesAll called with taskId: {taskId}')
+    os.chdir(project_root)
+
+    gibbs_all = {}
+
+    for sample, replicates in dict(sorted(samples_data.items())).items():
+        gibbs_all[sample] = {}
+
+        for replicate in sorted(replicates.keys()):
+            bar_plots = [x[len('app/static/'):] for x in glob.glob(
+                f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate[:-4]}/*/images/*.barplot.png')]
+            if not bar_plots:
+                continue
+
+            bar_plot = bar_plots[0]
+
+            tab_files = glob.glob(
+                f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate[:-4]}/*/images/gibbs.KLDvsClusters.tab')
+            if not tab_files:
+                continue
+            best_df = pd.read_table(tab_files[0])
+            best_cluster = best_df[best_df.columns].sum(axis=1).idxmax()
+
+            # Determine max cluster count from logo filenames
+            all_logos = glob.glob(
+                f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate[:-4]}/*/logos/gibbs_logos_*-001.png')
+            max_n = 0
+            for lf in all_logos:
+                try:
+                    max_n = max(max_n, int(os.path.basename(lf).split('of')[1].split('-')[0]))
+                except Exception:
+                    pass
+
+            gibbs_all[sample][replicate[:-4]] = {}
+
+            def _make_clusters(n):
+                entries = [
+                    [x[len('app/static/'):], "Number of peptides in core could not be calculated",
+                     "Allele not predicted", "Score not calculated", "Url of reference motif"]
+                    for x in sorted(glob.glob(
+                        f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate[:-4]}/*/logos/gibbs_logos_*of{n}*-001.png'))
+                ]
+                findNumberOfPeptidesInCore(entries, taskId, sample, replicate)
+                appendPredictedAllelesInfo(entries, taskId, sample, replicate)
+                return entries
+
+            gibbs_all[sample][replicate[:-4]][''] = {'bar_plot': bar_plot, 'clusters': _make_clusters(best_cluster)}
+
+            for n in range(1, min(max_n, 6) + 1):
+                logos_n = glob.glob(
+                    f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate[:-4]}/*/logos/gibbs_logos_*of{n}*-001.png')
+                if logos_n:
+                    gibbs_all[sample][replicate[:-4]][str(n)] = {'bar_plot': bar_plot, 'clusters': _make_clusters(n)}
+
+    return gibbs_all
+
+
 # Method to calculate the peptides present in cluster
 def findNumberOfPeptidesInCore(clusters, taskId, sample, replicate):
     print(f'findNumberOfPeptidesInCore : Clusters passed={clusters}')

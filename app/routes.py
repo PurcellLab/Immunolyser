@@ -1717,6 +1717,7 @@ def export_report(taskId):
     bar_density = plot_lenght_distribution(sample_data, hist='density', taskId=taskId)
     seqlogos = getSeqLogosImages(sample_data, task_id=taskId, motif_length=motif_length, logger=logger)
     gibbsImages = getGibbsImages(logger, taskId, sample_data)
+    gibbsAllData = getGibbsImagesAll(logger, taskId, sample_data)
 
     showSeqLogoSection = True
     showGibbsSection = True
@@ -1757,16 +1758,27 @@ def export_report(taskId):
     if predicted_binders:
         for allele_raw in upsetLayout.keys():
             binders_data[allele_raw] = {}
-            allele_key = allele_raw  # already has _ instead of :
             samples_for_allele = upsetLayout[allele_raw]  # {sample: [replicates]}
 
-            for tool in predictionTools:
+            # Build a mapping from method object → short_name string using the actual dict keys
+            # (predicted_binders is keyed by predictor objects, not short_name strings)
+            method_to_name = {}
+            for sample in samples_for_allele:
+                if sample in predicted_binders and allele_raw in predicted_binders[sample]:
+                    for method_key in predicted_binders[sample][allele_raw]:
+                        if method_key == 'Majority_Voted':
+                            continue
+                        tool_name = method_key.short_name if hasattr(method_key, 'short_name') else str(method_key)
+                        method_to_name[method_key] = tool_name
+                    break
+
+            for method_key, tool_name in method_to_name.items():
                 res = []
                 for sample, rep_list in samples_for_allele.items():
                     binder_files = []
                     for rep in rep_list:
                         try:
-                            path = predicted_binders[sample][allele_key][tool][rep]
+                            path = predicted_binders[sample][allele_raw][method_key][rep]
                             binder_files.append(path)
                         except KeyError:
                             continue
@@ -1792,7 +1804,7 @@ def export_report(taskId):
                     for b in binders:
                         seen[b['sequence']] = b
                     res.append({'name': sample, 'elems': list(seen.values())})
-                binders_data[allele_raw][tool] = res
+                binders_data[allele_raw][tool_name] = res
 
     # --- Build CSV download map: app-relative path → data URI ---
     csv_map = {}
@@ -1841,6 +1853,7 @@ def export_report(taskId):
         peptide_density=bar_density,
         seqlogos=seqlogos,
         gibbsImages=gibbsImages,
+        gibbsAllData=gibbsAllData,
         upsetLayout=upsetLayout,
         predicted_binders=predicted_binders,
         predictionTools=predictionTools,
