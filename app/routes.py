@@ -838,42 +838,27 @@ def createGibbsBar():
     with open(os.path.join('app', 'static', 'images', taskId, "mhcclass.txt")) as f:
         mhcclass = f.readline()
 
-    barLocation = glob.glob(f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate}/images/gibbsKLDvsCluster.barplot.JPG')
+    barLocation = glob.glob(f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate}/*/images/*.barplot.png')
 
-    if len(barLocation) ==1:
+    if len(barLocation) == 1:
         barLocation = barLocation[0][4:]
-
     else:
+        barLocation = f'/static/others/gibbsBarNotFound.JPG'
 
-        # Deleting previous meta files present
-        dirpath = f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate}'
-        # if os.path.exists(dirpath) and os.path.isdir(dirpath):
-        #     shutil.rmtree(dirpath)
-
-        # subprocess.check_call(['python3', os.path.join('app', 'gibbsclusterBarGraph.py'), taskId, data_mount, sample, replicate, motif_length, mhcclass], shell=False)
-
-        barLocation = glob.glob(f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate}/images/gibbsKLDvsCluster.barplot.JPG')
-
-        if len(barLocation) ==1:
-            barLocation = barLocation[0][4:]
-        
-        else: 
-            barLocation = f'/static/others/gibbsBarNotFound.JPG'
-        
     if len(cluster) == 0:
-        bestCluster = pd.read_table(f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate}/images/gibbs.KLDvsClusters.tab')
+        tab_files = glob.glob(f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate}/*/images/gibbs.KLDvsClusters.tab')
+        bestCluster = pd.read_table(tab_files[0])
         bestCluster = bestCluster[bestCluster.columns].sum(axis=1).idxmax()
 
         print(f"generateGibbs : Best Cluster for {sample}'s {replicate} : {bestCluster}")
 
-        seqClusters = [[x[4:],"Number of peptides in core could not be calculated", "Allele not predicted", "Score not calculated", "Url of reference motif"] for x in sorted(glob.glob(f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate}/logos/gibbs_logos_*of{bestCluster}*.jpg'))]
+        seqClusters = [[x[4:],"Number of peptides in core could not be calculated", "Allele not predicted", "Score not calculated", "Url of reference motif"] for x in sorted(glob.glob(f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate}/*/logos/gibbs_logos_*of{bestCluster}*-001.png'))]
 
     else:
-        seqClusters = [[x[4:], "Number of peptides in core could not be calculated", "Allele not predicted", "Score not calculated", "Url of reference motif"] for x in sorted(glob.glob(f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate}/logos/gibbs_logos_*of{cluster}*.jpg'))]
+        seqClusters = [[x[4:], "Number of peptides in core could not be calculated", "Allele not predicted", "Score not calculated", "Url of reference motif"] for x in sorted(glob.glob(f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate}/*/logos/gibbs_logos_*of{cluster}*-001.png'))]
 
         if len(seqClusters) != int(cluster):
-            # subprocess.check_call(['python3', os.path.join('app', 'gibbsclusterSeqLogo.py'), taskId, data_mount, sample, replicate, cluster, mhcclass, motif_length], shell=False)
-            seqClusters = [[x[4:], "Number of peptides in core could not be calculated", "Allele not predicted", "Score not calculated", "Url of reference motif"] for x in sorted(glob.glob(f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate}/logos/gibbs_logos_*of{cluster}*.jpg'))]
+            seqClusters = [[x[4:], "Number of peptides in core could not be calculated", "Allele not predicted", "Score not calculated", "Url of reference motif"] for x in sorted(glob.glob(f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate}/*/logos/gibbs_logos_*of{cluster}*-001.png'))]
 
     # Adding information regarding number of peptides in the core
     findNumberOfPeptidesInCore(seqClusters, taskId, sample, replicate+'.txt')

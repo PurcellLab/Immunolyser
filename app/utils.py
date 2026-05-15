@@ -193,20 +193,21 @@ def getGibbsImages(logger, taskId, samples_data):
 
         for replicate in sorted(replicates.keys()):
 
-            logger.info(f'Path for Barplots: app/static/images/{taskId}/{sample}/gibbscluster/{replicate[:-4]}/images/*.JPG')
+            logger.info(f'Path for Barplots: app/static/images/{taskId}/{sample}/gibbscluster/{replicate[:-4]}/*/images/*.png')
 
-            bar_plot = [os.path.basename(x) for x in glob.glob(f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate[:-4]}/images/*.JPG')]
-            
+            bar_plot = [os.path.basename(x) for x in glob.glob(f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate[:-4]}/*/images/*.barplot.png')]
+
             # Processing only if Bar Plot was generated for the input
             if len(bar_plot) == 0:
                 logger.warning(f'No bar plot found at the directory for sample {sample}, replicate {replicate}')
                 continue
-            
+
             # Finding the best cluster
-            bestCluster = pd.read_table(f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate[:-4]}/images/gibbs.KLDvsClusters.tab')
+            tab_files = glob.glob(f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate[:-4]}/*/images/gibbs.KLDvsClusters.tab')
+            bestCluster = pd.read_table(tab_files[0])
             bestCluster = bestCluster[bestCluster.columns].sum(axis=1).idxmax()
 
-            clusters = [[os.path.basename(x), "Number of peptides in core could not be calculated", "Allele not predicted", "Score not calculated", "Url of reference motif"] for x in sorted(glob.glob(f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate[:-4]}/logos/gibbs_logos_*of{bestCluster}*.jpg'))]
+            clusters = [[os.path.basename(x), "Number of peptides in core could not be calculated", "Allele not predicted", "Score not calculated", "Url of reference motif"] for x in sorted(glob.glob(f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate[:-4]}/*/logos/gibbs_logos_*of{bestCluster}*-001.png'))]
 
             # Finding the number of records used for the cluster
             findNumberOfPeptidesInCore(clusters, taskId, sample, replicate)
