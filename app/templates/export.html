@@ -125,9 +125,33 @@
 {% endif %}
 
 {% if predicted_binders is not none %}
+<fieldset class="report-section" id="section-binding-downloads">
+    <h3>Peptide-HLA/MHC Binding Affinity Prediction — Downloads</h3>
+    <p class="section-info"><b>ⓘ</b> Majority-voted binder CSV files for each sample and allele. Click a replicate name to download.</p>
+    {% for sample, alleles_dict in predicted_binders.items() %}
+        <h4>{{ sample }}</h4>
+        <table class="table table-bordered table-striped">
+            <thead class="thead-light"><tr><th>Allele</th><th>Majority Voted Binders</th></tr></thead>
+            <tbody>
+            {% for allele, methods in alleles_dict.items() %}
+                <tr>
+                    <td><strong>{{ allele }}</strong></td>
+                    <td>
+                        {% for replicate, fpath in methods.get('Majority_Voted', {}).items() %}
+                            <a href="{{ csv_map.get(fpath, '#') }}"
+                               download="{{ replicate }}_{{ allele }}_majority_voted_binders.csv">{{ replicate }}</a><br>
+                        {% endfor %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% endfor %}
+</fieldset>
+
 <fieldset class="report-section" id="section-binding">
     <h3>Peptide-HLA/MHC Binding Affinity Prediction</h3>
-    <p class="section-info"><b>ⓘ</b> UpSet plot showing predicted binder overlap across samples. Select an allele and tool using the controls below. Note: CSV download links require access to the Immunolyser server.</p>
+    <p class="section-info"><b>ⓘ</b> UpSet plot showing predicted binder overlap across samples. Select an allele and tool using the controls below.</p>
 
     <div class="container" style="padding:0;">
         <div class="row">

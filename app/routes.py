@@ -6,7 +6,7 @@ from app.utils import *
 from pathlib import Path
 from app.Pepscan import PepScan
 from collections import Counter,OrderedDict
-import uuid, logging, base64, re, shutil, glob, os, pandas as pd, subprocess, io, requests, zipfile, json, smtplib, traceback
+import uuid, logging, base64, re, shutil, glob, os, pandas as pd, subprocess, io, requests, zipfile, json, smtplib, traceback, urllib.parse
 from datetime import datetime, timedelta
 from Bio import SeqIO
 from constants import *
@@ -1794,6 +1794,23 @@ def export_report(taskId):
                     res.append({'name': sample, 'elems': list(seen.values())})
                 binders_data[allele_raw][tool] = res
 
+    # --- Build CSV download map: app-relative path → data URI ---
+    csv_map = {}
+    if predicted_binders:
+        for _sample, alleles_dict in predicted_binders.items():
+            for _allele, methods_dict in alleles_dict.items():
+                for _method, reps_dict in methods_dict.items():
+                    for _rep, fpath in reps_dict.items():
+                        if fpath in csv_map:
+                            continue
+                        full_path = os.path.join(project_root, 'app', fpath)
+                        try:
+                            with open(full_path, 'r', encoding='utf-8') as f:
+                                content = f.read()
+                            csv_map[fpath] = 'data:text/csv;charset=utf-8,' + urllib.parse.quote(content)
+                        except Exception:
+                            logger.exception(f"export: failed reading CSV {full_path}")
+
     # --- Build image map: static URL → base64 data URI ---
     image_map = {}
     static_images_dir = os.path.join(project_root, 'app', 'static', 'images', taskId)
@@ -1833,6 +1850,7 @@ def export_report(taskId):
         bindingImages=bindingImages,
         overlapLayout=overlapLayout,
         image_map=image_map,
+        csv_map=csv_map,
         overlap_upset_data_json=json.dumps(overlap_upset_data),
         binders_data_json=json.dumps(binders_data),
         plotly_js=open(os.path.join(project_root, 'app', 'static', 'vendor', 'plotly-basic.min.js')).read(),
