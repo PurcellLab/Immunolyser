@@ -209,10 +209,10 @@
 
                                         {% for bar_plot, clusters in gibbs.items() %}
                                             <div class="your-class" id="{{sample}}_{{replicate}}">
-                                                <img src="{{ url_for('static',filename='images/{0}/{1}/gibbscluster/{2}/images/{3}'.format(taskId,sample,replicate,bar_plot), width=10)}}" alt="">                
+                                                <img src="{{ url_for('static',filename=bar_plot) }}" alt="">
                                                 {% for cluster in clusters %}
                                                     <div class="image-container">
-                                                        <img src="{{ url_for('static',filename='images/{0}/{1}/gibbscluster/{2}/logos/{3}'.format(taskId,sample,replicate,cluster[0]), width=10)}}" alt="" width="100%" title="Sample size : {{cluster[1]}}">
+                                                        <img src="{{ url_for('static',filename=cluster[0]) }}" alt="" width="100%" title="Sample size : {{cluster[1]}}">
                                                         
                                                             {% if bindingImages %}
                                                                 <p style="text-align: center;">

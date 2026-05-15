@@ -195,7 +195,7 @@ def getGibbsImages(logger, taskId, samples_data):
 
             logger.info(f'Path for Barplots: app/static/images/{taskId}/{sample}/gibbscluster/{replicate[:-4]}/*/images/*.png')
 
-            bar_plot = [os.path.basename(x) for x in glob.glob(f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate[:-4]}/*/images/*.barplot.png')]
+            bar_plot = [x[len('app/static/'):] for x in glob.glob(f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate[:-4]}/*/images/*.barplot.png')]
 
             # Processing only if Bar Plot was generated for the input
             if len(bar_plot) == 0:
@@ -207,7 +207,7 @@ def getGibbsImages(logger, taskId, samples_data):
             bestCluster = pd.read_table(tab_files[0])
             bestCluster = bestCluster[bestCluster.columns].sum(axis=1).idxmax()
 
-            clusters = [[os.path.basename(x), "Number of peptides in core could not be calculated", "Allele not predicted", "Score not calculated", "Url of reference motif"] for x in sorted(glob.glob(f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate[:-4]}/*/logos/gibbs_logos_*of{bestCluster}*-001.png'))]
+            clusters = [[x[len('app/static/'):], "Number of peptides in core could not be calculated", "Allele not predicted", "Score not calculated", "Url of reference motif"] for x in sorted(glob.glob(f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate[:-4]}/*/logos/gibbs_logos_*of{bestCluster}*-001.png'))]
 
             # Finding the number of records used for the cluster
             findNumberOfPeptidesInCore(clusters, taskId, sample, replicate)
@@ -229,17 +229,13 @@ def findNumberOfPeptidesInCore(clusters, taskId, sample, replicate):
         cluster_attempt = os.path.basename(cluster[0]).split("_")[2].split("-")[0]
 
         try:
-            path_for_core = f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate[:-4]}/cores/*{cluster_attempt}*'
+            path_for_core = f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate[:-4]}/*/cores/*{cluster_attempt}*'
             print(f'findNumberOfPeptidesInCore : Searching for Core at={path_for_core}')
 
-            available_cores = [os.path.basename(x) for x in glob.glob(path_for_core)]
-            print(f'Available cores={available_cores}')
+            core_files = glob.glob(path_for_core)
+            print(f'Available cores={core_files}')
 
-            core = available_cores[0]
-            num_peptides = pd.read_table(
-                f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate[:-4]}/cores/{core}', 
-                header=None
-            ).shape[0]
+            num_peptides = pd.read_table(core_files[0], header=None).shape[0]
 
             cluster[1] = num_peptides  # Update peptide count
             cluster.append(cluster_attempt)  # Append cluster_attempt so next method can use it
