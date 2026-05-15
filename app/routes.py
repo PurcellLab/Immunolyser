@@ -1772,39 +1772,47 @@ def export_report(taskId):
                         method_to_name[method_key] = tool_name
                     break
 
-            for method_key, tool_name in method_to_name.items():
+            def _read_binder_csv(fpath, use_value_col=True):
+                """Return list of {sequence, value} dicts from a binder CSV."""
+                binders = []
+                try:
+                    df = pd.read_csv(os.path.join('app', fpath))
+                    df = df[df['Binding Level'].notna()]
+                    seq_col = 'Peptide' if 'Peptide' in df.columns else (
+                        'StrippedPeptide' if 'StrippedPeptide' in df.columns else df.columns[0])
+                    if use_value_col:
+                        binding_col_idx = df.columns.get_loc('Binding Level')
+                        val_col = df.columns[binding_col_idx - 1]
+                        for seq, val in zip(df[seq_col], df[val_col]):
+                            binders.append({'sequence': str(seq), 'value': float(val)})
+                    else:
+                        for seq in df[seq_col]:
+                            binders.append({'sequence': str(seq), 'value': 1.0})
+                except Exception:
+                    logger.exception(f"export: failed reading binder file {fpath}")
+                return binders
+
+            def _build_res(method_key_or_str, use_value_col=True):
                 res = []
                 for sample, rep_list in samples_for_allele.items():
-                    binder_files = []
+                    all_binders = []
                     for rep in rep_list:
                         try:
-                            path = predicted_binders[sample][allele_raw][method_key][rep]
-                            binder_files.append(path)
+                            path = predicted_binders[sample][allele_raw][method_key_or_str][rep]
+                            all_binders.extend(_read_binder_csv(path, use_value_col))
                         except KeyError:
                             continue
-
-                    binders = []
-                    for fpath in binder_files:
-                        try:
-                            df = pd.read_csv(os.path.join('app', fpath))
-                            df = df[df['Binding Level'].notna()]
-                            if 'Peptide' in df.columns:
-                                seq_col = 'Peptide'
-                            elif 'StrippedPeptide' in df.columns:
-                                seq_col = 'StrippedPeptide'
-                            else:
-                                seq_col = df.columns[0]
-                            binding_col_idx = df.columns.get_loc('Binding Level')
-                            val_col = df.columns[binding_col_idx - 1]
-                            for seq, val in zip(df[seq_col], df[val_col]):
-                                binders.append({'sequence': str(seq), 'value': float(val)})
-                        except Exception:
-                            logger.exception(f"export: failed reading binder file {fpath}")
                     seen = {}
-                    for b in binders:
+                    for b in all_binders:
                         seen[b['sequence']] = b
                     res.append({'name': sample, 'elems': list(seen.values())})
-                binders_data[allele_raw][tool_name] = res
+                return res
+
+            for method_key, tool_name in method_to_name.items():
+                binders_data[allele_raw][tool_name] = _build_res(method_key)
+
+            # Majority voted (tool key '' matches dropdown value="" in template)
+            binders_data[allele_raw][''] = _build_res('Majority_Voted', use_value_col=False)
 
     # --- Build CSV download map: app-relative path → data URI ---
     csv_map = {}

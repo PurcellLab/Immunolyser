@@ -270,6 +270,10 @@
 
     // ---- Binders UpSet (pre-computed data, no server call) ----
     function renderBindersUpset(allele, tool, renderId) {
+        // Always hide violin before rendering so stale plots don't persist
+        var violinDivEarly = document.getElementById(allele + '_violin');
+        if (violinDivEarly) violinDivEarly.style.display = 'none';
+
         var key = allele;
         if (!BINDERS_DATA[key] || !BINDERS_DATA[key][tool]) {
             document.getElementById(renderId).innerHTML = '<p class="text-muted">No data available for this allele/tool combination.</p>';
