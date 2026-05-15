@@ -275,11 +275,14 @@
         if (violinDivEarly) violinDivEarly.style.display = 'none';
 
         var key = allele;
-        if (!BINDERS_DATA[key] || !BINDERS_DATA[key][tool]) {
+        var toolData = BINDERS_DATA[key] && BINDERS_DATA[key][tool];
+        // Treat absent or all-empty data the same way
+        var hasElems = toolData && toolData.some(function(s) { return s.elems && s.elems.length > 0; });
+        if (!hasElems) {
             document.getElementById(renderId).innerHTML = '<p class="text-muted">No data available for this allele/tool combination.</p>';
             return;
         }
-        var respData = BINDERS_DATA[key][tool];
+        var respData = toolData;
 
         const seqMap = {};
         respData.forEach(sample => {
@@ -295,7 +298,6 @@
 
         const props = {
             sets: sets,
-            combinations: combinations,
             width: 1100, height: 500,
             selection: null,
             setName: '',
@@ -305,28 +307,33 @@
         props.onHover = (set) => { props.selection = set; UpSetJS.render(document.getElementById(renderId), props); };
         UpSetJS.render(document.getElementById(renderId), props);
 
-        // Violin plot
+        // Violin plot — only for specific tools (not majority voted)
+        // Look values up from seqMap rather than combo.elems because UpSetJS may not
+        // preserve custom fields on elements returned from extractCombinations.
         if (tool && tool.trim() !== '') {
             const sortedCombos = [...combinations].sort((a, b) => b.elems.length - a.elems.length);
             let traces = [];
             sortedCombos.forEach(combo => {
                 let x = [], y = [], hoverText = [];
                 combo.elems.forEach(p => {
-                    Object.values(p.values).forEach(v => {
-                        x.push(combo.sets.size === 1 ? combo.name + ' Only' : combo.name);
+                    var seqData = seqMap[p.name];
+                    if (!seqData) return;
+                    Object.values(seqData.values).forEach(v => {
+                        x.push(combo.name);
                         y.push(v);
                         hoverText.push(p.name);
                     });
                 });
                 if (y.length > 0) {
-                    traces.push({ type: 'violin', x, y, name: x[0], box: { visible: true }, points: 'all', meanline: { visible: true }, hovertext: hoverText, hoverinfo: 'text+y' });
+                    traces.push({ type: 'violin', x, y, name: combo.name, box: { visible: true }, points: 'all', meanline: { visible: true }, hovertext: hoverText, hoverinfo: 'text+y' });
                 }
             });
             const violinDiv = document.getElementById(allele + '_violin');
             const violinPlotDiv = document.getElementById(allele + '_violin_plot');
             if (traces.length > 0 && violinDiv && violinPlotDiv) {
-                Plotly.newPlot(violinPlotDiv, traces, { title: 'Binder Violin Plot', yaxis: { title: 'Binding Value', automargin: true }, xaxis: { title: 'Set / Overlap', automargin: true, tickangle: 45 }, margin: { b: 150, l: 50, r: 50, t: 80 }, width: 1100, height: 500 }, { responsive: true });
+                // Show div before plotting so Plotly gets correct container dimensions
                 violinDiv.style.display = 'block';
+                Plotly.newPlot(violinPlotDiv, traces, { title: 'Binder Violin Plot', yaxis: { title: 'Binding Value', automargin: true }, xaxis: { title: 'Set / Overlap', automargin: true, tickangle: 45 }, margin: { b: 150, l: 50, r: 50, t: 80 }, width: 1100, height: 500 }, { responsive: true });
             }
         }
     }

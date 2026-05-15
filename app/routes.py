@@ -1812,7 +1812,10 @@ def export_report(taskId):
                 binders_data[allele_raw][tool_name] = _build_res(method_key)
 
             # Majority voted (tool key '' matches dropdown value="" in template)
-            binders_data[allele_raw][''] = _build_res('Majority_Voted', use_value_col=False)
+            # Only add if files actually exist; an empty key causes an empty UpSet with NaN errors
+            mv_res = _build_res('Majority_Voted', use_value_col=False)
+            if any(len(r['elems']) > 0 for r in mv_res):
+                binders_data[allele_raw][''] = mv_res
 
     # --- Build CSV download map: app-relative path → data URI ---
     csv_map = {}
