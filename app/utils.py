@@ -321,11 +321,13 @@ def generateBindingPredictions(taskId, alleles_unformatted, method, ALLELE_DICTI
                             # Check if the allele is compatible with the current tool
                             if compatibility_matrix.at[method.full_name, allele] == 'Yes':  # or 'No', depending on your matrix values
                                 # Run the command for compatible alleles
+                                mixmhc_outdir = f'{project_root}/app/static/images/{taskId}/{sample}/MixMHCpred/{replicate[:-13]}/{allele.replace(":", "_")}'
+                                os.makedirs(mixmhc_outdir, exist_ok=True)
                                 call(
                                     [
                                         f'{project_root}/app/tools/MixMHCpred/MixMHCpred',
                                         '-i', f'{data_mount}/{taskId}/{sample}/{replicate}',
-                                        '-o', f'{project_root}/app/static/images/{taskId}/{sample}/MixMHCpred/{replicate[:-13]}/{allele.replace(":", "_")}/{replicate}',
+                                        '-o', f'{mixmhc_outdir}/{replicate}',
                                         '-a', get_allele_name_tool_specific(allele, 'mixMHCpred 3.0', MHC_Class.One, ALLELE_DICTIONARY)
                                     ]
                                 )
@@ -361,8 +363,8 @@ def generateBindingPredictions(taskId, alleles_unformatted, method, ALLELE_DICTI
                                 )
                                 
                                 # Save the prediction result
-                                # Define result path
                                 result_path = f'{project_root}/app/static/images/{taskId}/{sample}/{Class_One_Predictors.MHCflurry.short_name}/{replicate[:-13]}/{allele.replace(":", "_")}/{replicate}'
+                                os.makedirs(os.path.dirname(result_path), exist_ok=True)
                                 mhc_flurry_prediction_result.to_csv(result_path, index=False)
 
                 elif replicate[-13:] == '12to20mer.txt':
@@ -371,16 +373,16 @@ def generateBindingPredictions(taskId, alleles_unformatted, method, ALLELE_DICTI
                         for allele in alleles_unformatted.split(','):
                             # Check if the allele is compatible with MixMHC2pred
                             if compatibility_matrix.at[Class_Two_Predictors.MixMHC2pred.full_name, allele] == 'Yes':  # or 'No', depending on your matrix values
-                                # Prepare the command to run MixMHC2pred for compatible alleles
                                 # Run MixMHC2pred-2.0 command
+                                mixmhc2_outdir = f'{project_root}/app/static/images/{taskId}/{sample}/MixMHC2pred/{replicate[:-14]}/{allele.replace(":", "_")}'
+                                os.makedirs(mixmhc2_outdir, exist_ok=True)
                                 command = [
                                     f'{project_root}/app/tools/MixMHC2pred-2.0/MixMHC2pred_unix',
                                     '-i', f'{data_mount}/{taskId}/{sample}/{replicate}',
-                                    '-o', f'{project_root}/app/static/images/{taskId}/{sample}/MixMHC2pred/{replicate[:-14]}/{allele.replace(":", "_")}/{replicate}',
+                                    '-o', f'{mixmhc2_outdir}/{replicate}',
                                     '-a', get_allele_name_tool_specific(allele, 'MixMHC2pred-2.0', MHC_Class.Two, ALLELE_DICTIONARY),
                                     '--no_context'
                                 ]
-                                # Run the command for the compatible allele
                                 call(command)
 
                     # Check if the method (prediction tool) is 'NetMHCpanII' and process accordingly
