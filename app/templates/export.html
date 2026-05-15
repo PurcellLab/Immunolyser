@@ -83,11 +83,11 @@
                 {% for bar_plot, clusters in gibbs.items() %}
                 <div class="your-class">
                     <div class="image-container">
-                        <img src="{{ img_src('images/{}/{}/gibbscluster/{}/images/{}'.format(taskId, sample, replicate, bar_plot)) }}" alt="KLD bar chart">
+                        <img src="{{ img_src(bar_plot) }}" alt="KLD bar chart">
                     </div>
                     {% for cluster in clusters %}
                     <div class="image-container">
-                        <img src="{{ img_src('images/{}/{}/gibbscluster/{}/logos/{}'.format(taskId, sample, replicate, cluster[0])) }}"
+                        <img src="{{ img_src(cluster[0]) }}"
                              alt="" title="Sample size: {{ cluster[1] }}" style="width:100%;">
                         {% if bindingImages %}
                         <p style="text-align:center; font-size:0.85em;">
