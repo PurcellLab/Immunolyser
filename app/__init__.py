@@ -1,5 +1,4 @@
 from flask import Flask, render_template
-from flask_restplus import Api
 from config import Config
 from celery import Celery
 from celery.schedules import crontab
@@ -20,19 +19,15 @@ def make_celery(app):
     celery.Task = ContextTask
     return celery
 
-api = Api()
-
 app = Flask(__name__)
 
 @app.route("/")
 def index():
     return render_template("index.html", index=True)
-    
+
 app.config.from_object(Config)
 
 celery = make_celery(app)
-
-api.init_app(app)
 
 from app import routes
 
