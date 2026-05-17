@@ -1777,6 +1777,14 @@ def export_report(taskId):
                 binders = []
                 try:
                     df = pd.read_csv(os.path.join('app', fpath))
+                    # Majority Voted CSVs have no 'Binding Level' column — the per-tool
+                    # columns were renamed to {tool}_Binding Level during the merge.
+                    # Filter to actual majority-voted binders and return with value=1.
+                    if 'Is Majority Voted Binder' in df.columns:
+                        df = df[df['Is Majority Voted Binder'] == 'Y'].drop_duplicates(subset='StrippedPeptide')
+                        for seq in df['StrippedPeptide'].dropna():
+                            binders.append({'sequence': str(seq), 'value': 1.0})
+                        return binders
                     df = df[df['Binding Level'].notna()]
                     seq_col = 'Peptide' if 'Peptide' in df.columns else (
                         'StrippedPeptide' if 'StrippedPeptide' in df.columns else df.columns[0])
@@ -1877,7 +1885,7 @@ def export_report(taskId):
         csv_map=csv_map,
         overlap_upset_data_json=json.dumps(overlap_upset_data),
         binders_data_json=json.dumps(binders_data),
-        plotly_js=open(os.path.join(project_root, 'app', 'static', 'vendor', 'plotly-basic.min.js')).read(),
+        plotly_js=open(os.path.join(project_root, 'app', 'static', 'vendor', 'plotly-cartesian.min.js')).read(),
         upsetjs_js=open(os.path.join(project_root, 'app', 'static', 'vendor', 'upsetjs.min.js')).read(),
         bootstrap_css=open(os.path.join(project_root, 'app', 'static', 'vendor', 'bootstrap.min.css')).read(),
     )
