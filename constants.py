@@ -52,5 +52,5 @@ class MHC_Class:
     One = "I"
     Two = "II"
 
-APP_VERSION = "2.1.0"
+APP_VERSION = "2.2.0"
 APP_VERSION_DATE = "May 2026"

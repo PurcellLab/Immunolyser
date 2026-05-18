@@ -62,14 +62,42 @@
                 <div id="releaseNotes" class="accordion mb-3">
 
                     <div class="card">
-                        <div class="card-header p-0" id="rn-2-1-0">
+                        <div class="card-header p-0" id="rn-2-2-0">
                             <button class="btn btn-link btn-block text-left px-3 py-2" type="button"
-                                    data-toggle="collapse" data-target="#collapse-2-1-0" aria-expanded="true">
-                                <strong>v2.1.0</strong> <small class="text-muted ml-2">May 2026</small>
+                                    data-toggle="collapse" data-target="#collapse-2-2-0" aria-expanded="true">
+                                <strong>v2.2.0</strong> <small class="text-muted ml-2">May 2026</small>
                                 <span class="badge badge-success ml-2">Latest</span>
                             </button>
                         </div>
-                        <div id="collapse-2-1-0" class="collapse show" aria-labelledby="rn-2-1-0" data-parent="#releaseNotes">
+                        <div id="collapse-2-2-0" class="collapse show" aria-labelledby="rn-2-2-0" data-parent="#releaseNotes">
+                            <div class="card-body">
+                                <p class="mb-1"><strong>Security &amp; infrastructure</strong></p>
+                                <ul>
+                                    <li>Server rebuilt from scratch with security hardening applied throughout. All dependencies updated to current stable versions.</li>
+                                    <li>Application now runs under a process manager (gunicorn + systemd) for improved reliability and automatic recovery on failure.</li>
+                                </ul>
+                                <p class="mb-1"><strong>New features</strong></p>
+                                <ul>
+                                    <li><strong>Offline report download</strong> — a fully self-contained HTML report can now be downloaded from any completed analysis. The report embeds all plots, sequence logos, Gibbs cluster images, and binder tables and can be viewed without an internet connection.</li>
+                                    <li><strong>Data retention policy</strong> — job data is retained for 30 days. You will receive an email reminder at day 25. Please download any results you need before the expiry date.</li>
+                                </ul>
+                                <p class="mb-1"><strong>Coming soon</strong></p>
+                                <ul>
+                                    <li>Improved job status page with real-time progress updates.</li>
+                                    <li>Expanded allele coverage for additional species.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header p-0" id="rn-2-1-0">
+                            <button class="btn btn-link btn-block text-left px-3 py-2 collapsed" type="button"
+                                    data-toggle="collapse" data-target="#collapse-2-1-0" aria-expanded="false">
+                                <strong>v2.1.0</strong> <small class="text-muted ml-2">May 2026</small>
+                            </button>
+                        </div>
+                        <div id="collapse-2-1-0" class="collapse" aria-labelledby="rn-2-1-0" data-parent="#releaseNotes">
                             <div class="card-body">
                                 <p class="mb-1"><strong>Bug fixes</strong></p>
                                 <ul>
@@ -77,12 +105,6 @@
                                     <li>Fixed duplicate email notifications being sent for the same completed job.</li>
                                     <li>Fixed a crash when a job was submitted without any alleles selected.</li>
                                     <li>Upgraded netMHCpan to 4.2c and netMHCIIpan to 4.3j.</li>
-                                </ul>
-                                <p class="mb-1"><strong>Coming soon</strong></p>
-                                <ul>
-                                    <li>Improved job status page with real-time progress updates.</li>
-                                    <li>Expanded allele coverage for additional species.</li>
-                                    <li>Downloadable summary report (PDF).</li>
                                 </ul>
                             </div>
                         </div>
