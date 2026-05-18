@@ -882,7 +882,9 @@ def runHLAClust(taskId, data, species=None, use_mhc_tp_full_DB=None, logger=None
                             path = os.path.join(project_root, 'app', 'static', 'images', taskId, sample, 'hla_clust_output', replicate[:-4])    
 
                             # Running the tool for every replicate
-                            input_file = os.path.join(project_root, 'app', 'static', 'images', taskId, sample, 'gibbscluster', replicate[:-4])
+                            gibbs_base = os.path.join(project_root, 'app', 'static', 'images', taskId, sample, 'gibbscluster', replicate[:-4])
+                            gibbs_subdirs = sorted([d for d in os.listdir(gibbs_base) if os.path.isdir(os.path.join(gibbs_base, d))])
+                            input_file = os.path.join(gibbs_base, gibbs_subdirs[0]) if gibbs_subdirs else gibbs_base
                             ref_file = os.path.join(project_root, 'app', 'tools', 'HLA-PepClust', 'data', 'ref_data')
                             output_dir = path
 
