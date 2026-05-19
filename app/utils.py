@@ -361,6 +361,8 @@ def generateBindingPredictions(taskId, alleles_unformatted, method, ALLELE_DICTI
     compatibility_matrix = pd.read_csv(compatibility_matrix_path, index_col=0)
 
     for sample in os.listdir('{}/{}'.format(data_mount,taskId)):
+        if not os.path.isdir(os.path.join(data_mount, taskId, sample)):
+            continue
         for replicate in os.listdir('{}/{}/{}'.format(data_mount,taskId,sample)):
 
             # Loading data in dataframe for the use of predictors
@@ -497,6 +499,8 @@ def saveBindersData(taskId, alleles, method, mhcclass):
     print('Number of pre-processed peptides from control group:', len(control_peptides))
 
     for sample in os.listdir('{}/{}'.format(data_mount,taskId)):
+        if not os.path.isdir(os.path.join(data_mount, taskId, sample)):
+            continue
         for replicate in os.listdir('{}/{}/{}'.format(data_mount,taskId,sample)):
             if sample != 'Control' and (replicate[-12:] == '8to14mer.txt' or replicate[-13:]=='12to20mer.txt'):
                 print(f"Entering IF: Processing sample={sample}, replicate={replicate}")
