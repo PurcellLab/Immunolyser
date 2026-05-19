@@ -1,6 +1,13 @@
 app/tools
-app/static/images/*
+app/static/images
+.env
 app/__pycache__/*
 __pycache__/
 immunolyser-data/*
 lenv/*
+.vscode/launch.json
+test.py
+data_files/*
+data_files_2/*
+tools/*
+test.ipynb

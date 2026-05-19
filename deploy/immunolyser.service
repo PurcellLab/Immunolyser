@@ -1,0 +1,13 @@
+[Unit]
+Description=Immunolyser Flask App
+After=network.target redis.service
+
+[Service]
+User=ubuntu
+WorkingDirectory=/var/www/Immunolyser
+EnvironmentFile=/var/www/Immunolyser/.env
+ExecStart=/var/www/Immunolyser/lenv/bin/gunicorn --workers 2 --bind 0.0.0.0:5000 --timeout 120 firstdemo:app
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

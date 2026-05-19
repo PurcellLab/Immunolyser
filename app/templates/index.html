@@ -4,15 +4,27 @@
 <br>
     <div class="row">
         <div class="col-md-12 text-center">
-            <h1>Welcome to Immunolyser 1.0</h1>
-
-            <br>
+            <h1>Welcome to Immunolyser 2.0</h1>
 
             <div style="text-align:justify;">
+                
+               <div style="display: flex; justify-content: center; align-items: center; margin-top: 50px;">
+                    <video width="800" controls>
+                        <source src="{{ url_for('static', filename='temp/immunolyser2_walkthrough_14102025.mp4') }}" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                </div>
 
                 <br>
-                <p>Immunolyser is an automated web-based tool developed for immunologists to analyse immunopeptidomics data in a seamless pipeline based on the integration of multiple computational tools for peptide analysis. The pipeline generates a comprehensive report summarising the sequence conservation, clustering of similar peptides in groups, and prediction of binding affinity to various MHC allotypes based on the uploaded peptide data. The pipeline has a user-friendly interface available online, with no requirement of programming experience.
-
+                <p>Immunolyser 2.0 is an automated web-based tool developed for immunologists to analyse immunopeptidomics data in a seamless pipeline based on the integration of multiple computational tools for peptide analysis. The pipeline generates a comprehensive report summarising the sequence conservation, clustering of similar peptides in groups, and prediction of binding affinity to various MHC allotypes based on the uploaded peptide data. The pipeline has a user-friendly interface available online and a locally executable version, with no requirement of programming experience. Compared to its 1.0 version, Immunolyser 2.0 has the following updates:</p>
+            
+                <ul>
+                    <li>Expanded functionality allowing analysis of murine immunopeptidomic datasets. </li>
+                    <li>A novel algorithm, MHC-TP, to predict the MHC class I haplotype <i>in silico</i> where genetic MHC typing is unavailable, ethically restricted, or cost-prohibitive for large-scale datasets. </li>
+                    <li>An offline and operation system-independent version of Immunolyser to ensure data privacy and enable the analysis of datasets of any size.</li>
+                    <li>Upgraded Pepscanner module with an interactive visualisation of peptide alignment to source proteins and the option for users to upload a background proteome for source protein analysis. </li>
+                </ul>
+                
                 <br>
                 
                 <p>
@@ -20,10 +32,15 @@
                 </p>
 
                 <p>
-                    If you find Immunoloyser helpful, please consider citing us in your study:<br>
-                    <i>Prithvi Raj Munday, Joshua Fehring, Jerico Revote, Kirti Pandey, Mohammad Shahbazy, Katherine E Scull, Sri H. Ramarathinam, Pouya Faridi, Nathan P. Croft, Asolina Braun, Chen Li, and Anthony W. Purcell. Immunolyser: a web-based computational pipeline for analysing and mining immunopeptidomic data. Computational and Structural Biotechnology Journal, 2023.</i>
+                    If you find Immunolyser 2.0 helpful, please consider citing us in your study:<br>
+                    <i>
+                        Prithvi Raj Munday, Sanjay S.G. Krishna, Joshua Fehring, Nathan P. Croft, Anthony W. Purcell, Chen Li, and Asolina Braun. 
+                        <b>Immunolyser 2.0: An advanced computational pipeline for comprehensive analysis of immunopeptidomic data.</b> 
+                        <em>Computational and Structural Biotechnology Journal</em>, 2025, 
+                        <a href="https://doi.org/10.1016/j.csbj.2025.10.007" target="_blank">https://doi.org/10.1016/j.csbj.2025.10.007</a>.
+                    </i>
                 </p>
-                
+
                 <H4>How to use Immunolyser?</H4>
                 <p>
                     Use the <a href="{{ url_for('initialiser') }}">Initialiser</a> module to submit a job. Following input will be required to run the analysis.
@@ -32,15 +49,88 @@
                         <li><b>Sample file(s)</b>: The sample file needed is a csv file and should have a 'Peptide' column. 'Length' and 'Accession' columns (optional), or other additional columns can be present but will not interfere with analysis. Multiple samples can be uploaded and for every sample, multiple replicate files can be uploaded by selecting multiple files.</li>
                         <li><b>Control file(s)</b> (optional): The control file is a csv file and should have a 'Peptide' column. Peptides present in this file are labelled as 'control' in downloadable results files. Users can also upload multiple control files in case control datasets are present across different files.</li>
                         <li><b>Alleles of interest</b> (optional): MHC-I/II alleles of interest can be chosen for peptide-MHC binding predictions.</li>
-                        <li><font color="red"><b>Running time</b>: Once submitted, please wait patiently as Immunolyser will take a while to finish processing and analysing the submitted data. Please do not refresh or close the page.</font></li>
                     </ul>
                 </p>
                 
                 <H4>Demo and example input</H4>
 
                 <p>
-                    A demo report has been generated to demonstrate the organisation and features of analysis results. It can be accessed by clicking on the <a href="{{ url_for('demo') }}">Demo</a> tab. To test the pipeline end-to-end, the example files (exported from PEAKs) can be downloaded from <a href="/static/temp/Study by Pandey et al Dateset.zip" target="_blank"> here</a> and uploaded in the demo <a href="{{ url_for('initialiser') }}">initialiser</a> module to run the analysis. The dataset provided and used to generate the demo report are from the recent immunopeptidomic study by Pandey et al. In addition, we attached <a href="/static/temp/demo data from multiple softwares.zip" target="_blank"> example input files</a> exported from other search engines, including Skyline, ProteinPilot, Spectronaut, and DIA-NN. 
+                    A demo report has been generated to demonstrate the organisation and features of analysis results. It can be accessed by clicking on the <a href="{{ url_for('demo') }}">Demo</a> tab. To test the pipeline end-to-end, the example files (exported from PEAKs) can be downloaded from <a href="/static/temp/Study by Son, Eric T., et al.zip" target="_blank"> here</a> and uploaded in the demo <a href="{{ url_for('initialiser') }}">initialiser</a> module to run the analysis. The dataset provided and used to generate the demo report are from the recent immunopeptidomic study by <a href="https://www.jci.org/articles/view/146771" target="_blank">Son, Eric T., et al</a>. In addition, we attached <a href="/static/temp/demo data from multiple softwares.zip" target="_blank"> example input files</a> exported from other search engines, including Skyline, ProteinPilot, Spectronaut, and DIA-NN. 
                 </p>
+
+                <H4 id="whats-new">What's New</H4>
+                <div id="releaseNotes" class="accordion mb-3">
+
+                    <div class="card">
+                        <div class="card-header p-0" id="rn-2-2-0">
+                            <button class="btn btn-link btn-block text-left px-3 py-2" type="button"
+                                    data-toggle="collapse" data-target="#collapse-2-2-0" aria-expanded="true">
+                                <strong>v2.2.0</strong> <small class="text-muted ml-2">May 2026</small>
+                                <span class="badge badge-success ml-2">Latest</span>
+                            </button>
+                        </div>
+                        <div id="collapse-2-2-0" class="collapse show" aria-labelledby="rn-2-2-0" data-parent="#releaseNotes">
+                            <div class="card-body">
+                                <p class="mb-1"><strong>Security &amp; infrastructure</strong></p>
+                                <ul>
+                                    <li>Server rebuilt from scratch with security hardening applied throughout. All dependencies updated to current stable versions.</li>
+                                    <li>Application now runs under a process manager (gunicorn + systemd) for improved reliability and automatic recovery on failure.</li>
+                                </ul>
+                                <p class="mb-1"><strong>New features</strong></p>
+                                <ul>
+                                    <li><strong>Offline report download</strong> — a fully self-contained HTML report can now be downloaded from any completed analysis. The report embeds all plots, sequence logos, Gibbs cluster images, and binder tables and can be viewed without an internet connection.</li>
+                                    <li><strong>Data retention policy</strong> — job data is retained for 30 days. You will receive an email reminder at day 25. Please download any results you need before the expiry date.</li>
+                                </ul>
+                                <p class="mb-1"><strong>In progress</strong></p>
+                                <ul>
+                                    <li>Updating MHC-TP for MHC Class II support.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header p-0" id="rn-2-1-0">
+                            <button class="btn btn-link btn-block text-left px-3 py-2 collapsed" type="button"
+                                    data-toggle="collapse" data-target="#collapse-2-1-0" aria-expanded="false">
+                                <strong>v2.1.0</strong> <small class="text-muted ml-2">May 2026</small>
+                            </button>
+                        </div>
+                        <div id="collapse-2-1-0" class="collapse" aria-labelledby="rn-2-1-0" data-parent="#releaseNotes">
+                            <div class="card-body">
+                                <p class="mb-1"><strong>Bug fixes</strong></p>
+                                <ul>
+                                    <li>Fixed jobs getting stuck in the queue when a large number of alleles were selected. Jobs now fail fast with a clear error rather than occupying a worker indefinitely.</li>
+                                    <li>Fixed duplicate email notifications being sent for the same completed job.</li>
+                                    <li>Fixed a crash when a job was submitted without any alleles selected.</li>
+                                    <li>Upgraded netMHCpan to 4.2c and netMHCIIpan to 4.3j.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header p-0" id="rn-2-0-0">
+                            <button class="btn btn-link btn-block text-left px-3 py-2 collapsed" type="button"
+                                    data-toggle="collapse" data-target="#collapse-2-0-0" aria-expanded="false">
+                                <strong>v2.0.0</strong> <small class="text-muted ml-2">October 2025</small>
+                            </button>
+                        </div>
+                        <div id="collapse-2-0-0" class="collapse" aria-labelledby="rn-2-0-0" data-parent="#releaseNotes">
+                            <div class="card-body">
+                                <ul>
+                                    <li>Murine immunopeptidomic dataset support.</li>
+                                    <li>MHC-TP: <i>in silico</i> MHC class I haplotype prediction.</li>
+                                    <li>Offline Docker-based version for large or private datasets.</li>
+                                    <li>Upgraded Pepscanner with interactive protein alignment visualisation.</li>
+                                    <li>GeoIP-based usage analytics.</li>
+                                    <li>Email notifications when jobs complete.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
 
                 <H4>References</H4>
                 <p>
@@ -49,16 +139,17 @@
                     <ol>
                         <li><b>Seq2Logo 2.0</b>: A method for construction and visualization of amino acid binding motifs and sequence profiles including sequence weighting, pseudo counts and two-sided representation of amino acid enrichment and depletion. <i>Martin Christen Frolund Thomsen; Morten Nielsen, Nucleic Acids Research 2012; 40 (W1): W281-W287</i>.</li>
                         <li><b>GibbsCluster 2.0</b>: Unsupervised clustering and alignment of peptide sequences. <i>Andreatta M, Alvarez B, Nielsen M, Nucleic Acids Research (2017) doi: 10.1093/nar/gkx248</i>.</li>
-                        <li><b>NetMHCpan 4.1</b>: Improved predictions of MHC antigen presentation by concurrent motif deconvolution and integration of MS MHC eluted ligand data. <i>Birkir Reynisson, Bruno Alvarez, Sinu Paul, Bjoern Peters and Morten Nielsen, Nucleic Acids Research, May 2020, https://doi.org/10.1093/nar/gkaa379</i>.</li>
-                        <li><b>Anthem</b>: a user customised tool for fast and accurate prediction of binding between peptides and HLA class I molecules. <i>Mei S, Li F, Xiang D, et al. Brief Bioinform 2021. doi:10.1093/bib/bbaa415</i>.</li>
-                        <li><b>MixMHCpred 2.1</b>: <i>Bassani-Sternberg M et al. Deciphering HLA motifs across HLA peptidomes improves neo-antigen predictions and identifies allostery regulating HLA specificity, PLoS Comp Bio (2017) </i> and <i>Gfeller et al. The length distribution and multiple specificity of naturally presented HLA-I ligands, J Immunol (2018)</i>.</li>
+                        <li><b>NetMHCpan 4.2</b>: Improved prediction of CD8+ epitopes by use of transfer learning and structural features. <i>Jonas Birkelund Nilsson, Jason Greenbaum, Bjoern Peters, and Morten Nielsen, Frontiers in Immunology, August 2025, https://doi.org/10.3389/fimmu.2025.1616113</i>.</li>
+                        <li><b>MHCflurry 2.0</b>: Improved Pan-Allele Prediction of MHC Class I-Presented Peptides by Incorporating Antigen Processing <i>T. O'Donnell, A. Rubinsteyn, U. Laserson, Cell Systems 2020. doi.org/10.1016/j.cels.2020.06.010</i>.</li>
+                        <li><b>MixMHCpred 3.0</b>: <i>Tadros et al. redicting MHC-I ligands across alleles and species: How far can we go?, BioRxiv (2024) </i>.</li>
                         <li><b>MixMHC2pred</b>: <i> Racle J, Michaux J, Rockinger GA et al. Robust prediction of HLA class II epitopes by deep motif deconvolution of immunopeptidomes, Nat Biotechnol 2019;37:1283-1286</i>.</li>
+                        <li><b>NetMHCIIpan - 4.3</b>: <i>Nilsson JB, Kaabinejadian S, Yari H, Kester MGD, van Balen P, Hildebrand WH, Nielsen M. Accurate prediction of HLA class II antigen presentation across all loci using tailored data acquisition and refined machine learning, Science Advances, 2023; 24 Nov. https://www.science.org/doi/10.1126/sciadv.adj6367</i>.</li>
                     </ol>
                 </p>
 
                 <H4>Feedback</H4>
                     <p>
-                        Your feedback will help us to improve. Please share your feedback at <a href="mailto:Chen.Li@monash.edu">Chen.Li@monash.edu</a>.
+                        Your feedback will help us to improve. Please send your feedback to <a href="mailto:Chen.Li@monash.edu">Chen.Li@monash.edu</a>.
                     </p>
             </div>
 
