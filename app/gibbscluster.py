@@ -43,7 +43,8 @@ if mhc_class == "I":
     # Command to run GibbsCluster for MHC Class I
     for sample in os.listdir(task_path):
         sample_path = os.path.join(task_path, sample)
-        
+        if not os.path.isdir(sample_path):
+            continue
         for replicate in os.listdir(sample_path):
             if replicate.endswith(input_file_ends_with):
                 print('Replicate file:', replicate)
@@ -92,7 +93,8 @@ elif mhc_class == "II":
     # Command to run GibbsCluster for MHC Class II
     for sample in os.listdir(task_path):
         sample_path = os.path.join(task_path, sample)
-        
+        if not os.path.isdir(sample_path):
+            continue
         for replicate in os.listdir(sample_path):
             if replicate.endswith(input_file_ends_with):
                 print('Replicate file:', replicate)

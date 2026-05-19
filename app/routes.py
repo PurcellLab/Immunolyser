@@ -1049,6 +1049,8 @@ def getOverLapPeptides():
     replicates = replicates.split(',')
 
     for sample in os.listdir('{}/{}'.format(data_mount,taskId)):
+        if not os.path.isdir(os.path.join(data_mount, taskId, sample)):
+            continue
 
         peptides = set()
 
