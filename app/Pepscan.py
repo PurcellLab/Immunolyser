@@ -60,6 +60,15 @@ class PepScan:
         #clean_frame["Peptide"] = clean_frame["Peptide"].str.replace(r'\(.*\.\d*\)', '')
         clean_frame["Peptide"] = clean_frame["Peptide"].str.replace(r'\(.{4,7}\)', '')
         clean_frame = clean_frame.dropna(subset = ["Accession"]).reset_index(drop = True)
+
+        # Calculate the initial number of rows
+        initial_count = len(clean_frame)
+        clean_frame = clean_frame[~clean_frame['Accession'].str.contains('CONTAM|DECOY', na=False)].reset_index(drop=True)
+        # Calculate the number of rows dropped
+        rows_dropped = initial_count - len(clean_frame)
+        # Print the number of rows dropped
+        print(f"Number of rows dropped where Accession had 'CONTAN' or 'DECOY' marked,: {rows_dropped}")
+
         self.peptide_frame = clean_frame
 
     def get_locs(self):
@@ -88,7 +97,7 @@ class PepScan:
                 rel_locs.append(self.protein_frame["Location"][row]/len(self.protein_frame["Sequence"][row]))
         return rel_locs
 
-    def search_proteome(self, peptide_file, proteome_file = "uniprot-proteome_UP000005640.fasta",accessionsids='accessionsids'):
+    def search_proteome(self, peptide_file, proteome_file = "uniprot-proteome_UP000005640.fasta"):
         """Searches a proteome (proteome_file) and retrieves all protein sequences referenced by protein IDs corresponding to peptides stored in a PEAKS output csv (peptide_file)
 
         Keyword Arguments:
@@ -103,9 +112,6 @@ class PepScan:
         self.clean()
         ids = []
         use_id = []
-
-        # Importing unique accession ids for reference
-        accessionids = pd.read_csv(accessionsids)['ID'].to_list()
 
         #Retrieve most confident accession for each peptide
         for all_accession in self.peptide_frame["Accession"]:
@@ -133,8 +139,18 @@ class PepScan:
         self.peptide_frame["Location"] = "No protein found"
         #Add peptide count column to proteome to keep track of peptides/protein
         proteome_frame["Peptides"] = 0
-        #join peptide and protein dataframes
-        self.protein_frame = self.peptide_frame[["ID", "Peptide"]].join(proteome_frame[["ID", "Sequence"]].set_index("ID"), on = "ID", how = "inner", lsuffix = "_pep", rsuffix = "_prot")
+        
+        # Keep only rows with valid string/int IDs
+        valid_peptide_frame = self.peptide_frame[self.peptide_frame["ID"].apply(lambda x: isinstance(x, (str, int)))]
+
+        self.protein_frame = valid_peptide_frame[["ID", "Peptide"]].join(
+            proteome_frame[["ID", "Sequence"]].set_index("ID"),
+            on="ID",
+            how="inner",
+            lsuffix="_pep",
+            rsuffix="_prot"
+        )
+
         #retrieve locations for all peptides
         self.protein_frame.reset_index(drop = True, inplace = True)
         self.protein_frame["Location"] = self.get_locs()
