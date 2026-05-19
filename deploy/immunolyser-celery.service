@@ -1,0 +1,13 @@
+[Unit]
+Description=Immunolyser Celery Worker
+After=network.target redis.service
+
+[Service]
+User=ubuntu
+WorkingDirectory=/var/www/Immunolyser
+EnvironmentFile=/var/www/Immunolyser/.env
+ExecStart=/var/www/Immunolyser/lenv/bin/celery -A app.celery worker --loglevel=info --concurrency=1
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

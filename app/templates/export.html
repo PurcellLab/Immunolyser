@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Immunolyser Report — {{ taskId }}</title>
+    <style>{{ bootstrap_css | safe }}</style>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .report-section { border: 1px solid #ddd; border-radius: 6px; padding: 20px; margin-bottom: 30px; }
+        .section-info { background: #f8f9fa; border-left: 4px solid #007bff; padding: 10px 15px; margin-bottom: 15px; }
+        .image-container { display: inline-block; margin: 5px; text-align: center; max-width: 300px; }
+        .image-container img { width: 100%; }
+        .your-class { display: flex; flex-wrap: wrap; gap: 10px; }
+        .upset { width: 100%; overflow-x: auto; }
+        .hla_clust { margin-top: 10px; }
+        .export-notice { background: #e8f4f8; border: 1px solid #bee5eb; border-radius: 4px; padding: 10px 15px; margin-bottom: 20px; font-size: 0.9em; }
+        fieldset { border: none; }
+        h3 { border-bottom: 2px solid #007bff; padding-bottom: 6px; margin-bottom: 16px; }
+    </style>
+</head>
+<body>
+
+{# Macro: look up a /static/... path in the image_map, fall back to the original URL #}
+{% macro img_src(path) %}{{ image_map.get('/static/' + path, '/static/' + path) }}{% endmacro %}
+
+<div class="container-fluid">
+
+<div class="export-notice">
+    <strong>Immunolyser Offline Report</strong> — Job ID: <code>{{ taskId }}</code><br>
+    All images and analysis data are embedded in this file. Charts require an internet connection to load the Plotly/UpSetJS libraries on first open; subsequent opens may work fully offline if your browser has cached those libraries.
+</div>
+
+<fieldset class="report-section" id="section-length">
+    <h3>Peptide Length Distribution</h3>
+    <p class="section-info"><b>ⓘ</b> Peptide length distribution of uploaded samples. Peptides labelled <code>#CONTAM</code> or <code>#DECOY</code> are filtered out. Length range: 5–30 residues.</p>
+    <div id="chart" style="width:100%; height:400px;"></div>
+    <div class="form-row" style="display:flex; justify-content:flex-end; margin-top:8px;">
+        <span>Percentage</span>
+        <div class="custom-control custom-switch" style="margin-left:10px; margin-right:5px;">
+            <input type="checkbox" class="custom-control-input" id="customSwitch1" onclick="myfunction()">
+            <label class="custom-control-label" for="customSwitch1"></label>
+        </div>
+        <span>Absolute Values</span>
+    </div>
+</fieldset>
+
+<fieldset class="report-section" id="section-overlap">
+    <h3>Peptide Overlap</h3>
+    <p class="section-info"><b>ⓘ</b> UpSet plot of peptide overlap across samples after pre-processing. For MHC class I: 8–14-mers; class II: 12–20-mers.</p>
+    <div id="overlap_render" class="upset"></div>
+</fieldset>
+
+{% if showSeqLogoSection %}
+<fieldset class="report-section" id="section-motif">
+    <h3>Peptide Consensus Binding Motif Analysis</h3>
+    <p class="section-info"><b>ⓘ</b> Seq2Logo showing consensus binding motifs after pre-processing.</p>
+    <div class="seqlogo">
+        {% for sample, replicates in seqlogos.items() %}
+            <h4>{{ sample }}</h4>
+            <div class="d-flex flex-wrap" style="gap:20px;">
+                {% for replicate in replicates %}
+                <div style="flex:1 1 300px; text-align:center;">
+                    <img src="{{ img_src('images/{}/{}/seqlogos/{}'.format(taskId, sample, replicate[0])) }}"
+                         alt="" title="Sample size: {{ replicate[1] }}" style="width:100%; max-width:300px;">
+                </div>
+                {% endfor %}
+            </div>
+        {% endfor %}
+    </div>
+</fieldset>
+{% endif %}
+
+{% if showGibbsSection %}
+<fieldset class="report-section" id="section-gibbs">
+    <h3>Peptide Sequence Clustering with Predicted MHC Allele Assignment</h3>
+    <p class="section-info"><b>ⓘ</b> Gibbs Clustering applied after removing contaminants, decoys, PTMs, and duplicates. Each logo shows the predicted source allotype and PCC value (MHC-TP).</p>
+    <div class="seqlogo">
+        {% for sample, replicates in gibbsAllData.items() %}
+            <h4>{{ sample }}</h4>
+            {% for replicate, cluster_options in replicates.items() %}
+                <div>
+                    <div class="row" style="margin-left:30px; margin-bottom:10px;">
+                        <h5>{{ replicate }}</h5>
+                        <select style="margin-left:10px;" class="col-3 custom-select custom-select-sm"
+                                onchange="updateClusterOffline('{{ sample }}','{{ replicate }}',this)">
+                            <option value="" selected>Clustering with highest KLD</option>
+                            <option value="1">One cluster</option>
+                            <option value="2">Two clusters</option>
+                            <option value="3">Three clusters</option>
+                            <option value="4">Four clusters</option>
+                            <option value="5">Five clusters</option>
+                            <option value="6">Six clusters</option>
+                        </select>
+                    </div>
+                    {% for n_key, cluster_data in cluster_options.items() %}
+                    <div id="{{ sample }}_{{ replicate }}_n{{ n_key }}"
+                         class="your-class gibbs-cluster-view"
+                         {% if n_key != '' %}style="display:none;"{% endif %}>
+                        <div class="image-container">
+                            <img src="{{ img_src(cluster_data.bar_plot) }}" alt="KLD bar chart">
+                        </div>
+                        {% for cluster in cluster_data.clusters %}
+                        <div class="image-container">
+                            <img src="{{ img_src(cluster[0]) }}" alt="" title="Sample size: {{ cluster[1] }}" style="width:100%;">
+                            {% if bindingImages %}
+                            <p style="text-align:center; font-size:0.85em;">
+                                Best match: {{ cluster[2] }}<br>
+                                PCC score: {{ cluster[3] }}
+                            </p>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endfor %}
+                </div>
+            {% endfor %}
+        {% endfor %}
+    </div>
+</fieldset>
+{% endif %}
+
+{% if bindingImages %}
+<fieldset class="report-section" id="section-mhctp">
+    <h3>MHC-TP (MHC Typing Prediction)</h3>
+    <p class="section-info"><b>ⓘ</b> Predicted MHC I alleles based on peptide clustering (MHC-TP). Note: interactive HTML result files are not included in this export.</p>
+    <div class="hla_clust">
+        {% for sample, replicates in bindingImages.items() %}
+            <h5>{{ sample }}</h5>
+            <ul>
+                {% for replicate, files in replicates.items() %}
+                    {% for file in files %}
+                    <li>{{ sample }} — {{ replicate }} — {{ file.split('/')[-2] }} — {{ file.split('/')[-1] }} <em>(open full report on server to view)</em></li>
+                    {% endfor %}
+                {% endfor %}
+            </ul>
+        {% endfor %}
+    </div>
+</fieldset>
+{% endif %}
+
+{% if predicted_binders is not none %}
+<fieldset class="report-section" id="section-binding-downloads">
+    <h3>Peptide-HLA/MHC Binding Affinity Prediction — Downloads</h3>
+    <p class="section-info"><b>ⓘ</b> Majority-voted binder CSV files for each sample and allele. Click a replicate name to download.</p>
+    {% for sample, alleles_dict in predicted_binders.items() %}
+        <h4>{{ sample }}</h4>
+        <table class="table table-bordered table-striped">
+            <thead class="thead-light"><tr><th>Allele</th><th>Majority Voted Binders</th></tr></thead>
+            <tbody>
+            {% for allele, methods in alleles_dict.items() %}
+                <tr>
+                    <td><strong>{{ allele }}</strong></td>
+                    <td>
+                        {% for replicate, fpath in methods.get('Majority_Voted', {}).items() %}
+                            <a href="{{ csv_map.get(fpath, '#') }}"
+                               download="{{ replicate }}_{{ allele }}_majority_voted_binders.csv">{{ replicate }}</a><br>
+                        {% endfor %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% endfor %}
+</fieldset>
+
+<fieldset class="report-section" id="section-binding">
+    <h3>Peptide-HLA/MHC Binding Affinity Prediction</h3>
+    <p class="section-info"><b>ⓘ</b> UpSet plot showing predicted binder overlap across samples. Select an allele and tool using the controls below.</p>
+
+    <div class="container" style="padding:0;">
+        <div class="row">
+            <div class="col-2" style="word-break:break-word; overflow-y:auto; max-height:1000px;">
+                {% for allele, samples in upsetLayout.items() %}
+                <div class="col">
+                    <div class="form-check">
+                        <input id="{{ allele }}" class="allele row form-check-input" type="radio" value=""
+                               style="margin-left:-20px;" onchange="alleleUpsetSelectOffline(this)">
+                        <label class="form-check-label">{{ allele }}</label>
+                    </div>
+                    {% for sample, replicates in samples.items() %}
+                    <div class="mb-2">
+                        <span class="d-block font-weight-bold mb-1">{{ sample }}</span>
+                        <div class="ml-3">
+                            {% for replicate in replicates %}
+                            <div class="form-check">
+                                <input class="form-check-input replicatesForUpset"
+                                       id="{{ allele }};{{ sample }};{{ replicate }}"
+                                       type="checkbox" value="" checked>
+                                <label class="form-check-label">{{ replicate }}</label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                    <br>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="col-10" style="overflow-y:auto; max-height:1000px;">
+                {% for allele in upsetLayout.keys() %}
+                <div id="{{ allele }}_upset" class="upsetPlot" hidden>
+                    <div class="row" style="margin-left:30px;">
+                        <h5>{{ allele }}</h5>
+                        <select id="{{ allele }}_dropdown_predictor" style="margin-left:10px;"
+                                class="col-3 custom-select custom-select-sm"
+                                onchange="updateUpsetOffline('{{ allele }}', this.value)">
+                            {% if hideMajorityVotedOption %}
+                                <option value="" selected>Majority voted binders</option>
+                            {% endif %}
+                            {% for tool in predictionTools %}
+                            <option value="{{ tool }}">{{ tool }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <br>
+                    <div id="{{ allele }}_render" class="upset"></div>
+                    <div id="{{ allele }}_violin" style="display:none; margin-top:20px;">
+                        <div id="{{ allele }}_violin_plot" style="width:100%; height:500px;"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</fieldset>
+{% endif %}
+
+</div><!-- /.container-fluid -->
+
+<!-- Embedded pre-computed data -->
+<script id="export-overlap-data" type="application/json">{{ overlap_upset_data_json | safe }}</script>
+<script id="export-binders-data" type="application/json">{{ binders_data_json | safe }}</script>
+
+<!-- Inlined libraries — fully offline, no CDN required -->
+<script>{{ plotly_js | safe }}</script>
+<script>{{ upsetjs_js | safe }}</script>
+
+<script>
+    // ---- Embedded data ----
+    const OVERLAP_DATA = JSON.parse(document.getElementById('export-overlap-data').textContent);
+    const BINDERS_DATA = JSON.parse(document.getElementById('export-binders-data').textContent);
+
+    // ---- Length distribution chart ----
+    var graphs  = {{ peptide_percent | safe }};
+    var graphsd = {{ peptide_density | safe }};
+    Plotly.newPlot('chart', graphs.data, graphs.layout);
+
+    function myfunction() {
+        var cb = document.getElementById('customSwitch1');
+        var fig = cb.checked ? graphsd : graphs;
+        Plotly.newPlot('chart', fig.data, fig.layout);
+    }
+
+    // ---- Overlap UpSet (pre-computed data, no server call) ----
+    function renderOverlapUpset(data) {
+        const sets = UpSetJS.asSets(data);
+        const props = {
+            sets: sets,
+            width: 1100, height: 500,
+            selection: null,
+            setName: '',
+            combinationName: 'Number of peptides',
+            combinations: { type: 'distinctIntersection', min: 1, limit: 100, order: 'cardinality' }
+        };
+        props.onHover = (set) => { props.selection = set; UpSetJS.render(document.getElementById('overlap_render'), props); };
+        UpSetJS.render(document.getElementById('overlap_render'), props);
+    }
+
+    // ---- Binders UpSet (pre-computed data, no server call) ----
+    function renderBindersUpset(allele, tool, renderId) {
+        // Always hide violin before rendering so stale plots don't persist
+        var violinDivEarly = document.getElementById(allele + '_violin');
+        if (violinDivEarly) violinDivEarly.style.display = 'none';
+
+        var key = allele;
+        var toolData = BINDERS_DATA[key] && BINDERS_DATA[key][tool];
+        // Treat absent or all-empty data the same way
+        var hasElems = toolData && toolData.some(function(s) { return s.elems && s.elems.length > 0; });
+        if (!hasElems) {
+            document.getElementById(renderId).innerHTML = '<p class="text-muted">No data available for this allele/tool combination.</p>';
+            return;
+        }
+        var respData = toolData;
+
+        const seqMap = {};
+        respData.forEach(sample => {
+            sample.elems.forEach(p => {
+                const seq = p.sequence;
+                if (!seqMap[seq]) seqMap[seq] = { name: seq, sets: [], values: {} };
+                if (!seqMap[seq].sets.includes(sample.name)) seqMap[seq].sets.push(sample.name);
+                seqMap[seq].values[sample.name] = p.value;
+            });
+        });
+        const elements = Object.values(seqMap);
+        const { sets, combinations } = UpSetJS.extractCombinations(elements);
+
+        const props = {
+            sets: sets,
+            width: 1100, height: 500,
+            selection: null,
+            setName: '',
+            combinationName: 'Number of binders',
+            combinations: { type: 'distinctIntersection', min: 1, limit: 100, order: 'cardinality' }
+        };
+        props.onHover = (set) => { props.selection = set; UpSetJS.render(document.getElementById(renderId), props); };
+        UpSetJS.render(document.getElementById(renderId), props);
+
+        // Violin plot — only for specific tools (not majority voted)
+        // Look values up from seqMap rather than combo.elems because UpSetJS may not
+        // preserve custom fields on elements returned from extractCombinations.
+        if (tool && tool.trim() !== '') {
+            const sortedCombos = [...combinations].sort((a, b) => b.elems.length - a.elems.length);
+            let traces = [];
+            sortedCombos.forEach(combo => {
+                let x = [], y = [], hoverText = [];
+                combo.elems.forEach(p => {
+                    var seqData = seqMap[p.name];
+                    if (!seqData) return;
+                    Object.values(seqData.values).forEach(v => {
+                        x.push(combo.name);
+                        y.push(v);
+                        hoverText.push(p.name);
+                    });
+                });
+                if (y.length > 0) {
+                    traces.push({ type: 'violin', x, y, name: combo.name, box: { visible: true }, points: 'all', meanline: { visible: true }, hovertext: hoverText, hoverinfo: 'text+y' });
+                }
+            });
+            const violinDiv = document.getElementById(allele + '_violin');
+            const violinPlotDiv = document.getElementById(allele + '_violin_plot');
+            if (traces.length > 0 && violinDiv && violinPlotDiv) {
+                // Show div before plotting so Plotly gets correct container dimensions
+                violinDiv.style.display = 'block';
+                Plotly.newPlot(violinPlotDiv, traces, { title: 'Binder Violin Plot', yaxis: { title: 'Binding Value', automargin: true }, xaxis: { title: 'Set / Overlap', automargin: true, tickangle: 45 }, margin: { b: 150, l: 50, r: 50, t: 80 }, width: 1100, height: 500 }, { responsive: true });
+            }
+        }
+    }
+
+    function updateClusterOffline(sample, replicate, selectElem) {
+        var n = selectElem.value;
+        var prefix = sample + '_' + replicate + '_n';
+        document.querySelectorAll('[id^="' + prefix + '"]').forEach(function(el) { el.style.display = 'none'; });
+        var target = document.getElementById(prefix + n);
+        if (target) target.style.display = '';
+    }
+
+    function alleleUpsetSelectOffline(elem) {
+        document.querySelectorAll('.allele').forEach(a => a.checked = false);
+        elem.checked = true;
+        document.querySelectorAll('.upsetPlot').forEach(u => u.hidden = true);
+        const upset = document.getElementById(elem.id + '_upset');
+        if (upset) upset.hidden = false;
+        const toolSel = document.getElementById(elem.id + '_dropdown_predictor');
+        const tool = toolSel ? toolSel.value : '';
+        renderBindersUpset(elem.id, tool, elem.id + '_render');
+    }
+
+    function updateUpsetOffline(allele, tool) {
+        renderBindersUpset(allele, tool, allele + '_render');
+    }
+
+    // ---- Initialise on load ----
+    document.addEventListener('DOMContentLoaded', function () {
+        // Overlap UpSet
+        if (OVERLAP_DATA && OVERLAP_DATA.length > 0) {
+            renderOverlapUpset(OVERLAP_DATA);
+        }
+
+        // First allele binders UpSet
+        var alleles = document.getElementsByClassName('allele');
+        if (alleles.length > 0) {
+            alleles[0].checked = true;
+            var firstAllele = alleles[0].id;
+            document.getElementById(firstAllele + '_upset').hidden = false;
+            var toolSel = document.getElementById(firstAllele + '_dropdown_predictor');
+            renderBindersUpset(firstAllele, toolSel ? toolSel.value : '', firstAllele + '_render');
+        }
+    });
+</script>
+</body>
+</html>
