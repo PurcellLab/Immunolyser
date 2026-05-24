@@ -315,7 +315,15 @@ def appendPredictedAllelesInfo(clusters, taskId, sample, replicate):
         cluster_attempt = cluster[5] if len(cluster) > 5 else os.path.basename(cluster[0]).split("_")[2].split("-")[0]
 
         try:
-            path_corr_matrix = f'app/static/images/{taskId}/{sample}/hla_clust_output/{replicate[:-4]}/clust_result/corr-data/corr_matrix.csv'
+            # clust-search output structure varies: may place files directly in
+            # output_dir/ or in output_dir/clust_result/ — use glob to handle both.
+            output_base = f'app/static/images/{taskId}/{sample}/hla_clust_output/{replicate[:-4]}'
+            corr_matches = glob.glob(f'{output_base}/**/corr_matrix.csv', recursive=True)
+            if not corr_matches:
+                print(f"No corr_matrix.csv found under {output_base}")
+                continue
+            path_corr_matrix = corr_matches[0]
+            corr_result_dir = os.path.dirname(os.path.dirname(path_corr_matrix))  # strip corr-data/
             df = pd.read_csv(path_corr_matrix)
 
             matching_rows = df[df['Cluster'] == cluster_attempt]
@@ -325,9 +333,9 @@ def appendPredictedAllelesInfo(clusters, taskId, sample, replicate):
                 predictions = []
                 for _, row in top_rows.iterrows():
                     hla = row['HLA']
-                    ref_path = f'app/static/images/{taskId}/{sample}/hla_clust_output/{replicate[:-4]}/clust_result/allotypes-img/{hla}.png'
+                    ref_path = os.path.join(corr_result_dir, 'allotypes-img', f'{hla}.png')
                     motif_url = (
-                        f'/static/images/{taskId}/{sample}/hla_clust_output/{replicate[:-4]}/clust_result/allotypes-img/{hla}.png'
+                        '/static/' + ref_path.replace('\\', '/').split('static/', 1)[1]
                         if os.path.exists(ref_path) else None
                     )
                     predictions.append({
