@@ -103,10 +103,9 @@
                         {% for cluster in cluster_data.clusters %}
                         <div class="image-container">
                             <img src="{{ img_src(cluster[0]) }}" alt="" title="Sample size: {{ cluster[1] }}" style="width:100%;">
-                            {% if bindingImages %}
+                            {% if bindingImages and cluster[2] %}
                             <p style="text-align:center; font-size:0.85em;">
-                                Best match: {{ cluster[2] }}<br>
-                                PCC score: {{ cluster[3] }}
+                                {% for pred in cluster[2] %}#{{ loop.index }} {{ pred.hla }} ({{ pred.score }}){% if not loop.last %}, {% endif %}{% endfor %}
                             </p>
                             {% endif %}
                         </div>

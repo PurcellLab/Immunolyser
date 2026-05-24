@@ -214,13 +214,24 @@
                                                     <div class="image-container">
                                                         <img src="{{ url_for('static',filename=cluster[0]) }}" alt="" width="100%" title="Sample size : {{cluster[1]}}">
                                                         
-                                                            {% if bindingImages %}
-                                                                <p style="text-align: center;">
-                                                                    Best match : {{cluster[2]}}
-                                                                    (<span class="motif-ref" data-image="{{ cluster[4] }}">ref</span>)
-                                                                    <br>
-                                                                    PCC score : {{cluster[3]}} 
-                                                                </p>
+                                                            {% if bindingImages and cluster[2] %}
+                                                                <div class="mhctp-predictions">
+                                                                    {% for pred in cluster[2] %}
+                                                                    <div class="mhctp-row{% if loop.index == 1 %} top-match{% endif %}">
+                                                                        <span class="mhctp-rank">#{{ loop.index }}</span>
+                                                                        <span class="mhctp-allele">{{ pred.hla }}</span>
+                                                                        <div class="mhctp-bar-wrap">
+                                                                            <div class="mhctp-bar-fill" style="width:{{ (pred.score * 100)|int }}%"></div>
+                                                                        </div>
+                                                                        <span class="mhctp-score">{{ pred.score }}</span>
+                                                                        {% if pred.motif_url %}
+                                                                        <span class="motif-ref" data-image="{{ pred.motif_url }}" title="Reference motif">ref</span>
+                                                                        {% endif %}
+                                                                    </div>
+                                                                    {% endfor %}
+                                                                </div>
+                                                            {% elif bindingImages %}
+                                                                <p class="mhctp-na">No HLA prediction</p>
                                                             {% endif %}
                                                             
                                                         <!-- Download core button -->
@@ -344,10 +355,29 @@
                         img.setAttribute('width', "100%");
                         container.appendChild(img);
 
-                        var caption = document.createElement('p');
-                        caption.style.textAlign = "center";
-                        caption.innerHTML = `${cluster[2]} : ${cluster[3]} <span class="motif-ref" data-image="${cluster[4]}">(${cluster[2]} ref)</span>`;
-                        container.appendChild(caption);
+                        if (cluster[2] && cluster[2].length > 0) {
+                            var predDiv = document.createElement('div');
+                            predDiv.className = "mhctp-predictions";
+                            cluster[2].forEach(function(pred, idx) {
+                                var row = document.createElement('div');
+                                row.className = "mhctp-row" + (idx === 0 ? " top-match" : "");
+                                var barFillWidth = Math.round(pred.score * 100);
+                                var refSpan = pred.motif_url
+                                    ? `<span class="motif-ref" data-image="${pred.motif_url}" title="Reference motif">ref</span>`
+                                    : '';
+                                row.innerHTML = `<span class="mhctp-rank">#${idx + 1}</span>` +
+                                    `<span class="mhctp-allele">${pred.hla}</span>` +
+                                    `<div class="mhctp-bar-wrap"><div class="mhctp-bar-fill" style="width:${barFillWidth}%"></div></div>` +
+                                    `<span class="mhctp-score">${pred.score}</span>${refSpan}`;
+                                predDiv.appendChild(row);
+                            });
+                            container.appendChild(predDiv);
+                        } else if (cluster[2] !== undefined) {
+                            var naP = document.createElement('p');
+                            naP.className = "mhctp-na";
+                            naP.textContent = "No HLA prediction";
+                            container.appendChild(naP);
+                        }
 
                         // Add download button for core peptides
                         // Add download button for core peptides

@@ -552,15 +552,15 @@ def submit_job(self, samples, motif_length, mhcclass, alleles_unformatted, predi
         # Calling script to generate gibbsclusters
         subprocess.check_call(['python3', os.path.join('app', 'gibbscluster.py'), taskId, data_mount, mhcclass, motif_length], shell=False)
 
-        # Run HLA-Clust to generate heatmap
-        if mhcclass == MHC_Class.One:
-            runHLAClust(
-                taskId,
-                data,
-                species=species,
-                use_mhc_tp_full_DB=use_mhc_tp_full_DB,
-                logger=logger
-            )
+        # Run HLA-Clust to generate heatmap (Class I and human Class II)
+        runHLAClust(
+            taskId,
+            data,
+            species=species,
+            use_mhc_tp_full_DB=use_mhc_tp_full_DB,
+            mhcclass=mhcclass,
+            logger=logger
+        )
 
         # On job success: update status first
         update_job_status(job_id=taskId, status='SUCCESS', error_message=None, logger=logger)
@@ -852,13 +852,13 @@ def createGibbsBar():
 
         print(f"generateGibbs : Best Cluster for {sample}'s {replicate} : {bestCluster}")
 
-        seqClusters = [[x[4:],"Number of peptides in core could not be calculated", "Allele not predicted", "Score not calculated", "Url of reference motif"] for x in sorted(glob.glob(f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate}/*/logos/gibbs_logos_*of{bestCluster}*-001.png'))]
+        seqClusters = [[x[4:], "Number of peptides in core could not be calculated", [], None, None] for x in sorted(glob.glob(f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate}/*/logos/gibbs_logos_*of{bestCluster}*-001.png'))]
 
     else:
-        seqClusters = [[x[4:], "Number of peptides in core could not be calculated", "Allele not predicted", "Score not calculated", "Url of reference motif"] for x in sorted(glob.glob(f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate}/*/logos/gibbs_logos_*of{cluster}*-001.png'))]
+        seqClusters = [[x[4:], "Number of peptides in core could not be calculated", [], None, None] for x in sorted(glob.glob(f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate}/*/logos/gibbs_logos_*of{cluster}*-001.png'))]
 
         if len(seqClusters) != int(cluster):
-            seqClusters = [[x[4:], "Number of peptides in core could not be calculated", "Allele not predicted", "Score not calculated", "Url of reference motif"] for x in sorted(glob.glob(f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate}/*/logos/gibbs_logos_*of{cluster}*-001.png'))]
+            seqClusters = [[x[4:], "Number of peptides in core could not be calculated", [], None, None] for x in sorted(glob.glob(f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate}/*/logos/gibbs_logos_*of{cluster}*-001.png'))]
 
     # Adding information regarding number of peptides in the core
     findNumberOfPeptidesInCore(seqClusters, taskId, sample, replicate+'.txt')

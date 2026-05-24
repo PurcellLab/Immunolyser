@@ -207,7 +207,7 @@ def getGibbsImages(logger, taskId, samples_data):
             bestCluster = pd.read_table(tab_files[0])
             bestCluster = bestCluster[bestCluster.columns].sum(axis=1).idxmax()
 
-            clusters = [[x[len('app/static/'):], "Number of peptides in core could not be calculated", "Allele not predicted", "Score not calculated", "Url of reference motif"] for x in sorted(glob.glob(f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate[:-4]}/*/logos/gibbs_logos_*of{bestCluster}*-001.png'))]
+            clusters = [[x[len('app/static/'):], "Number of peptides in core could not be calculated", [], None, None] for x in sorted(glob.glob(f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate[:-4]}/*/logos/gibbs_logos_*of{bestCluster}*-001.png'))]
 
             # Finding the number of records used for the cluster
             findNumberOfPeptidesInCore(clusters, taskId, sample, replicate)
@@ -261,8 +261,7 @@ def getGibbsImagesAll(logger, taskId, samples_data):
 
             def _make_clusters(n):
                 entries = [
-                    [x[len('app/static/'):], "Number of peptides in core could not be calculated",
-                     "Allele not predicted", "Score not calculated", "Url of reference motif"]
+                    [x[len('app/static/'):], "Number of peptides in core could not be calculated", [], None, None]
                     for x in sorted(glob.glob(
                         f'app/static/images/{taskId}/{sample}/gibbscluster/{replicate[:-4]}/*/logos/gibbs_logos_*of{n}*-001.png'))
                 ]
@@ -307,11 +306,12 @@ def findNumberOfPeptidesInCore(clusters, taskId, sample, replicate):
     print(f'Updated clusters with peptide count and cluster_attempt: {clusters}')
 
 # Method to append predicted allele information to the clusters (MHC-TP)
+# cluster[2] is set to a list of top-3 prediction dicts: [{hla, score, motif_url}, ...]
 def appendPredictedAllelesInfo(clusters, taskId, sample, replicate):
     print(f'appendPredictedAllelesInfo : Clusters passed={clusters}')
 
     for cluster in clusters:
-        # Use the cluster_attempt passed from the previous method
+        # Use the cluster_attempt passed from findNumberOfPeptidesInCore (index 5)
         cluster_attempt = cluster[5] if len(cluster) > 5 else os.path.basename(cluster[0]).split("_")[2].split("-")[0]
 
         try:
@@ -321,22 +321,22 @@ def appendPredictedAllelesInfo(clusters, taskId, sample, replicate):
             matching_rows = df[df['Cluster'] == cluster_attempt]
 
             if not matching_rows.empty:
-                highest_corr_row = matching_rows.sort_values(by='Correlation', ascending=False).iloc[0]
-                hla = highest_corr_row['HLA']
-                correlation = highest_corr_row['Correlation']
-
-                cluster[2] = hla
-                cluster[3] = correlation
-                print(f"Cluster: {cluster_attempt}, HLA: {hla}, Correlation: {correlation}")
-
-                ref_path = f'app/static/images/{taskId}/{sample}/hla_clust_output/{replicate[:-4]}/clust_result/allotypes-img/{hla}.png'
-                ref_motif_url = f'/static/images/{taskId}/{sample}/hla_clust_output/{replicate[:-4]}/clust_result/allotypes-img/{hla}.png'
-
-                if os.path.exists(ref_path):
-                    cluster[4] = ref_motif_url
-                else:
-                    cluster[4] = "No URL found"
-
+                top_rows = matching_rows.sort_values(by='Correlation', ascending=False).head(3)
+                predictions = []
+                for _, row in top_rows.iterrows():
+                    hla = row['HLA']
+                    ref_path = f'app/static/images/{taskId}/{sample}/hla_clust_output/{replicate[:-4]}/clust_result/allotypes-img/{hla}.png'
+                    motif_url = (
+                        f'/static/images/{taskId}/{sample}/hla_clust_output/{replicate[:-4]}/clust_result/allotypes-img/{hla}.png'
+                        if os.path.exists(ref_path) else None
+                    )
+                    predictions.append({
+                        'hla': hla,
+                        'score': round(float(row['Correlation']), 2),
+                        'motif_url': motif_url,
+                    })
+                cluster[2] = predictions
+                print(f"Cluster: {cluster_attempt}, top predictions: {predictions}")
             else:
                 print(f"No matching rows found for Cluster: {cluster_attempt}")
 
@@ -344,7 +344,7 @@ def appendPredictedAllelesInfo(clusters, taskId, sample, replicate):
             print(f"Error processing cluster {cluster_attempt}: {e}")
             continue
 
-    print(f'appendPredictedAllelesInfo : Updated clusters with HLA and ref motif: {clusters}')
+    print(f'appendPredictedAllelesInfo : Updated clusters: {clusters}')
 
 # This method will generate the binding predictions.
 # User can select the binding prediction to be used.
@@ -869,12 +869,17 @@ def saveMajorityVotedBinders(taskId, data, predictionTools, alleles_unformatted,
                     )
                     filtered_df.to_csv(output_path, index=False)
 
-def runHLAClust(taskId, data, species=None, use_mhc_tp_full_DB=None, logger=None):
+def runHLAClust(taskId, data, species=None, use_mhc_tp_full_DB=None, mhcclass=None, logger=None):
 
     logger.info(f'Running HLA Clust for task {taskId}.')
 
-    # Path to default allele file
-    allele_file = os.path.join(project_root, 'app', 'static', 'mhc-tp-default-search-alleles.csv')
+    # Determine effective species for MHC-TP (Class II uses separate reference db per species)
+    if mhcclass == MHC_Class.Two:
+        db_species = f"{species.lower()}_classii" if species else None
+        allele_file = None  # No restricted list for Class II — search full db
+    else:
+        db_species = species
+        allele_file = os.path.join(project_root, 'app', 'static', 'mhc-tp-default-search-alleles.csv')
 
     # Creating directories to store majority binding prediction results
     for sample, replicates in data.items():
@@ -883,43 +888,41 @@ def runHLAClust(taskId, data, species=None, use_mhc_tp_full_DB=None, logger=None
                         if sample != 'Control':
 
                             # Path to store user friendly binders data
-                            path = os.path.join(project_root, 'app', 'static', 'images', taskId, sample, 'hla_clust_output', replicate[:-4])    
+                            path = os.path.join(project_root, 'app', 'static', 'images', taskId, sample, 'hla_clust_output', replicate[:-4])
+
+                            Path(path).mkdir(parents=True, exist_ok=True)
+                            logger.info(f'Directory Created : {path}')
 
                             # Running the tool for every replicate
                             gibbs_base = os.path.join(project_root, 'app', 'static', 'images', taskId, sample, 'gibbscluster', replicate[:-4])
                             gibbs_subdirs = sorted([d for d in os.listdir(gibbs_base) if os.path.isdir(os.path.join(gibbs_base, d))])
                             input_file = os.path.join(gibbs_base, gibbs_subdirs[0]) if gibbs_subdirs else gibbs_base
                             ref_file = os.path.join(project_root, 'app', 'tools', 'HLA-PepClust', 'data', 'ref_data')
-                            output_dir = path
 
                             run_clust_search(
                                 input_file=input_file,
                                 ref_file=ref_file,
-                                output_dir=output_dir,
+                                output_dir=path,
                                 species=species,
+                                db_species=db_species,
                                 use_mhc_tp_full_DB=use_mhc_tp_full_DB,
                                 allele_file=allele_file,
                                 logger=logger
                             )
 
-                        if not os.path.exists(path):
-                            # os.makedirs(directory)
-                            Path(path).mkdir(parents=True, exist_ok=True)
-                            logger.info(f'Directory Created : {path}')
-                            
                     except FileExistsError:
                         logger.info(f'Directory already exists {path}')
 
-def run_clust_search(input_file, ref_file, output_dir, species, use_mhc_tp_full_DB=None, allele_file=None, logger=None):
+def run_clust_search(input_file, ref_file, output_dir, species, db_species=None, use_mhc_tp_full_DB=None, allele_file=None, logger=None):
     try:
-        # Validate species and set the corresponding flag
-        species_flag = []
-        if species.lower() == "mouse":
-            species_flag = ["-s", "mouse", "-t", "0.1"]
-        elif species.lower() == "human":
-            species_flag = ["-s", "human", "-t", "0.1"]
-        else:
-            raise ValueError("Invalid species. Choose either 'mouse' or 'human'.")
+        effective_species = db_species or species
+
+        # Graceful skip if reference db not installed for this species
+        db_file = os.path.join(ref_file, f'{effective_species}.db')
+        if not os.path.exists(db_file):
+            if logger:
+                logger.warning(f"MHC-TP: reference db not found for '{effective_species}' at {db_file}. Skipping.")
+            return {"skipped": f"Reference database not installed for species '{effective_species}'"}
 
         # Construct base command
         command = [
@@ -928,12 +931,14 @@ def run_clust_search(input_file, ref_file, output_dir, species, use_mhc_tp_full_
             ref_file,
             "-im",
             "--output", output_dir,
-            "--processes", str(os.cpu_count())
-        ] + species_flag  # Append species flag if applicable
+            "--processes", str(os.cpu_count()),
+            "--NumbaDB", ref_file,
+            "-s", effective_species, "-t", "0.1",
+        ]
 
-                # If species is human AND not full DB, add --hla_types from CSV file
+        # If human Class I and restricted allele list requested, add --hla flag
         if (
-            species.lower() == "human"
+            effective_species.lower() == "human"
             and use_mhc_tp_full_DB
             and use_mhc_tp_full_DB.lower() == "no"
             and allele_file

@@ -469,6 +469,15 @@ input[type=text]:focus, input[type=password]:focus {
     cursor: pointer;
     position: relative;
 }
+.mhctp-predictions { font-size: 0.78em; margin-top: 4px; }
+.mhctp-row { display: flex; align-items: center; gap: 4px; margin-bottom: 2px; }
+.mhctp-row.top-match { font-weight: 600; }
+.mhctp-rank { color: #888; min-width: 18px; }
+.mhctp-allele { min-width: 54px; font-family: monospace; }
+.mhctp-bar-wrap { flex: 1; background: #eee; border-radius: 3px; height: 6px; }
+.mhctp-bar-fill { background: #4a90d9; height: 6px; border-radius: 3px; }
+.mhctp-score { min-width: 32px; color: #555; }
+.mhctp-na { color: #bbb; font-size: 0.78em; }
 
 /* ============================================================
    Top Proteins Table
