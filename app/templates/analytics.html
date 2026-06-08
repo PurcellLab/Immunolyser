@@ -148,7 +148,7 @@
             <h3>Peptide Sequence Clustering with Predicted MHC Allele Assignment</h3>
             <br>
 
-            <p class="section-info"><b>ⓘ</b> Gibbs Clustering has been applied to peptides after removal of peptides labelled as <code>#CONTAM</code> or <code>#DECOY</code>, PTMs and resulting duplicates. For MHC class I analysis is based on 8-14-mers, for MHC class II the analysis based on 12-20-mers (duplicates removed). Each logo is labelled with the predicted source allotype and PCC (Pearson Correlation Coefficient) value, as determined by MHC-TP.</p> 
+            <p class="section-info"><b>ⓘ</b> Gibbs Clustering has been applied to peptides after removal of peptides labelled as <code>#CONTAM</code> or <code>#DECOY</code>, PTMs and resulting duplicates. For MHC class I analysis is based on 8-14-mers, for MHC class II the analysis based on 12-20-mers (duplicates removed). Each logo is labelled with the predicted source allotype and PCC (Pearson Correlation Coefficient) value, as determined by MHC-TP. <strong>Note:</strong> MHC Class II allotype predictions are in preview — results should be interpreted with caution.</p>
 
             <br>
 
@@ -208,13 +208,13 @@
                                         <br>
 
                                         {% for bar_plot, clusters in gibbs.items() %}
-                                            <div class="your-class" id="{{sample}}_{{replicate}}">
+                                            <div class="gibbs-cluster-row" id="{{sample}}_{{replicate}}">
                                                 <img src="{{ url_for('static',filename=bar_plot) }}" alt="">
                                                 {% for cluster in clusters %}
                                                     <div class="image-container">
                                                         <img src="{{ url_for('static',filename=cluster[0]) }}" alt="" width="100%" title="Sample size : {{cluster[1]}}">
-                                                        
-                                                            {% if bindingImages and cluster[2] %}
+
+                                                            {% if cluster[2] %}
                                                                 <div class="mhctp-predictions">
                                                                     {% for pred in cluster[2] %}
                                                                     <div class="mhctp-row{% if loop.index == 1 %} top-match{% endif %}">
@@ -230,7 +230,7 @@
                                                                     </div>
                                                                     {% endfor %}
                                                                 </div>
-                                                            {% elif bindingImages %}
+                                                            {% elif cluster[2] is not none %}
                                                                 <p class="mhctp-na">No HLA prediction</p>
                                                             {% endif %}
                                                             
@@ -332,7 +332,7 @@
                     var seqLogos = data[bar];
 
                     var div = document.createElement("div");
-                    div.className = "your-class";
+                    div.className = "gibbs-cluster-row";
                     div.id = sample.concat('_').concat(replicate);
 
                     // Bar plot image
@@ -355,7 +355,7 @@
                         img.setAttribute('width', "100%");
                         container.appendChild(img);
 
-                        if (cluster[2] && cluster[2].length > 0) {
+                        if (cluster[2] != null && cluster[2].length > 0) {
                             var predDiv = document.createElement('div');
                             predDiv.className = "mhctp-predictions";
                             cluster[2].forEach(function(pred, idx) {
@@ -372,7 +372,7 @@
                                 predDiv.appendChild(row);
                             });
                             container.appendChild(predDiv);
-                        } else if (cluster[2] !== undefined) {
+                        } else if (cluster[2] != null) {
                             var naP = document.createElement('p');
                             naP.className = "mhctp-na";
                             naP.textContent = "No HLA prediction";
@@ -728,56 +728,6 @@
         else{
             Plotly.newPlot('chart',graphs,{});                    
         }
-        }
-
-        $(document).ready(function(){
-        $('.your-class').slick({
-            dots: true,
-            infinite: true,
-            slidesToShow: 3,
-            slidesToScroll: 1,
-            arrows: true,
-            adaptiveHeight: false
-            });
-        });
-
-        // Watch for new .your-class elements and initialize slick
-        const observer = new MutationObserver(function (mutations) {
-            mutations.forEach(function (mutation) {
-                mutation.addedNodes.forEach(function (node) {
-                    if (node.nodeType === 1) {
-                        // Check if it's the slider container
-                        if (node.classList.contains('your-class')) {
-                            initSlick($(node));
-                        }
-
-                        // Check if it contains any .your-class descendants
-                        $(node).find('.your-class').each(function () {
-                            initSlick($(this));
-                        });
-                    }
-                });
-            });
-        });
-
-        // Start observing the whole document body
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true
-        });
-
-        // Helper to initialize slick safely
-        function initSlick($el) {
-            if (!$el.hasClass('slick-initialized')) {
-                $el.slick({
-                    dots: true,
-                    infinite: true,
-                    slidesToShow: 3,
-                    slidesToScroll: 1,
-                    arrows: true,
-                    adaptiveHeight: false
-                });
-            }
         }
 
         // Populating overlap upset plot
