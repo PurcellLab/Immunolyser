@@ -1617,6 +1617,22 @@ def download_gibbscluster_core(taskid, sample, replicate, cluster_attempt):
         logger.exception(f"Failed to send core file: {core_file}")
         return abort(500, description="Error sending core file.")
 
+@app.route('/motif-ref/<species>/<filename>')
+def serve_motif_ref(species, filename):
+    allowed = {
+        'human': 'Gibbs_motifs_human',
+        'human_classii': 'Gibbs_motifs_human_classII',
+        'mouse': 'Gibbs_motifs_mouse',
+    }
+    if species not in allowed or not filename.endswith('.png'):
+        return abort(404)
+    motif_dir = os.path.join(project_root, 'app', 'tools', 'HLA-PepClust', 'data', 'ref_data', allowed[species], 'motif')
+    filepath = os.path.join(motif_dir, filename)
+    if not os.path.isfile(filepath):
+        return abort(404)
+    return send_file(filepath, mimetype='image/png')
+
+
 @celery.task(name='app.routes.warn_expiring_jobs')
 def warn_expiring_jobs():
     """Send warning emails to users whose job data will be deleted in 5 days."""

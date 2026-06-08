@@ -333,11 +333,15 @@ def appendPredictedAllelesInfo(clusters, taskId, sample, replicate):
                 predictions = []
                 for _, row in top_rows.iterrows():
                     hla = row['HLA']
-                    ref_path = os.path.join(corr_result_dir, 'allotypes-img', f'{hla}.png')
-                    motif_url = (
-                        '/static/' + ref_path.replace('\\', '/').split('static/', 1)[1]
-                        if os.path.exists(ref_path) else None
-                    )
+                    # Class I names start with HLA_, Class II don't (e.g. DRB1_0101)
+                    if hla.startswith('HLA_'):
+                        species = 'human'
+                        motif_folder = 'Gibbs_motifs_human'
+                    else:
+                        species = 'human_classii'
+                        motif_folder = 'Gibbs_motifs_human_classII'
+                    ref_path = os.path.join('app', 'tools', 'HLA-PepClust', 'data', 'ref_data', motif_folder, 'motif', f'{hla}.png')
+                    motif_url = f'/motif-ref/{species}/{hla}.png' if os.path.exists(ref_path) else None
                     predictions.append({
                         'hla': hla,
                         'score': round(float(row['Correlation']), 2),
