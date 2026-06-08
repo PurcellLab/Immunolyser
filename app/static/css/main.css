@@ -377,12 +377,13 @@ input[type=text]:focus, input[type=password]:focus {
     justify-content: flex-start;
     padding: 4px;
     text-align: center;
-    width: 170px;
-    flex-shrink: 0;
+    min-width: 180px;
+    max-width: 260px;
+    flex: 1 1 200px;
 }
 .gibbs-cluster-row .image-container img {
-    max-height: 210px;
-    width: auto;
+    width: 100%;
+    height: auto;
 }
 
 /* ============================================================
