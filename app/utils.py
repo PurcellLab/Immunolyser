@@ -930,7 +930,7 @@ def run_clust_search(input_file, ref_file, output_dir, species, db_species=None,
         effective_species = db_species or species
 
         # Graceful skip if reference db not installed for this species
-        db_file = os.path.join(ref_file, f'{effective_species}.db')
+        db_file = os.path.join(ref_file, f'{effective_species.lower()}.db')
         if not os.path.exists(db_file):
             if logger:
                 logger.warning(f"MHC-TP: reference db not found for '{effective_species}' at {db_file}. Skipping.")
@@ -945,7 +945,7 @@ def run_clust_search(input_file, ref_file, output_dir, species, db_species=None,
             "--output", output_dir,
             "--processes", str(os.cpu_count()),
             "--NumbaDB", ref_file,
-            "-s", effective_species, "-t", "0.1",
+            "-s", effective_species.lower(), "-t", "0.1",
         ]
 
         # If human Class I and restricted allele list requested, add --hla flag
