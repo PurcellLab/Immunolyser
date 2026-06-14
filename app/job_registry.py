@@ -67,6 +67,14 @@ def get_jobs_older_than(cutoff_time):
         ''', (cutoff_time,))
         return [row[0] for row in cursor.fetchall()]
 
+def get_job_error(job_id):
+    """Return the stored error_message for a job, or None if not found."""
+    with sqlite3.connect(DB_PATH) as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT error_message FROM job_registry WHERE job_id = ?', (job_id,))
+        row = cursor.fetchone()
+        return row[0] if row else None
+
 def update_job_status(job_id, status, error_message=None, logger=None):
     try:
         if logger:

@@ -758,10 +758,12 @@ def getOverLapData(samples_data):
 
     overlap = {}
 
-    for sample,replicates in samples_data.items():
+    for sample, replicates in dict(sorted(samples_data.items())).items():
+        if sample == 'Control':
+            continue
         overlap[sample] = [replicate[:-4] for replicate, data in replicates.items()]
 
-    return overlap         
+    return overlap
     
 def get_allele_name_tool_specific(allele, predictor, class_, df):
     # Print the parameters (input)

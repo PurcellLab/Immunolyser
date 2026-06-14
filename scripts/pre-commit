@@ -1,0 +1,19 @@
+#!/bin/sh
+# Git pre-commit hook — runs the test suite before allowing a commit.
+# Install with: sh scripts/install-hooks.sh
+
+set -e
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+PYTHON="$REPO_ROOT/lenv/bin/python"
+
+if [ ! -x "$PYTHON" ]; then
+    echo "Pre-commit: lenv/bin/python not found — skipping tests."
+    echo "  Activate your virtualenv or run scripts/install-hooks.sh after setup."
+    exit 0
+fi
+
+echo "Pre-commit: running test suite..."
+"$PYTHON" -m pytest "$REPO_ROOT/tests" -x -q --tb=short 2>&1
+
+echo "Pre-commit: all tests passed."

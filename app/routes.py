@@ -14,7 +14,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from markupsafe import escape
 from app.email_registry import save_email, get_email, get_job_name, claim_email_send, get_jobs_due_for_warning, claim_warning_send
-from app.job_registry import insert_job, update_job_status, get_jobs_older_than, get_completed_time
+from app.job_registry import insert_job, update_job_status, get_jobs_older_than, get_completed_time, get_job_error
 from geoip2.database import Reader
 from werkzeug.routing import BaseConverter
 
@@ -630,7 +630,8 @@ def check_status(job_id):
     if job.state == 'SUCCESS':
         return jsonify({'status': 'success'}), 200
     elif job.state == 'FAILURE':
-        return jsonify({'status': 'failure', 'traceback': str(job.traceback)}), 200
+        registry_error = get_job_error(str(job_id))
+        return jsonify({'status': 'failure', 'traceback': str(job.traceback), 'error': registry_error}), 200
     elif job.state == 'PENDING':
         return jsonify({'status': 'pending', 'traceback': str(job.traceback)}), 200
     else:
@@ -1049,6 +1050,8 @@ def getOverLapPeptides():
     replicates = replicates.split(',')
 
     for sample in os.listdir('{}/{}'.format(data_mount,taskId)):
+        if sample == 'Control':
+            continue
         if not os.path.isdir(os.path.join(data_mount, taskId, sample)):
             continue
 
@@ -1600,12 +1603,11 @@ def download_seq2logo_peptides(taskid, sample, replicate):
 def download_gibbscluster_core(taskid, sample, replicate, cluster_attempt):
     logger.info(f"Download request for Gibbs core: taskid={taskid}, sample={sample}, replicate={replicate}, cluster={cluster_attempt}")
     
-    core_dir = os.path.join(project_root, 'app', 'static', 'images', taskid, sample, 'gibbscluster', replicate, 'cores')
-    pattern = f'*{cluster_attempt}*'
-    matches = glob.glob(os.path.join(core_dir, pattern))
+    core_base = os.path.join(project_root, 'app', 'static', 'images', taskid, sample, 'gibbscluster', replicate)
+    matches = glob.glob(os.path.join(core_base, '*', 'cores', f'*{cluster_attempt}*'))
 
     if not matches:
-        logger.warning(f"No core file found for cluster {cluster_attempt} in {core_dir}")
+        logger.warning(f"No core file found for cluster {cluster_attempt} under {core_base}")
         return abort(404, description=f"No core file found for cluster {cluster_attempt}.")
 
     core_file = matches[0]
@@ -1758,6 +1760,8 @@ def export_report(taskId):
     # --- Pre-compute overlap UpSet data (replaces /api/getOverlapPeptides) ---
     overlap_upset_data = []
     for sample in os.listdir(dirName):
+        if sample == 'Control':
+            continue
         sample_dir = os.path.join(dirName, sample)
         if not os.path.isdir(sample_dir):
             continue
