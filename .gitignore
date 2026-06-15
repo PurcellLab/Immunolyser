@@ -1,3 +1,4 @@
+.playwright-mcp/
 app/tools
 app/static/images
 .env
