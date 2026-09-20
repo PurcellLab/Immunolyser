@@ -1878,6 +1878,15 @@ def cleanup_expired_jobs():
     retention_days = app.config.get('DATA_RETENTION_DAYS', 30)
     cutoff = (datetime.utcnow() - timedelta(days=retention_days)).isoformat()
     job_ids = get_jobs_older_than(cutoff)
+
+    # The demo job is a permanent fixture linked from the homepage and the
+    # manuscript — it must survive retention. Without this it ages out like any
+    # other job and /demo breaks, taking its /pvol data with it (the job data is
+    # not recoverable from git; see the DEMO_TASK_ID note in .env.example).
+    if DEMO_TASK_ID and DEMO_TASK_ID in job_ids:
+        job_ids = [j for j in job_ids if j != DEMO_TASK_ID]
+        logger.info(f"cleanup_expired_jobs: skipping demo job {DEMO_TASK_ID}.")
+
     logger.info(f"cleanup_expired_jobs: found {len(job_ids)} jobs to expire.")
     for job_id in job_ids:
         # Delete job data directory
