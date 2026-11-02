@@ -78,6 +78,11 @@
                                     {% if motif.is_flat %}<em>Flat motif</em>{% else %}Motif {{ motif.id }}{% endif %}
                                     &mdash; {{ motif.n_peptides }} peptides ({{ '%.0f'|format(motif.fraction * 100) }}%)
                                 </p>
+                                {% if motif.is_flat %}
+                                    <p class="text-muted" style="font-size: 0.78em; margin: 0 0 4px;">
+                                        Not a binding motif: it collects peptides that fit none of the specific motifs (often contaminants or noise).
+                                    </p>
+                                {% endif %}
                                 {% if motif.predictions %}
                                     {% if modec_offline %}
                                         <p style="text-align: center; font-size: 0.85em; margin: 2px 0;">

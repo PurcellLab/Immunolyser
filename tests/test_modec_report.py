@@ -60,6 +60,11 @@ class TestSectionPartial:
         assert 'Flat motif' in html
         assert html.index('Motif 1') < html.index('Flat motif')
 
+    def test_flat_motif_is_explained_on_its_card(self, job):
+        html = _render(job)
+        # one explanation per K block (K=1..3 each have a flat motif), none on real motifs
+        assert html.count('Not a binding motif') == 3
+
     def test_only_the_lowest_aic_k_is_visible_initially(self, job):
         html = _render(job)
         # fixture: lowest AIC at K=2 -> K=1 and K=3 blocks start hidden, K=2 does not

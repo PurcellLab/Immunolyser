@@ -9,14 +9,22 @@
         <p class="toc-title">Contents</p>
         <a href="#section-length"  class="toc-link">Peptide Length</a>
         <a href="#section-overlap" class="toc-link">Peptide Overlap</a>
+        {# Each link is shown only when its section is rendered below, so none leads nowhere
+           (e.g. Binding Motifs is absent for class II without alleles). #}
+        {% if showSeqLogoSection %}
         <a href="#section-motif"   class="toc-link">Binding Motifs</a>
+        {% endif %}
         {% if showModecSection %}
         <a href="#section-modec"   class="toc-link">MoDec Motifs</a>
-        {% else %}
+        {% elif showGibbsSection %}
         <a href="#section-gibbs"   class="toc-link">Gibbs Clusters</a>
         {% endif %}
+        {% if bindingImages %}
         <a href="#section-mhctp"   class="toc-link">MHC-TP</a>
+        {% endif %}
+        {% if predicted_binders is not none %}
         <a href="#section-binding" class="toc-link">Binding Affinity</a>
+        {% endif %}
         <hr style="border-color: rgba(255,255,255,0.2); margin: 10px 0 6px;">
         <a href="{{ url_for('export_report', taskId=taskId) }}" class="toc-link" style="background: rgba(255,255,255,0.15); border-radius: 4px; text-align: center; font-weight: 600;">
             &#8595; Download Report

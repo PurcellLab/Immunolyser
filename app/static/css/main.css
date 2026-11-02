@@ -496,7 +496,9 @@ input[type=text]:focus, input[type=password]:focus {
     cursor: pointer;
     position: relative;
 }
-.mhctp-predictions { font-size: 0.78em; margin-top: 4px; }
+/* width: 100% because the cards are centred flex columns, which shrink this block to
+   the width of its text and collapse the score bar to a dot. */
+.mhctp-predictions { font-size: 0.78em; margin-top: 4px; width: 100%; }
 .mhctp-row { display: flex; align-items: center; gap: 4px; margin-bottom: 2px; }
 .mhctp-row.top-match { font-weight: 600; }
 .mhctp-rank { color: #888; min-width: 18px; }
