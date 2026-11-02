@@ -103,6 +103,18 @@ class TestSectionPartial:
         assert '/download_modec_core/' not in html
         assert 'download peptides' not in html
 
+    def test_motif_with_no_peptides_says_so_instead_of_logo_not_available(self, job):
+        # K=1..3 flat motifs: drop one logo and mark the motif empty
+        data = modec.report_data(job['images'], TASK, {'S1': ['repA']})
+        flat = data['S1']['repA']['k'][2][-1]
+        assert flat['is_flat']
+        flat['image'] = None
+        flat['n_peptides'] = 0
+        with flask_app.test_request_context():
+            from flask import render_template
+            html = render_template('includes/modec_section.html', modecData=data, taskId=TASK)
+        assert 'No peptides assigned' in html
+
     def test_empty_data_says_so(self, job):
         with flask_app.test_request_context():
             from flask import render_template

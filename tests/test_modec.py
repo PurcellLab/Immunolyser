@@ -58,8 +58,11 @@ def make_output_tree(root, kmax=3):
     for k in range(1, kmax + 1):
         sizes = [10 * (i + 1) for i in range(k)]
         for i, size in enumerate(sizes, start=1):
-            write_pwm(os.path.join(root, 'PWMs', f'PWM_K{k}_{i}.txt'), size)
-        write_pwm(os.path.join(root, 'PWMs', f'PWM_K{k}_flat.txt'), 2)
+            # real motifs always carry information (a uniform PWM is skipped by render_logos)
+            write_pwm(os.path.join(root, 'PWMs', f'PWM_K{k}_{i}.txt'), size, hot={('F', 0): 0.5})
+        # a real flat motif carries a little information (a compositional bias), unlike an
+        # empty one; see test_empty_uniform_flat_motif_is_skipped_not_failed
+        write_pwm(os.path.join(root, 'PWMs', f'PWM_K{k}_flat.txt'), 2, hot={('A', 0): 0.2})
         motifs = [i for i, size in enumerate(sizes, start=1) for _ in range(size)] + [0, 0]
         write_resp(os.path.join(root, 'Responsibilities', f'bestPepResp_K{k}.txt'), motifs)
         # AIC is lowest (best) at K=2
@@ -408,6 +411,18 @@ class TestAicPlot:
         assert modec.read_aic(out) == modec.collect_results(out)['aic']
 
 
+class TestInformationContent:
+    def test_uniform_pwm_has_no_information(self, tmp_path):
+        p = tmp_path / 'PWM_K1_flat.txt'
+        write_pwm(p, 0)
+        assert modec.pwm_information_bits(modec.parse_pwm(p)) < modec.MIN_LOGO_INFORMATION_BITS
+
+    def test_peaked_pwm_has_information(self, tmp_path):
+        p = tmp_path / 'PWM_K1_1.txt'
+        write_pwm(p, 10, hot={('F', 0): 0.6})
+        assert modec.pwm_information_bits(modec.parse_pwm(p)) > 0.5
+
+
 class TestMhctpAdapter:
     def _pwm(self, tmp_path, **kw):
         p = tmp_path / 'PWM_K1_1.txt'
@@ -566,6 +581,20 @@ class TestRenderLogos:
         logo_dir = os.path.join(out, modec.LOGO_DIRNAME)
         assert os.path.isfile(os.path.join(logo_dir, 'modec_logos_2of3-001.jpg'))
         assert os.path.isfile(os.path.join(logo_dir, 'modec_logos_flatof3-001.jpg'))
+
+    def test_empty_uniform_flat_motif_is_skipped_not_failed(self, tmp_path):
+        """MoDec can output a flat motif with zero peptides and an exactly uniform PWM
+        (seen on a mouse job, K=5). Seq2Logo cannot draw it; the job must not fail."""
+        out = str(tmp_path / 'out')
+        make_output_tree(out, kmax=2)
+        write_pwm(os.path.join(out, 'PWMs', 'PWM_K2_flat.txt'), 0)  # uniform, n_pep 0
+        script = tmp_path / 'fake_seq2logo.py'
+        script.write_text(self.FAKE)
+        n = modec.render_logos(out, seq2logo=str(script), python=sys.executable)
+        assert n == (1 + 1) + (2 + 0)  # the empty flat motif at K=2 is the only one skipped
+        logo_dir = os.path.join(out, modec.LOGO_DIRNAME)
+        assert not os.path.exists(os.path.join(logo_dir, 'modec_logos_flatof2-001.jpg'))
+        assert os.path.isfile(os.path.join(logo_dir, 'modec_logos_2of2-001.jpg'))
 
     def test_failure_raises_naming_the_motif(self, tmp_path):
         out = str(tmp_path / 'out')

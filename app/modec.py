@@ -367,11 +367,33 @@ def render_aic_plot(out_dir):
     return path
 
 
+def pwm_information_bits(pwm):
+    """Total information content (bits, summed over positions) of a PWM against a
+    uniform background: 0 for a motif that is exactly flat."""
+    total = 0.0
+    for pos in range(pwm['positions']):
+        entropy = 0.0
+        for aa in MODEC_AA_ORDER:
+            p = pwm['freq'][aa][pos]
+            if p > 0:
+                entropy -= p * math.log2(p)
+        total += math.log2(len(MODEC_AA_ORDER)) - entropy
+    return total
+
+
+# A motif below this has nothing to draw. MoDec's flat motif can be exactly uniform with
+# zero peptides assigned (seen on a mouse job at K=5); Seq2Logo then aborts with "No
+# PSSM data was found", which must not fail the whole job.
+MIN_LOGO_INFORMATION_BITS = 1e-6
+
+
 def render_logos(out_dir, time_limit=120, seq2logo=SEQ2LOGO_SCRIPT, python=SEQ2LOGO_PYTHON):
     """Draw a logo for every motif of every K in one replicate's MoDec output.
 
-    Returns the number of logos written. Raises if any logo fails, so a broken
-    renderer fails the job instead of leaving a report with silently missing images.
+    Returns the number of logos written. Raises if Seq2Logo fails on a motif that has
+    something to draw, so a broken renderer fails the job instead of leaving a report
+    with silently missing images. A motif with no information at all (an empty, exactly
+    uniform flat motif) is skipped: the report shows "No peptides assigned" for it.
     """
     results = collect_results(out_dir)
     table_dir = os.path.join(out_dir, LOGO_TABLE_DIRNAME)
@@ -382,6 +404,8 @@ def render_logos(out_dir, time_limit=120, seq2logo=SEQ2LOGO_SCRIPT, python=SEQ2L
     written = 0
     for k, entry in results['k'].items():
         for motif_id, pwm in entry['motifs'].items():
+            if pwm_information_bits(pwm) < MIN_LOGO_INFORMATION_BITS:
+                continue
             base = logo_basename(motif_id, k)
             table_path = os.path.join(table_dir, f'{base}.txt')
             with open(table_path, 'w') as f:

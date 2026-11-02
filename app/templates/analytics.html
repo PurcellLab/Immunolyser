@@ -46,21 +46,25 @@
     </div>
     {% endif %}
 
-    <div id="enrichedDownloadsBanner" class="alert alert-info alert-dismissible fade show" role="alert" style="margin-bottom: 1rem; display: none;">
-        <strong>New:</strong> Peptide downloads (seq2logo input, Gibbs cluster cores, and upset-plot selections) now
-        include the other columns from your original upload, matched by peptide.
-        <button type="button" class="close" data-dismiss="alert" aria-label="Close" onclick="try { localStorage.setItem('enrichedDownloadsBannerDismissed_v1', '1'); } catch (e) {}">
+    {# What's-new banner for the current release. The dismissal key carries the version, so
+       closing an earlier banner does not hide this one. Update both with each release. #}
+    <div id="newFeatureBanner" class="alert alert-info alert-dismissible fade show" role="alert" style="margin-bottom: 1rem; display: none;">
+        <strong>New in v{{ app_version }}:</strong> MHC Class II jobs can now use <b>MoDec</b> instead of GibbsCluster to find binding motifs.
+        Choose it on the <a href="{{ url_for('initialiser') }}">submission page</a>. Reports include an AIC graph, allotype predictions per motif, and the raw MoDec results in the data download.
+        <a href="{{ url_for('index') }}#whats-new">See what's new.</a>
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close" onclick="try { localStorage.setItem('newFeatureBannerDismissed_2_4_0', '1'); } catch (e) {}">
             <span aria-hidden="true">&times;</span>
         </button>
     </div>
     <script>
         (function () {
+            var banner = document.getElementById('newFeatureBanner');
             try {
-                if (!localStorage.getItem('enrichedDownloadsBannerDismissed_v1')) {
-                    document.getElementById('enrichedDownloadsBanner').style.display = 'block';
+                if (!localStorage.getItem('newFeatureBannerDismissed_2_4_0')) {
+                    banner.style.display = 'block';
                 }
             } catch (e) {
-                document.getElementById('enrichedDownloadsBanner').style.display = 'block';
+                banner.style.display = 'block';
             }
         })();
     </script>

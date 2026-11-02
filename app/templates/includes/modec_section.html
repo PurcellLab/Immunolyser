@@ -72,7 +72,7 @@
                                     <img src="{{ modec_img(motif.image) }}" alt="MoDec motif {{ motif.id }} of {{ k }}" width="100%"
                                          title="{{ motif.n_peptides }} peptides">
                                 {% else %}
-                                    <p class="mhctp-na">Logo not available</p>
+                                    <p class="mhctp-na">{% if motif.n_peptides == 0 %}No peptides assigned{% else %}Logo not available{% endif %}</p>
                                 {% endif %}
                                 <p style="text-align: center; font-size: 0.85em; margin: 2px 0;">
                                     {% if motif.is_flat %}<em>Flat motif</em>{% else %}Motif {{ motif.id }}{% endif %}
