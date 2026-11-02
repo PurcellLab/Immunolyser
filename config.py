@@ -73,3 +73,29 @@ class Config(object):
     # /initialiser's PENDING_JOBS_DIR comment in app/routes.py for why dispatch
     # is deferred at all rather than immediate.
     PENDING_DISPATCH_GRACE_SECONDS = int(os.environ.get('PENDING_DISPATCH_GRACE_SECONDS', 90))
+
+    # --- MoDec (MHC class II motif deconvolution; alternative to GibbsCluster) ---
+    # Binary-only, academic non-commercial licence (LICR). It is fetched at
+    # `docker build` time, never committed — see app/tools/README.md. The option
+    # is offered on the submit form only when this file exists, so a local install
+    # built without it keeps working.
+    MODEC_BIN = os.environ.get(
+        'MODEC_BIN',
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), 'app', 'tools', 'MoDec', 'MoDec_unix'),
+    )
+    # Version of the licence text the submitter accepted; stored with the job so a
+    # later wording change is distinguishable from an earlier acceptance.
+    MODEC_LICENCE_VERSION = '1.2'
+    # Motif counts searched. K above 6 is not offered by Gibbs here either, and the
+    # report's K-switcher is sized for 6.
+    MODEC_KMIN = int(os.environ.get('MODEC_KMIN', 1))
+    MODEC_KMAX = int(os.environ.get('MODEC_KMAX', 6))
+    # Random restarts per K. PROVISIONAL: MoDec's default is 20, and --MHC2 (which we
+    # always pass) multiplies that by 5 via --specInits. A 5,987-peptide replicate took
+    # 2m22s at nruns=2 on a laptop (K<=5), so 20 would be tens of minutes per replicate
+    # and blow the 2h default job limit. To be re-set from a Linux benchmark.
+    MODEC_NRUNS = int(os.environ.get('MODEC_NRUNS', 3))
+    # Per-replicate wall-clock cap. On expiry the whole MoDec process group is killed
+    # (a Celery time limit does NOT reap grandchildren — see the orphaned GibbsCluster
+    # incident, ops/ORPHANED_GIBBSCLUSTER_2026-11-02 in the private notes).
+    MODEC_TIME_LIMIT_SECONDS = int(os.environ.get('MODEC_TIME_LIMIT_SECONDS', 3000))

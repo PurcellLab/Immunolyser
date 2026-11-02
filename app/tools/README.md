@@ -19,6 +19,28 @@ The following tool archives are committed to this repo and extracted automatical
 
 MixMHCpred, MixMHC2pred, and HLA-PepClust (MHC-TP) are downloaded from their public GitHub releases at build time.
 
+## MoDec (optional, academic non-commercial licence)
+
+MoDec 1.2 (Gfeller Lab; Racle et al., *Nat Biotechnol* 2019;37:1283-1286) is the
+MHC class II motif-deconvolution alternative to GibbsCluster, selectable on the
+submit form for class II jobs. It is **binary-only** and licensed by the Ludwig
+Institute for Cancer Research for **academic, non-commercial research only**
+(<https://github.com/GfellerLab/MoDec/blob/v1.2.1/LICENSE>). For-profit use needs a
+separate licence from LICR (contact in the MoDec README).
+
+- It is **downloaded at `docker build` time** (the `MODEC_TAG` / `MODEC_SHA256` build args in
+  the Dockerfile) into `app/tools/MoDec/MoDec_unix`, never committed. We may not
+  redistribute it; each deployer fetches their own copy.
+- A failed download only warns. The app then hides the MoDec option (it checks
+  `MODEC_BIN` exists and is executable), so a local install without it still works.
+  A **checksum mismatch fails the build**.
+- The licence requires every user of a server running MoDec to have agreed to its
+  terms. The submit form therefore requires a tick box when MoDec is chosen, enforced
+  server-side and recorded per job. Keep that if you host this publicly.
+- No R packages are needed: we render the motif logos ourselves from MoDec's PWM files
+  and do not use MoDec's own `--makeReport` HTML report.
+- To use another build, set `MODEC_BIN` in `.env`.
+
 ## Licensed tools — you must download these before building
 
 **netMHCpan 4.2** and **netMHCIIpan 4.3** require a free academic licence from DTU Health Tech.

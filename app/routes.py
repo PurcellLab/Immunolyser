@@ -15,6 +15,7 @@ from email.mime.multipart import MIMEMultipart
 from markupsafe import escape
 from app.email_registry import save_email, get_email, get_job_name, claim_email_send, get_jobs_due_for_warning, claim_warning_send
 from app.job_registry import insert_job, update_job_status, get_jobs_older_than, get_completed_time, get_job_error
+from app.modec import modec_available
 from geoip2.database import Reader
 from werkzeug.routing import BaseConverter
 
@@ -264,7 +265,10 @@ def initialiser():
                                 max_total_peptides=app.config['MAX_TOTAL_PEPTIDES'],
                                 max_alleles=app.config['MAX_ALLELES'],
                                 peptide_warning_threshold=app.config['PEPTIDE_WARNING_THRESHOLD'],
-                                recaptcha_site_key=app.config['RECAPTCHA_SITE_KEY'])
+                                recaptcha_site_key=app.config['RECAPTCHA_SITE_KEY'],
+                                modec_available=modec_available(app.config['MODEC_BIN']),
+                                ClusteringMethod=ClusteringMethod,
+                                modec_licence_version=app.config['MODEC_LICENCE_VERSION'])
 
     elif request.method == 'POST':
         # Handle POST request
@@ -336,6 +340,23 @@ def initialiser():
         species = request.form.get('species')
         use_mhc_tp_full_DB = request.form.get('useFullDB', 'no')
 
+        # Clustering method (class II only offers a choice). A missing field is a
+        # GibbsCluster job, so older clients and scripts keep working unchanged.
+        clustering_method = ClusteringMethod.normalise(request.form.get('clustering_method'))
+        if not ClusteringMethod.is_allowed(clustering_method, mhcclass):
+            return "Invalid clustering method for the selected MHC class.", 400
+
+        modec_licence_version = None
+        if clustering_method == ClusteringMethod.MODEC:
+            if not modec_available(app.config['MODEC_BIN']):
+                return "MoDec is not available on this server.", 400
+            # MoDec's licence (academic non-commercial, LICR) requires that every user
+            # of a server running it has agreed to its terms. The tick box is only a
+            # courtesy in the browser; this is the check that counts.
+            if request.form.get('modec_licence_accepted') != 'yes':
+                return "You must accept the MoDec licence terms to use MoDec.", 400
+            modec_licence_version = app.config['MODEC_LICENCE_VERSION']
+
         ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
         country = get_country_from_request(request)
 
@@ -376,6 +397,7 @@ def initialiser():
                 'predictionTools': predictionTools,
                 'species': species,
                 'use_mhc_tp_full_DB': use_mhc_tp_full_DB,
+                'clustering_method': clustering_method,
             }, f)
 
         insert_job(
@@ -386,13 +408,15 @@ def initialiser():
             alleles=alleles_unformatted,
             user_agent=user_agent,
             referrer=referrer,
-            status="SUBMITTED"
+            status="SUBMITTED",
+            clustering_method=clustering_method,
+            modec_licence_version=modec_licence_version,
         )
 
         return redirect(url_for('job_confirmation', task_id=job_id))
 
 @celery.task(name='app.submit_job', bind=True, soft_time_limit=7200, time_limit=7260)
-def submit_job(self, samples, motif_length, mhcclass, alleles_unformatted, predictionTools, species, use_mhc_tp_full_DB):
+def submit_job(self, samples, motif_length, mhcclass, alleles_unformatted, predictionTools, species, use_mhc_tp_full_DB, clustering_method=ClusteringMethod.DEFAULT):
 
     try:
         # Normalise: treat None and "" the same way throughout the task
@@ -537,6 +561,14 @@ def submit_job(self, samples, motif_length, mhcclass, alleles_unformatted, predi
         mhcclass_selected_file.write(mhcclass)
         mhcclass_selected_file.close()
 
+        # Saving the clustering method, next to mhcclass.txt. The report reads this
+        # back; a job without the file predates MoDec and is a GibbsCluster job.
+        clustering_method = ClusteringMethod.normalise(clustering_method)
+        if not ClusteringMethod.is_allowed(clustering_method, mhcclass):
+            raise Exception(f"Clustering method '{clustering_method}' is not available for MHC class {mhcclass}.")
+        with open(os.path.join('app', 'static', 'images', taskId, "clustering_method.txt"), "w") as f:
+            f.write(clustering_method)
+
         # Save allele compatibility matrix based on alleles and MHC class of preference selected.
         # if alleles_unformatted != "":
         # Split alleles only if alleles_unformatted is not an empty string
@@ -639,18 +671,27 @@ def submit_job(self, samples, motif_length, mhcclass, alleles_unformatted, predi
             # Calling script to generate sequence logos
             subprocess.check_call(['python3', os.path.join('app','seqlogo.py'), taskId, data_mount, motif_length], shell=False)
 
-        # Calling script to generate gibbsclusters
-        subprocess.check_call(['python3', os.path.join('app', 'gibbscluster.py'), taskId, data_mount, mhcclass, motif_length], shell=False)
+        if clustering_method == ClusteringMethod.MODEC:
+            # MoDec replaces GibbsCluster for this job (class II only; enforced above
+            # and at submission). A non-zero exit raises, so the job is marked FAILURE
+            # with MoDec's reason rather than finishing with an empty section.
+            subprocess.check_call(['python3', os.path.join('app', 'modec.py'), taskId, data_mount, motif_length, species or ''], shell=False)
 
-        # Run HLA-Clust to generate heatmap (Class I and human Class II)
-        runHLAClust(
-            taskId,
-            data,
-            species=species,
-            use_mhc_tp_full_DB=use_mhc_tp_full_DB,
-            mhcclass=mhcclass,
-            logger=logger
-        )
+            # TODO(modec): MHC-TP can't read MoDec output yet (needs the `--source modec`
+            # mode on the MHC-TP branch). Until then MoDec jobs skip the allotype step.
+        else:
+            # Calling script to generate gibbsclusters
+            subprocess.check_call(['python3', os.path.join('app', 'gibbscluster.py'), taskId, data_mount, mhcclass, motif_length], shell=False)
+
+            # Run HLA-Clust to generate heatmap (Class I and human Class II)
+            runHLAClust(
+                taskId,
+                data,
+                species=species,
+                use_mhc_tp_full_DB=use_mhc_tp_full_DB,
+                mhcclass=mhcclass,
+                logger=logger
+            )
 
         # On job success: update status first
         update_job_status(job_id=taskId, status='SUCCESS', error_message=None, logger=logger)
@@ -1824,6 +1865,8 @@ def dispatch_pending_jobs():
                 payload['samples'], payload['motif_length'], payload['mhcclass'],
                 payload['alleles_unformatted'], payload['predictionTools'],
                 payload['species'], payload['use_mhc_tp_full_DB'],
+                # Absent in submissions queued before MoDec existed.
+                payload.get('clustering_method', ClusteringMethod.DEFAULT),
             ],
             task_id=job_id,
             **limit_kwargs,

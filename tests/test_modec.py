@@ -1,0 +1,381 @@
+"""Tests for MoDec support: method constants, command building, output parsing,
+and the process-group-safe runner (app/modec.py).
+
+Fixtures are synthetic files in MoDec's exact output format (checked against a
+real run on the tool's own HLA-II test set) so no third-party output is committed.
+"""
+import os
+import stat
+import sys
+import time
+import types
+
+import pytest
+
+from constants import ClusteringMethod, MHC_Class
+from app import modec
+
+POSIX_ONLY = pytest.mark.skipif(os.name != 'posix', reason='process groups need POSIX')
+
+
+# --------------------------------------------------------------------------
+# Fixture builders
+# --------------------------------------------------------------------------
+
+def write_pwm(path, n_peptides, positions=9, hot=None):
+    """A MoDec PWM file; every column sums to 1. `hot` = {(aa, pos): value} overrides."""
+    aas = modec.MODEC_AA_ORDER
+    cols = [[1.0 / len(aas)] * len(aas) for _ in range(positions)]
+    for (aa, pos), val in (hot or {}).items():
+        col = cols[pos]
+        col[aas.index(aa)] = val
+        rest = (1.0 - val) / (len(aas) - 1)
+        for i in range(len(aas)):
+            if i != aas.index(aa):
+                col[i] = rest
+    with open(path, 'w') as f:
+        f.write(f'#\t{os.path.basename(path)[:-4]}_n_pep_{n_peptides}\t{n_peptides}\n')
+        f.write('\t' + '\t'.join(str(p + 1) for p in range(positions)) + '\n')
+        for i, aa in enumerate(aas):
+            f.write(aa + '\t' + '\t'.join(f'{cols[p][i]:.6g}' for p in range(positions)) + '\n')
+
+
+def write_resp(path, motifs):
+    """bestPepResp file with one peptide per entry of `motifs` (the Motif_1st)."""
+    with open(path, 'w') as f:
+        f.write('Peptide\tLength\tScore\tPep_weight\tresp_1st\tMotif_1st\tP1_1st\tCore_1st\t'
+                'resp_2nd\tMotif_2nd\tP1_2nd\tCore_2nd\n')
+        for i, m in enumerate(motifs):
+            f.write(f'PEPTIDE{i:03d}XYZ\t13\t9.5\t1\t0.98\t{m}\t2\tPEPTIDEXY\t0.01\t0\t2\tPEPTIDEXY\n')
+
+
+def make_output_tree(root, kmax=3):
+    """A MoDec result folder for K=1..kmax with consistent counts."""
+    for sub in ('PWMs', 'Responsibilities', 'Summary'):
+        os.makedirs(os.path.join(root, sub))
+    aic_lines = ['n\tlogL\tlogL/n\tAIC']
+    for k in range(1, kmax + 1):
+        sizes = [10 * (i + 1) for i in range(k)]
+        for i, size in enumerate(sizes, start=1):
+            write_pwm(os.path.join(root, 'PWMs', f'PWM_K{k}_{i}.txt'), size)
+        write_pwm(os.path.join(root, 'PWMs', f'PWM_K{k}_flat.txt'), 2)
+        motifs = [i for i, size in enumerate(sizes, start=1) for _ in range(size)] + [0, 0]
+        write_resp(os.path.join(root, 'Responsibilities', f'bestPepResp_K{k}.txt'), motifs)
+        # AIC is lowest (best) at K=2
+        aic_lines.append(f'{k}\t{100.0 * k}\t{50.0 * k}\t{-1000 + 40 * abs(k - 2)}')
+    with open(os.path.join(root, 'Summary', f'nMotScores_K1-{kmax}.txt'), 'w') as f:
+        f.write('\n'.join(aic_lines) + '\n')
+
+
+def make_fake_binary(path, body):
+    """An executable python script standing in for MoDec."""
+    with open(path, 'w') as f:
+        f.write(f'#!{sys.executable}\n{body}\n')
+    os.chmod(path, os.stat(path).st_mode | stat.S_IXUSR)
+
+
+# --------------------------------------------------------------------------
+# ClusteringMethod
+# --------------------------------------------------------------------------
+
+class TestClusteringMethod:
+    def test_default_is_gibbs(self):
+        assert ClusteringMethod.DEFAULT == ClusteringMethod.GIBBS
+
+    @pytest.mark.parametrize('raw', [None, '', '   '])
+    def test_blank_normalises_to_default(self, raw):
+        assert ClusteringMethod.normalise(raw) == ClusteringMethod.GIBBS
+
+    def test_normalise_lowercases_and_does_not_validate(self):
+        assert ClusteringMethod.normalise(' MoDec ') == ClusteringMethod.MODEC
+        assert ClusteringMethod.normalise('bogus') == 'bogus'
+
+    def test_modec_allowed_for_class_two_only(self):
+        assert ClusteringMethod.is_allowed(ClusteringMethod.MODEC, MHC_Class.Two)
+        assert not ClusteringMethod.is_allowed(ClusteringMethod.MODEC, MHC_Class.One)
+
+    def test_gibbs_allowed_for_both_classes(self):
+        assert ClusteringMethod.is_allowed(ClusteringMethod.GIBBS, MHC_Class.One)
+        assert ClusteringMethod.is_allowed(ClusteringMethod.GIBBS, MHC_Class.Two)
+
+    def test_unknown_method_or_class_rejected(self):
+        assert not ClusteringMethod.is_allowed('bogus', MHC_Class.Two)
+        assert not ClusteringMethod.is_allowed(ClusteringMethod.GIBBS, 'III')
+
+
+# --------------------------------------------------------------------------
+# Command building
+# --------------------------------------------------------------------------
+
+class TestBuildCommand:
+    def _cmd(self, **kw):
+        args = dict(kmin=1, kmax=6, nruns=3, motif_length=9, species='Human')
+        args.update(kw)
+        return modec.build_command('/x/MoDec_unix', '/in/p.txt', '/out/p', **args)
+
+    def test_core_flags(self):
+        cmd = self._cmd()
+        assert cmd[:5] == ['/x/MoDec_unix', '-i', '/in/p.txt', '-o', '/out/p']
+        assert '--MHC2' in cmd and '--log' in cmd
+        assert cmd[cmd.index('--Kmax') + 1] == '6'
+        assert cmd[cmd.index('--nruns') + 1] == '3'
+        assert cmd[cmd.index('-L') + 1] == '9'
+
+    def test_human_keeps_default_background(self):
+        assert '--theta_norm' not in self._cmd(species='Human')
+
+    def test_mouse_uses_mouse_background(self):
+        cmd = self._cmd(species='Mouse')
+        assert cmd[cmd.index('--theta_norm') + 1] == '4'
+
+    def test_unknown_species_leaves_default(self):
+        assert '--theta_norm' not in self._cmd(species=None)
+
+    def test_no_shell_string_all_args_are_str(self):
+        assert all(isinstance(a, str) for a in self._cmd())
+
+    @pytest.mark.parametrize('kmin,kmax', [(0, 5), (4, 3), (-1, 2)])
+    def test_bad_k_range_rejected(self, kmin, kmax):
+        with pytest.raises(ValueError):
+            self._cmd(kmin=kmin, kmax=kmax)
+
+    def test_zero_runs_rejected(self):
+        with pytest.raises(ValueError):
+            self._cmd(nruns=0)
+
+
+# --------------------------------------------------------------------------
+# Parsing
+# --------------------------------------------------------------------------
+
+class TestParsePwm:
+    def test_reads_counts_shape_and_columns_sum_to_one(self, tmp_path):
+        p = tmp_path / 'PWM_K3_1.txt'
+        write_pwm(p, 2045)
+        pwm = modec.parse_pwm(p)
+        assert pwm['n_peptides'] == 2045
+        assert pwm['positions'] == 9
+        assert set(pwm['freq']) == set(modec.MODEC_AA_ORDER)
+        for pos in range(9):
+            assert sum(pwm['freq'][aa][pos] for aa in pwm['freq']) == pytest.approx(1.0, abs=1e-4)
+
+    def test_rejects_non_pwm_file(self, tmp_path):
+        p = tmp_path / 'x.txt'
+        p.write_text('hello\nworld\n')
+        with pytest.raises(ValueError):
+            modec.parse_pwm(p)
+
+    def test_rejects_wrong_amino_acid_rows(self, tmp_path):
+        p = tmp_path / 'PWM_K1_1.txt'
+        p.write_text('#\tn\t5\n\t1\t2\nA\t0.5\t0.5\nC\t0.5\t0.5\n')
+        with pytest.raises(ValueError):
+            modec.parse_pwm(p)
+
+
+class TestGibbsOrientation:
+    def test_transposes_to_positions_by_gibbs_amino_acid_order(self, tmp_path):
+        p = tmp_path / 'PWM_K1_1.txt'
+        write_pwm(p, 10, hot={('F', 0): 0.6, ('L', 8): 0.5})
+        rows = modec.pwm_as_gibbs_rows(modec.parse_pwm(p))
+        assert len(rows) == 9 and all(len(r) == 20 for r in rows)
+        assert rows[0][modec.GIBBS_AA_ORDER.index('F')] == pytest.approx(0.6, abs=1e-4)
+        assert rows[8][modec.GIBBS_AA_ORDER.index('L')] == pytest.approx(0.5, abs=1e-4)
+        # a row (position) is still a distribution
+        assert sum(rows[3]) == pytest.approx(1.0, abs=1e-3)
+
+    def test_orders_are_permutations_of_each_other(self):
+        assert sorted(modec.MODEC_AA_ORDER) == sorted(modec.GIBBS_AA_ORDER)
+
+
+class TestParseResponsibilitiesAndAic:
+    def test_best_pep_resp_types(self, tmp_path):
+        p = tmp_path / 'bestPepResp_K2.txt'
+        write_resp(p, [1, 2, 0])
+        rows = modec.parse_best_pep_resp(p)
+        assert [r['Motif_1st'] for r in rows] == [1, 2, 0]
+        assert isinstance(rows[0]['resp_1st'], float)
+        assert isinstance(rows[0]['Length'], int)
+        assert rows[0]['Core_1st'] == 'PEPTIDEXY'
+
+    def test_aic_sorted_and_suggested_k_is_lowest(self, tmp_path):
+        p = tmp_path / 'nMotScores_K1-3.txt'
+        p.write_text('n\tlogL\tlogL/n\tAIC\n3\t1\t1\t-10443\n1\t1\t1\t-6954\n2\t1\t1\t-10505\n')
+        rows = modec.parse_aic(p)
+        assert [r['n'] for r in rows] == [1, 2, 3]
+        assert modec.suggested_k(rows) == 2
+
+    def test_suggested_k_none_when_empty(self):
+        assert modec.suggested_k([]) is None
+
+
+class TestCollectResults:
+    def test_assembles_all_ks(self, tmp_path):
+        make_output_tree(str(tmp_path / 'out'), kmax=3)
+        res = modec.collect_results(str(tmp_path / 'out'))
+        assert list(res['k']) == [1, 2, 3]
+        assert res['suggested_k'] == 2
+        assert set(res['k'][3]['motifs']) == {'1', '2', '3', 'flat'}
+
+    def test_assignment_counts_match_pwm_headers(self, tmp_path):
+        """MoDec's per-motif peptide count in the PWM header equals the number of
+        peptides whose best motif it is (verified on real output)."""
+        make_output_tree(str(tmp_path / 'out'), kmax=3)
+        res = modec.collect_results(str(tmp_path / 'out'))
+        for k, entry in res['k'].items():
+            counts = {}
+            for row in entry['assignments']:
+                counts[str(row['Motif_1st'])] = counts.get(str(row['Motif_1st']), 0) + 1
+            for motif_id, pwm in entry['motifs'].items():
+                key = '0' if motif_id == 'flat' else motif_id
+                assert counts[key] == pwm['n_peptides'], (k, motif_id)
+
+    def test_missing_summary_raises(self, tmp_path):
+        os.makedirs(tmp_path / 'out' / 'PWMs')
+        os.makedirs(tmp_path / 'out' / 'Responsibilities')
+        os.makedirs(tmp_path / 'out' / 'Summary')
+        with pytest.raises(FileNotFoundError):
+            modec.collect_results(str(tmp_path / 'out'))
+
+
+# --------------------------------------------------------------------------
+# CPU detection
+# --------------------------------------------------------------------------
+
+class TestAvailableCpus:
+    def test_cgroup_v2_quota_caps_cpu_count(self, tmp_path):
+        (tmp_path / 'cpu.max').write_text('800000 100000\n')
+        assert modec._cgroup_cpu_quota(str(tmp_path)) == 8.0
+        assert modec.available_cpus(str(tmp_path)) <= 8
+
+    def test_cgroup_v2_unlimited(self, tmp_path):
+        (tmp_path / 'cpu.max').write_text('max 100000\n')
+        assert modec._cgroup_cpu_quota(str(tmp_path)) is None
+
+    def test_cgroup_v1_quota(self, tmp_path):
+        d = tmp_path / 'cpu'
+        d.mkdir()
+        (d / 'cpu.cfs_quota_us').write_text('400000\n')
+        (d / 'cpu.cfs_period_us').write_text('100000\n')
+        assert modec._cgroup_cpu_quota(str(tmp_path)) == 4.0
+
+    def test_no_cgroup_files_means_no_quota(self, tmp_path):
+        assert modec._cgroup_cpu_quota(str(tmp_path)) is None
+
+    def test_fractional_quota_rounds_up_and_floor_is_one(self, tmp_path):
+        (tmp_path / 'cpu.max').write_text('50000 100000\n')
+        assert modec.available_cpus(str(tmp_path)) == 1
+
+    def test_never_exceeds_host_count(self):
+        assert 1 <= modec.available_cpus('/nonexistent') <= (os.cpu_count() or 1)
+
+
+# --------------------------------------------------------------------------
+# Runner
+# --------------------------------------------------------------------------
+
+@POSIX_ONLY
+class TestRunModec:
+    def test_success(self, tmp_path):
+        out = tmp_path / 'img' / 'modec' / 'rep'
+        modec.run_modec([sys.executable, '-c', 'pass'], str(out), 30)
+
+    def test_nonzero_exit_raises_with_stderr(self, tmp_path):
+        with pytest.raises(RuntimeError, match='boom'):
+            modec.run_modec(
+                [sys.executable, '-c', 'import sys; sys.stderr.write("boom"); sys.exit(3)'],
+                str(tmp_path / 'o' / 'rep'), 30)
+
+    def test_existing_output_folder_refused(self, tmp_path):
+        out = tmp_path / 'rep'
+        out.mkdir()
+        with pytest.raises(FileExistsError):
+            modec.run_modec([sys.executable, '-c', 'pass'], str(out), 30)
+
+    def test_timeout_kills_the_whole_process_group(self, tmp_path):
+        """The regression this guards: a timeout must also kill grandchildren, or
+        they outlive the job (the orphaned-GibbsCluster incident)."""
+        pidfile = tmp_path / 'child.pid'
+        parent = (
+            'import subprocess, sys, time\n'
+            f'c = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])\n'
+            f'open({str(pidfile)!r}, "w").write(str(c.pid))\n'
+            'time.sleep(60)\n'
+        )
+        with pytest.raises(TimeoutError):
+            modec.run_modec([sys.executable, '-c', parent], str(tmp_path / 'o' / 'rep'), 2)
+        child_pid = int(pidfile.read_text())
+        for _ in range(50):  # allow the kernel a moment to reap
+            try:
+                os.kill(child_pid, 0)
+            except ProcessLookupError:
+                break
+            time.sleep(0.1)
+        else:
+            pytest.fail('grandchild survived the timeout')
+
+
+@POSIX_ONLY
+class TestRunJob:
+    def _cfg(self, binary):
+        return types.SimpleNamespace(
+            MODEC_BIN=str(binary), MODEC_KMIN=1, MODEC_KMAX=2, MODEC_NRUNS=1,
+            MODEC_TIME_LIMIT_SECONDS=30)
+
+    def _job(self, tmp_path, reps=('a', 'b')):
+        data = tmp_path / 'data'
+        sample = data / 'task1' / 'S1'
+        sample.mkdir(parents=True)
+        for r in reps:
+            (sample / f'{r}{modec.INPUT_SUFFIX}').write_text('PEPTIDEPEPTIDE\n')
+            (sample / f'{r}.csv').write_text('Peptide\nPEPTIDEPEPTIDE\n')  # must be ignored
+        return str(data), str(tmp_path / 'images')
+
+    def test_unavailable_binary_fails_loudly(self, tmp_path):
+        data, images = self._job(tmp_path)
+        with pytest.raises(RuntimeError, match='not installed'):
+            modec.run_job('task1', data, 9, 'Human', cfg=self._cfg(tmp_path / 'nope'), images_root=images)
+
+    def test_runs_every_replicate_under_the_job_dir(self, tmp_path):
+        binary = tmp_path / 'fake_modec'
+        make_fake_binary(binary, 'import os, sys\n'
+                                 'out = sys.argv[sys.argv.index("-o") + 1]\n'
+                                 'os.makedirs(out)\n'
+                                 'open(os.path.join(out, "done"), "w").write("ok")\n')
+        data, images = self._job(tmp_path)
+        modec.run_job('task1', data, 9, 'Human', cfg=self._cfg(binary), images_root=images)
+        for rep in ('a', 'b'):
+            out = os.path.join(images, 'task1', 'S1', modec.MODEC_DIRNAME, rep)
+            assert os.path.isfile(os.path.join(out, 'done'))
+            # all output sits under <images>/<taskId>/ so retention cleanup covers it
+            assert os.path.realpath(out).startswith(os.path.realpath(os.path.join(images, 'task1')) + os.sep)
+
+    def test_failure_names_the_replicate(self, tmp_path):
+        binary = tmp_path / 'fake_modec'
+        make_fake_binary(binary, 'import sys\nsys.stderr.write("bad input")\nsys.exit(2)')
+        data, images = self._job(tmp_path, reps=('a',))
+        with pytest.raises(RuntimeError, match=r'S1/a.*bad input'):
+            modec.run_job('task1', data, 9, 'Human', cfg=self._cfg(binary), images_root=images)
+
+    def test_no_input_files_is_an_error(self, tmp_path):
+        binary = tmp_path / 'fake_modec'
+        make_fake_binary(binary, 'pass')
+        data = tmp_path / 'data'
+        (data / 'task1' / 'S1').mkdir(parents=True)
+        with pytest.raises(RuntimeError, match='No'):
+            modec.run_job('task1', str(data), 9, 'Human', cfg=self._cfg(binary), images_root=str(tmp_path / 'i'))
+
+
+class TestModecAvailable:
+    def test_missing_path(self, tmp_path):
+        assert not modec.modec_available(str(tmp_path / 'nope'))
+        assert not modec.modec_available('')
+        assert not modec.modec_available(None)
+
+    @POSIX_ONLY
+    def test_non_executable_file(self, tmp_path):
+        f = tmp_path / 'MoDec_unix'
+        f.write_text('x')
+        f.chmod(0o644)
+        assert not modec.modec_available(str(f))
+        f.chmod(0o755)
+        assert modec.modec_available(str(f))

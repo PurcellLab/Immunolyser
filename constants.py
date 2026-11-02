@@ -54,3 +54,40 @@ class MHC_Class:
 
 APP_VERSION = "2.2.0"
 APP_VERSION_DATE = "May 2026"
+
+class ClusteringMethod:
+    """Motif-clustering step run on the n-mer peptides of a job.
+
+    GibbsCluster is the long-standing default for both classes. MoDec (Gfeller
+    Lab, Racle et al. 2019) is offered for MHC class II only, as an alternative
+    that replaces GibbsCluster for that job. The value is persisted per job in
+    clustering_method.txt next to mhcclass.txt; a job without that file predates
+    MoDec and is, by definition, a GibbsCluster job.
+    """
+    GIBBS = "gibbscluster"
+    MODEC = "modec"
+    DEFAULT = GIBBS
+
+    DISPLAY_NAMES = {
+        GIBBS: "GibbsCluster 2.0",
+        MODEC: "MoDec 1.2",
+    }
+
+    # Which methods may be chosen for which MHC class. Single source of truth
+    # for the submit-form options, the server-side check in /initialiser and the
+    # report page, so a new method is added here and nowhere else.
+    ALLOWED_BY_CLASS = {
+        MHC_Class.One: (GIBBS,),
+        MHC_Class.Two: (GIBBS, MODEC),
+    }
+
+    @classmethod
+    def normalise(cls, value):
+        """Map missing/blank input to the default; return anything else unchanged
+        (validation is is_allowed's job, so a bad value is rejected, not coerced)."""
+        value = (value or "").strip().lower()
+        return value or cls.DEFAULT
+
+    @classmethod
+    def is_allowed(cls, method, mhc_class):
+        return method in cls.ALLOWED_BY_CLASS.get(mhc_class, ())

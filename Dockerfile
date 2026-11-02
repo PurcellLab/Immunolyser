@@ -121,6 +121,31 @@ RUN wget -q https://github.com/GfellerLab/MixMHC2pred/releases/download/v2.1.bet
   && chmod +x app/tools/MixMHC2pred-2.0/MixMHC2pred_unix \
   && rm /tmp/mixmhc2pred.zip
 
+# ── Layer 7b: MoDec (class II motif deconvolution, optional) ────────────────
+# Binary-only, free for ACADEMIC NON-COMMERCIAL use under an LICR licence
+# (https://github.com/GfellerLab/MoDec/blob/v1.2.1/LICENSE). We must not
+# redistribute it, so it is fetched here at build time rather than committed, and
+# the licence requires every user of a server running it to have agreed to the
+# terms — hence the required tick box on the submit form when MoDec is chosen.
+#
+# Unlike the licensed DTU tools this download needs no manual step, but a failed
+# download (offline build, GitHub outage) must not break the whole image: it only
+# warns, and the app then hides the MoDec option (config.MODEC_BIN is absent).
+# A CHECKSUM MISMATCH, on the other hand, fails the build — a fetched binary that
+# differs from the one we reviewed should never silently end up in the image.
+# The Linux binary is byte-identical in v1.2, v1.2.1 and master; the tag is pinned
+# so a future upstream change cannot slip in. Update MODEC_SHA256 deliberately.
+ARG MODEC_TAG=v1.2.1
+ARG MODEC_SHA256=b647bd192b8513f22c78eea1da25b9af5196f1f4b63ccd69a130962f3983031a
+RUN mkdir -p app/tools/MoDec \
+  && if wget -q "https://raw.githubusercontent.com/GfellerLab/MoDec/${MODEC_TAG}/MoDec_unix" -O app/tools/MoDec/MoDec_unix; then \
+       echo "${MODEC_SHA256}  app/tools/MoDec/MoDec_unix" | sha256sum -c - \
+       && chmod +x app/tools/MoDec/MoDec_unix; \
+     else \
+       rm -f app/tools/MoDec/MoDec_unix; \
+       echo "WARNING: could not download MoDec ${MODEC_TAG} — the MoDec option will be unavailable"; \
+     fi
+
 # ── Layer 8: HLA-PepClust (MHC-TP) ─────────────────────────────────────────
 # Clone into HLA-PepClust/ — this directory name is hardcoded in app/utils.py
 RUN git clone --depth 1 --branch immunolyser/class2-mhctp \
