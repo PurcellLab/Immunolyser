@@ -363,6 +363,16 @@ class TestReportData:
         motif = modec.report_data(images, 'job1', {'S1': ['repA']})['S1']['repA']['k'][2][0]
         assert motif['image'] == 'images/job1/S1/modec/repA/logos/modec_logos_1of2-001.jpg'
 
+    def test_aic_plot_path_when_present_and_none_when_not(self, tmp_path):
+        images = self._tree(tmp_path)
+        rep = modec.report_data(images, 'job1', {'S1': ['repA']})['S1']['repA']
+        assert rep['aic_plot'] is None
+        plot = os.path.join(images, 'job1', 'S1', modec.MODEC_DIRNAME, 'repA', modec.AIC_PLOT_FILENAME)
+        with open(plot, 'wb') as f:
+            f.write(b'x')
+        rep = modec.report_data(images, 'job1', {'S1': ['repA']})['S1']['repA']
+        assert rep['aic_plot'] == 'images/job1/S1/modec/repA/aic_plot.png'
+
     def test_missing_logo_is_none_not_an_error(self, tmp_path):
         images = self._tree(tmp_path, with_logos=False)
         motifs = modec.report_data(images, 'job1', {'S1': ['repA']})['S1']['repA']['k'][1]
@@ -373,6 +383,28 @@ class TestReportData:
         data = modec.report_data(images, 'job1', {'S1': ['repA', 'repB'], 'S2': ['x']})
         assert list(data['S1']) == ['repA']
         assert 'S2' not in data
+
+
+class TestAicPlot:
+    def test_writes_a_png_next_to_the_results(self, tmp_path):
+        pytest.importorskip('matplotlib')
+        out = str(tmp_path / 'out')
+        make_output_tree(out, kmax=3)
+        path = modec.render_aic_plot(out)
+        assert path == os.path.join(out, modec.AIC_PLOT_FILENAME)
+        with open(path, 'rb') as f:
+            assert f.read(8)[1:4] == b'PNG'  # PNG signature
+
+    def test_missing_summary_raises(self, tmp_path):
+        pytest.importorskip('matplotlib')
+        os.makedirs(tmp_path / 'out' / 'Summary')
+        with pytest.raises(FileNotFoundError):
+            modec.render_aic_plot(str(tmp_path / 'out'))
+
+    def test_read_aic_matches_collect_results(self, tmp_path):
+        out = str(tmp_path / 'out')
+        make_output_tree(out, kmax=3)
+        assert modec.read_aic(out) == modec.collect_results(out)['aic']
 
 
 class TestLogoTable:
@@ -435,6 +467,7 @@ class TestRunJob:
     def _no_logos(self, monkeypatch):
         # The fake binary writes no PWMs; logo rendering has its own tests above.
         monkeypatch.setattr(modec, 'render_logos', lambda out_dir, **kw: 0)
+        monkeypatch.setattr(modec, 'render_aic_plot', lambda out_dir: None)
 
     def _cfg(self, binary):
         return types.SimpleNamespace(

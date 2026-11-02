@@ -69,6 +69,21 @@ class TestSectionPartial:
         assert hidden == {'1', '3'}
         assert 'selected' in html and '(lowest AIC)' in html
 
+    def test_graph_shown_beside_logos_when_available(self, job):
+        plot = os.path.join(job['rep'], modec.AIC_PLOT_FILENAME)
+        with open(plot, 'wb') as f:
+            f.write(b'x')
+        html = _render(job)
+        assert 'alt="AIC by number of motifs"' in html
+        assert 'aic_plot.png' in html
+        assert 'K=2: AIC' in html          # values are in the tooltip
+        assert '<th>AIC</th>' not in html  # table is only the fallback
+
+    def test_table_fallback_for_jobs_without_a_graph(self, job):
+        html = _render(job)
+        assert 'alt="AIC by number of motifs"' not in html
+        assert '<th>AIC</th>' in html
+
     def test_attribution_and_licence_credit_present(self, job):
         html = _render(job)
         assert 'Racle' in html

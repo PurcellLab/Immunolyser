@@ -17,7 +17,7 @@
         <b>MoDec</b> after removal of peptides labelled as <code>#CONTAM</code> or <code>#DECOY</code>, PTMs and resulting duplicates.
         The analysis uses 12&ndash;20-mers (duplicates removed). MoDec finds the motifs and the binding core of every peptide without prior alignment,
         and also fits one <em>flat</em> motif that absorbs peptides that fit no specific motif (often contaminants).
-        Choose how many motifs to show per replicate; the number with the lowest AIC is shown first, but AIC is only a guide, so please inspect the motifs.
+        Choose how many motifs to show per replicate; the number with the lowest AIC (marked on the graph) is shown first, but AIC is only a guide, so please inspect the motifs.
         The percentage under each logo is the share of peptides whose best-matching motif it is.
         MHC-TP allotype prediction is not available for MoDec results yet.
         <br><small>MoDec: Racle <i>et al.</i>, <i>Nat Biotechnol</i> 2019;37:1283&ndash;1286. MoDec was made available through the generosity of the Ludwig Institute for Cancer Research Ltd, for academic non-commercial research use.</small></p>
@@ -40,6 +40,9 @@
                     </select>
                 </div>
 
+                {# The AIC graph sits beside the logos (like the Gibbs bar plot). Jobs run before
+                   the graph existed have no image; they fall back to the plain table. #}
+                {% if not rep.aic_plot %}
                 <table class="table table-sm" style="width: auto; margin-top: 8px; font-size: 0.85em;">
                     <thead><tr><th>Motifs (K)</th><th>Log-likelihood</th><th>AIC</th></tr></thead>
                     <tbody>
@@ -52,10 +55,17 @@
                         {% endfor %}
                     </tbody>
                 </table>
+                {% endif %}
 
                 {% for k, motifs in rep.k.items() %}
                     <div class="modec-k gibbs-cluster-row your-class" data-k="{{ k }}"
                          {% if k != rep.suggested_k %}style="display: none;"{% endif %}>
+                        {% if rep.aic_plot %}
+                            <div class="image-container">
+                                <img src="{{ modec_img(rep.aic_plot) }}" alt="AIC by number of motifs" width="100%"
+                                     title="{% for row in rep.aic %}K={{ row.n }}: AIC {{ '%.1f'|format(row.AIC) }}{% if not loop.last %}; {% endif %}{% endfor %}">
+                            </div>
+                        {% endif %}
                         {% for motif in motifs %}
                             <div class="image-container">
                                 {% if motif.image %}

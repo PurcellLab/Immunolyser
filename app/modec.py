@@ -237,6 +237,15 @@ def parse_aic(path):
     return sorted(out, key=lambda r: r['n'])
 
 
+def read_aic(out_dir):
+    """The AIC table of one replicate's MoDec output folder (see parse_aic)."""
+    summary_dir = os.path.join(out_dir, 'Summary')
+    aic_files = sorted(f for f in os.listdir(summary_dir) if f.startswith('nMotScores'))
+    if not aic_files:
+        raise FileNotFoundError(f'no nMotScores file in {summary_dir}')
+    return parse_aic(os.path.join(summary_dir, aic_files[0]))
+
+
 def suggested_k(aic_rows):
     """K with the lowest AIC (None if there are no scores)."""
     return min(aic_rows, key=lambda r: r['AIC'])['n'] if aic_rows else None
@@ -253,10 +262,7 @@ def collect_results(out_dir):
     resp_dir = os.path.join(out_dir, 'Responsibilities')
     summary_dir = os.path.join(out_dir, 'Summary')
 
-    aic_files = sorted(f for f in os.listdir(summary_dir) if f.startswith('nMotScores'))
-    if not aic_files:
-        raise FileNotFoundError(f'no nMotScores file in {summary_dir}')
-    aic = parse_aic(os.path.join(summary_dir, aic_files[0]))
+    aic = read_aic(out_dir)
 
     by_k = {}
     for fname in sorted(os.listdir(pwm_dir)):
@@ -312,6 +318,52 @@ def build_logo_command(table_path, out_prefix, title, seq2logo=SEQ2LOGO_SCRIPT, 
     """
     return [python, seq2logo, '-f', table_path, '-o', out_prefix,
             '-I', '1', '-S', '2', '--format', '[JPEG]', '-t', title]
+
+
+AIC_PLOT_FILENAME = 'aic_plot.png'
+
+
+def render_aic_plot(out_dir):
+    """Draw AIC against the number of motifs for one replicate (the MoDec counterpart
+    of GibbsCluster's KLD bar plot: it is what you look at to choose how many motifs
+    to show). Lower AIC is better; the lowest is marked. Drawn here, as an image,
+    so the offline export can inline it like every other figure.
+
+    Returns the path written. matplotlib is imported lazily with the headless
+    backend so importing this module stays cheap and display-free.
+    """
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+
+    rows = read_aic(out_dir)
+    best = suggested_k(rows)
+    ks = [r['n'] for r in rows]
+    aics = [r['AIC'] for r in rows]
+
+    fig, ax = plt.subplots(figsize=(5, 4), dpi=100)
+    ax.plot(ks, aics, marker='o', color='#4a6fa5', linewidth=2, zorder=2)
+    for r in rows:
+        is_best = r['n'] == best
+        if is_best:
+            ax.scatter([r['n']], [r['AIC']], s=170, color='#2e8b57', zorder=3)
+        ax.annotate(f"{r['AIC']:.0f}", (r['n'], r['AIC']), textcoords='offset points',
+                    xytext=(0, 10), ha='center', fontsize=8,
+                    fontweight='bold' if is_best else 'normal')
+    ax.set_xticks(ks)
+    ax.set_xlabel('Number of motifs (K)')
+    ax.set_ylabel('AIC (lower is better)')
+    ax.set_title(f'MoDec model selection: lowest AIC at K={best}', fontsize=10)
+    ax.margins(y=0.15)
+    ax.grid(axis='y', alpha=0.3)
+    for side in ('top', 'right'):
+        ax.spines[side].set_visible(False)
+    fig.tight_layout()
+
+    path = os.path.join(out_dir, AIC_PLOT_FILENAME)
+    fig.savefig(path)
+    plt.close(fig)
+    return path
 
 
 def render_logos(out_dir, time_limit=120, seq2logo=SEQ2LOGO_SCRIPT, python=SEQ2LOGO_PYTHON):
@@ -408,8 +460,11 @@ def report_data(images_root, task_id, replicates_by_sample):
                         'image': rel.replace(os.sep, '/') if rel else None,
                     })
                 by_k[k] = motifs
+            plot = os.path.join(rep_dir, AIC_PLOT_FILENAME)
+            plot_rel = os.path.relpath(plot, os.path.join(images_root, os.pardir)) if os.path.isfile(plot) else None
             out.setdefault(sample, {})[stem] = {
-                'aic': res['aic'], 'suggested_k': res['suggested_k'], 'k': by_k}
+                'aic': res['aic'], 'suggested_k': res['suggested_k'], 'k': by_k,
+                'aic_plot': plot_rel.replace(os.sep, '/') if plot_rel else None}
     return out
 
 
@@ -471,6 +526,7 @@ def run_job(task_id, data_mount, motif_length, species, cfg=None, images_root=No
         print('MoDec command:', ' '.join(cmd), flush=True)
         run_modec(cmd, out_dir, cfg.MODEC_TIME_LIMIT_SECONDS)
         render_logos(out_dir)
+        render_aic_plot(out_dir)
         return label
 
     errors = []
