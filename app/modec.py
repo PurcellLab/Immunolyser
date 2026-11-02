@@ -13,6 +13,7 @@ binary) and a python3 shim that `submit_job` calls as a subprocess:
 import csv
 import math
 import os
+import shutil
 import signal
 import subprocess
 import sys
@@ -396,6 +397,158 @@ def render_logos(out_dir, time_limit=120, seq2logo=SEQ2LOGO_SCRIPT, python=SEQ2L
 
 
 # --------------------------------------------------------------------------
+# MHC-TP input (allotype prediction for MoDec motifs)
+# --------------------------------------------------------------------------
+#
+# MHC-TP (clust-search) reads a GibbsCluster-shaped folder: matrices/gibbs.<i>of<K>.mat,
+# images/gibbs.KLDvsClusters.tab and logos/*<i>of<K>*.jpg. The logos we already have
+# (their file names contain the <i>of<K> id it matches on); the other two are written
+# here so MHC-TP runs on MoDec output unchanged. The cluster id it reports is read
+# from the second dot-field of the matrix file name, hence the "gibbs." prefix.
+#
+# A GibbsCluster .mat is a log-odds PSSM in HALFBITS (2*log2(p/background)), and MHC-TP
+# correlates it against reference motifs of that same kind. MoDec's PWMs are
+# frequencies, so they are converted; correlating raw frequencies against halfbit
+# scores would compare a linear with a log scale.
+
+MHCTP_MATRIX_DIRNAME = 'matrices'
+MHCTP_IMAGES_DIRNAME = 'images'
+MHCTP_KLD_FILENAME = 'gibbs.KLDvsClusters.tab'
+
+# UniProtKB/Swiss-Prot amino-acid composition (%), used as the background. GibbsCluster
+# bakes its own pre-calculated UniProt background into its binary, so it cannot be
+# reused as a file; these published values are the closest stand-in.
+BACKGROUND_PERCENT = {
+    'A': 8.25, 'R': 5.53, 'N': 4.06, 'D': 5.45, 'C': 1.37, 'Q': 3.93, 'E': 6.75,
+    'G': 7.07, 'H': 2.27, 'I': 5.96, 'L': 9.66, 'K': 5.84, 'M': 2.42, 'F': 3.86,
+    'P': 4.70, 'S': 6.56, 'T': 5.34, 'W': 1.08, 'Y': 2.92, 'V': 6.87,
+}
+# GibbsCluster PSSMs bottom out near -7.5 halfbits (its pseudocounts keep rare residues
+# off zero). An unfloored log of a near-zero MoDec frequency would reach about -17 and
+# dominate the per-position Pearson correlation MHC-TP averages.
+HALFBIT_FLOOR = -8.0
+
+
+def background_frequencies():
+    """Background amino-acid frequencies, normalised to sum to 1."""
+    total = sum(BACKGROUND_PERCENT.values())
+    return {aa: v / total for aa, v in BACKGROUND_PERCENT.items()}
+
+
+def pwm_to_halfbit_rows(pwm):
+    """Per position, 20 log-odds scores in halfbits in GIBBS_AA_ORDER, floored."""
+    bg = background_frequencies()
+    rows = []
+    for pos in range(pwm['positions']):
+        rows.append([
+            max(HALFBIT_FLOOR, 2 * math.log2(max(pwm['freq'][aa][pos], 1e-12) / bg[aa]))
+            for aa in GIBBS_AA_ORDER
+        ])
+    return rows
+
+
+def pwm_kld(pwm):
+    """Kullback-Leibler divergence (bits) of a motif from the background, summed over
+    positions: the quantity GibbsCluster reports per group and MHC-TP displays."""
+    bg = background_frequencies()
+    total = 0.0
+    for pos in range(pwm['positions']):
+        for aa in GIBBS_AA_ORDER:
+            p = pwm['freq'][aa][pos]
+            if p > 0:
+                total += p * math.log2(p / bg[aa])
+    return total
+
+
+def halfbit_matrix_text(pwm):
+    """A GibbsCluster-style .mat: comment line, amino-acid header, then one row per
+    position as '<pos> <consensus> <20 scores>'."""
+    lines = ['Last position-specific scoring matrix computed, values are in halfbits',
+             ' '.join(GIBBS_AA_ORDER)]
+    for pos, scores in enumerate(pwm_to_halfbit_rows(pwm), start=1):
+        consensus = GIBBS_AA_ORDER[scores.index(max(scores))]
+        lines.append(f'{pos} {consensus} ' + ' '.join(f'{v:.3f}' for v in scores))
+    return '\n'.join(lines) + '\n'
+
+
+def kld_table_text(results, groups=6):
+    """gibbs.KLDvsClusters.tab: a header of group numbers, then one row per motif count
+    K as 'K<TAB>kld_of_group_1<TAB>...' padded with zeros to `groups` columns."""
+    lines = ['\t'.join(str(g) for g in range(1, groups + 1))]
+    for k, entry in results['k'].items():
+        klds = [pwm_kld(entry['motifs'][str(i)]) for i in range(1, k + 1) if str(i) in entry['motifs']]
+        klds += [0] * (groups - len(klds))
+        lines.append('\t'.join([str(k)] + [f'{v:.6g}' for v in klds[:groups]]))
+    return '\n'.join(lines) + '\n'
+
+
+def write_mhctp_inputs(out_dir):
+    """Write the matrices and KLD table MHC-TP needs into one replicate's MoDec folder.
+
+    The flat (contaminant) motif is not written: it is not a binding motif and would
+    only produce meaningless allotype matches. Returns the number of matrices written.
+    """
+    results = collect_results(out_dir)
+    matrix_dir = os.path.join(out_dir, MHCTP_MATRIX_DIRNAME)
+    images_dir = os.path.join(out_dir, MHCTP_IMAGES_DIRNAME)
+    os.makedirs(matrix_dir, exist_ok=True)
+    os.makedirs(images_dir, exist_ok=True)
+
+    written = 0
+    for k, entry in results['k'].items():
+        for motif_id, pwm in entry['motifs'].items():
+            if motif_id == 'flat':
+                continue
+            with open(os.path.join(matrix_dir, f'gibbs.{motif_id}of{k}.mat'), 'w') as f:
+                f.write(halfbit_matrix_text(pwm))
+            written += 1
+    with open(os.path.join(images_dir, MHCTP_KLD_FILENAME), 'w') as f:
+        f.write(kld_table_text(results))
+    return written
+
+
+# --------------------------------------------------------------------------
+# Raw-results export
+# --------------------------------------------------------------------------
+
+# Where a job's downloadable files live. zip_job_exports() zips this folder for the
+# "Download Data (ZIP)" link, and it sits under the job id, so the retention sweep
+# deletes it with the job.
+EXPORT_DIRNAME = 'export'
+EXPORT_SUBDIR = 'modec'
+
+
+def export_results(out_dir, export_dir):
+    """Copy what a user would want from one replicate's MoDec run into export_dir.
+
+    The PWMs, per-peptide responsibilities and AIC summary are MoDec's own results;
+    the log, the AIC graph and the logo images make the folder self-explanatory.
+    The logos' intermediate .eps/.txt/.mat files and the logo input tables are left
+    out. Returns the list of top-level entries written.
+    """
+    os.makedirs(export_dir, exist_ok=True)
+    written = []
+    for name in ('PWMs', 'Responsibilities', 'Summary'):
+        src = os.path.join(out_dir, name)
+        if os.path.isdir(src):
+            shutil.copytree(src, os.path.join(export_dir, name), dirs_exist_ok=True)
+            written.append(name)
+    for fname in sorted(os.listdir(out_dir)):
+        if fname.startswith('log_') or fname == AIC_PLOT_FILENAME:
+            shutil.copy2(os.path.join(out_dir, fname), os.path.join(export_dir, fname))
+            written.append(fname)
+    logo_src = os.path.join(out_dir, LOGO_DIRNAME)
+    if os.path.isdir(logo_src):
+        logo_dst = os.path.join(export_dir, LOGO_DIRNAME)
+        os.makedirs(logo_dst, exist_ok=True)
+        for fname in sorted(os.listdir(logo_src)):
+            if fname.endswith('.jpg'):
+                shutil.copy2(os.path.join(logo_src, fname), os.path.join(logo_dst, fname))
+        written.append(LOGO_DIRNAME)
+    return written
+
+
+# --------------------------------------------------------------------------
 # Report data (shared by the report page and the offline export)
 # --------------------------------------------------------------------------
 
@@ -527,6 +680,9 @@ def run_job(task_id, data_mount, motif_length, species, cfg=None, images_root=No
         run_modec(cmd, out_dir, cfg.MODEC_TIME_LIMIT_SECONDS)
         render_logos(out_dir)
         render_aic_plot(out_dir)
+        write_mhctp_inputs(out_dir)
+        sample, stem = label.split('/', 1)
+        export_results(out_dir, os.path.join(images_root, task_id, EXPORT_DIRNAME, EXPORT_SUBDIR, sample, stem))
         return label
 
     errors = []

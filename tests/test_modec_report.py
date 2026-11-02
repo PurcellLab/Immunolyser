@@ -105,6 +105,85 @@ class TestSectionPartial:
         assert 'No MoDec results were produced' in html
 
 
+def _write_corr_matrix(job, rows):
+    """A minimal MHC-TP corr_matrix.csv where the report looks for it."""
+    d = os.path.join(job['images'], TASK, 'S1', 'hla_clust_output', 'repA', 'corr-data')
+    os.makedirs(d)
+    with open(os.path.join(d, 'corr_matrix.csv'), 'w') as f:
+        f.write('Cluster,HLA,Correlation,KLD\n')
+        for cluster, hla, corr in rows:
+            f.write(f'{cluster},{hla},{corr},1.0\n')
+
+
+class TestMhctpPredictions:
+    ROWS = [('1of2', 'DRB1_0401', 0.50), ('1of2', 'DRB1_0101', 0.91), ('1of2', 'DRB4_0101', 0.77),
+            ('1of2', 'DRB1_1501', 0.10), ('2of2', 'DRB1_0301', 0.66)]
+
+    def _data(self, job, monkeypatch):
+        monkeypatch.chdir(job['root'])  # the lookup uses app/static/... relative to the cwd
+        _write_corr_matrix(job, self.ROWS)
+        data = modec.report_data(job['images'], TASK, {'S1': ['repA']})
+        return utils.attachModecPredictions(data, TASK)
+
+    def test_top_three_by_correlation_attached_to_the_right_motif(self, job, monkeypatch):
+        motifs = self._data(job, monkeypatch)['S1']['repA']['k'][2]
+        first = next(m for m in motifs if m['id'] == '1')
+        assert [p['hla'] for p in first['predictions']] == ['DRB1_0101', 'DRB4_0101', 'DRB1_0401']
+        assert first['predictions'][0]['score'] == 0.91
+        second = next(m for m in motifs if m['id'] == '2')
+        assert [p['hla'] for p in second['predictions']] == ['DRB1_0301']
+
+    def test_flat_motif_gets_no_prediction(self, job, monkeypatch):
+        motifs = self._data(job, monkeypatch)['S1']['repA']['k'][2]
+        assert next(m for m in motifs if m['is_flat'])['predictions'] is None
+
+    def test_motif_mhctp_has_no_result_for_is_none(self, job, monkeypatch):
+        # K=3 was not in the synthetic corr_matrix
+        motifs = self._data(job, monkeypatch)['S1']['repA']['k'][3]
+        assert all(m['predictions'] is None for m in motifs)
+
+    def test_missing_corr_matrix_is_not_an_error(self, job, monkeypatch):
+        monkeypatch.chdir(job['root'])
+        data = modec.report_data(job['images'], TASK, {'S1': ['repA']})
+        utils.attachModecPredictions(data, TASK)
+        assert all(m['predictions'] is None for m in data['S1']['repA']['k'][2])
+
+    def test_live_page_shows_the_prediction_rows(self, job, monkeypatch):
+        data = self._data(job, monkeypatch)
+        with flask_app.test_request_context():
+            from flask import render_template
+            html = render_template('includes/modec_section.html', modecData=data, taskId=TASK)
+        assert 'mhctp-predictions' in html and 'DRB1_0101' in html and 'top-match' in html
+
+    def test_offline_page_shows_plain_text_predictions(self, job, monkeypatch):
+        data = self._data(job, monkeypatch)
+        with flask_app.test_request_context():
+            from flask import render_template
+            html = render_template('includes/modec_section.html', modecData=data, taskId=TASK, image_map={})
+        assert '#1 DRB1_0101 (0.91)' in html
+        assert 'mhctp-predictions' not in html
+
+
+class TestRunHlaClustFolder:
+    def _run(self, job, monkeypatch, method):
+        import logging
+        seen = []
+        monkeypatch.setattr(utils, 'project_root', job['root'])
+        monkeypatch.setattr(utils, 'run_clust_search', lambda **kw: seen.append(kw['input_file']) or {})
+        utils.runHLAClust(TASK, {'S1': ['repA.csv']}, species='Human', mhcclass='II',
+                          logger=logging.getLogger('t'), clustering_method=method)
+        return seen
+
+    def test_moDec_jobs_read_the_modec_folder(self, job, monkeypatch):
+        from constants import ClusteringMethod
+        seen = self._run(job, monkeypatch, ClusteringMethod.MODEC)
+        assert seen and seen[0].endswith(os.path.join('S1', 'modec', 'repA'))
+
+    def test_default_reads_the_gibbscluster_folder(self, job, monkeypatch):
+        seen = self._run(job, monkeypatch, None)
+        assert seen and seen[0].endswith(os.path.join('S1', 'gibbscluster', 'repA'))
+
+
 class TestDownloadRoute:
     def _get(self, client, k, motif, sample='S1', replicate='repA', task=TASK):
         return client.get(f'/download_modec_core/{task}/{sample}/{replicate}/{k}/{motif}')

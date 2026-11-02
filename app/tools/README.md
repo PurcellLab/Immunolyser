@@ -39,6 +39,16 @@ separate licence from LICR (contact in the MoDec README).
   server-side and recorded per job. Keep that if you host this publicly.
 - No R packages are needed: we render the motif logos ourselves from MoDec's PWM files
   and do not use MoDec's own `--makeReport` HTML report.
+- **MHC-TP runs on MoDec output unchanged.** MHC-TP reads a GibbsCluster-shaped folder, so
+  `app/modec.py` writes `matrices/gibbs.<i>of<K>.mat` and `images/gibbs.KLDvsClusters.tab`
+  into each replicate's MoDec folder (the logos it also needs are already there). A
+  GibbsCluster matrix is a log-odds PSSM in halfbits, so MoDec's frequency PWMs are
+  converted (`2*log2(p/background)` against UniProt/Swiss-Prot frequencies, floored at
+  -8 as GibbsCluster's own matrices are). On the same 1,500 HLA-II peptides MoDec and
+  GibbsCluster give the same allotype families (DRB1*04, DRB1*01, DRB4) at comparable
+  correlations. The flat motif is not submitted to MHC-TP. The reference data for class II
+  (`Gibbs_motifs_*_classII`, `*_classii.db`, a warmed `numba_cache`) must be in
+  `HLA_PEPCLUST_REF_DATA`, as for GibbsCluster jobs.
 - To use another build, set `MODEC_BIN` in `.env`.
 
 ## Licensed tools — you must download these before building

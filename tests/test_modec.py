@@ -4,6 +4,7 @@ and the process-group-safe runner (app/modec.py).
 Fixtures are synthetic files in MoDec's exact output format (checked against a
 real run on the tool's own HLA-II test set) so no third-party output is committed.
 """
+import math
 import os
 import stat
 import sys
@@ -407,6 +408,120 @@ class TestAicPlot:
         assert modec.read_aic(out) == modec.collect_results(out)['aic']
 
 
+class TestMhctpAdapter:
+    def _pwm(self, tmp_path, **kw):
+        p = tmp_path / 'PWM_K1_1.txt'
+        write_pwm(p, 10, **kw)
+        return modec.parse_pwm(p)
+
+    def test_background_sums_to_one_and_covers_all_residues(self):
+        bg = modec.background_frequencies()
+        assert set(bg) == set(modec.GIBBS_AA_ORDER)
+        assert sum(bg.values()) == pytest.approx(1.0)
+
+    def test_halfbits_are_log_odds_against_the_background(self, tmp_path):
+        pwm = self._pwm(tmp_path, hot={('F', 0): 0.6})
+        rows = modec.pwm_to_halfbit_rows(pwm)
+        assert len(rows) == 9 and all(len(r) == 20 for r in rows)
+        f = modec.GIBBS_AA_ORDER.index('F')
+        bg_f = modec.background_frequencies()['F']
+        assert rows[0][f] == pytest.approx(2 * math.log2(0.6 / bg_f), abs=1e-3)
+        assert rows[0][f] > 0  # enriched over background
+
+    def test_scores_are_floored(self, tmp_path):
+        pwm = self._pwm(tmp_path, hot={('F', 0): 0.99999})
+        assert min(min(r) for r in modec.pwm_to_halfbit_rows(pwm)) >= modec.HALFBIT_FLOOR
+
+    def test_matrix_text_matches_what_mhctp_parses(self, tmp_path):
+        """MHC-TP finds the header line by its amino-acid string and reads each data row
+        as '<pos> <letter> <20 numbers>'."""
+        pwm = self._pwm(tmp_path, hot={('F', 0): 0.6})
+        lines = modec.halfbit_matrix_text(pwm).strip().split('\n')
+        assert 'halfbits' in lines[0]
+        assert 'A R N D C Q E G H I L K M F P S T W Y V' in lines[1]
+        data = [ln.split() for ln in lines[2:]]
+        assert len(data) == 9
+        for pos, parts in enumerate(data, start=1):
+            assert len(parts) == 22 and parts[0] == str(pos)
+            [float(x) for x in parts[2:]]
+        assert data[0][1] == 'F'  # consensus letter of position 1
+
+    def test_kld_is_zero_for_background_and_positive_for_a_motif(self, tmp_path):
+        bg = modec.background_frequencies()
+        flat = {'positions': 2, 'freq': {aa: [bg[aa]] * 2 for aa in modec.GIBBS_AA_ORDER}}
+        assert modec.pwm_kld(flat) == pytest.approx(0.0, abs=1e-9)
+        assert modec.pwm_kld(self._pwm(tmp_path, hot={('F', 0): 0.6})) > 0
+
+    def test_kld_table_layout(self, tmp_path):
+        out = str(tmp_path / 'out')
+        make_output_tree(out, kmax=3)
+        lines = modec.kld_table_text(modec.collect_results(out)).strip().split('\n')
+        assert lines[0].split('\t') == ['1', '2', '3', '4', '5', '6']
+        rows = [ln.split('\t') for ln in lines[1:]]
+        assert [r[0] for r in rows] == ['1', '2', '3']
+        assert all(len(r) == 7 for r in rows)              # K + six groups
+        assert [float(x) for x in rows[0][2:]] == [0.0] * 5  # groups 2-6 are padding for K=1
+
+    def test_writes_matrices_for_real_motifs_only(self, tmp_path):
+        out = str(tmp_path / 'out')
+        make_output_tree(out, kmax=3)
+        n = modec.write_mhctp_inputs(out)
+        names = sorted(os.listdir(os.path.join(out, modec.MHCTP_MATRIX_DIRNAME)))
+        assert n == 1 + 2 + 3 == len(names)
+        assert 'gibbs.2of3.mat' in names and 'gibbs.1of1.mat' in names
+        assert not any('flat' in name for name in names)
+        assert os.path.isfile(os.path.join(out, modec.MHCTP_IMAGES_DIRNAME, modec.MHCTP_KLD_FILENAME))
+
+    def test_cluster_id_mhctp_derives_is_i_of_k(self, tmp_path):
+        """MHC-TP takes the cluster id from the second dot-field of the file name."""
+        out = str(tmp_path / 'out')
+        make_output_tree(out, kmax=2)
+        modec.write_mhctp_inputs(out)
+        for name in os.listdir(os.path.join(out, modec.MHCTP_MATRIX_DIRNAME)):
+            assert name.split('.')[1] in {'1of1', '1of2', '2of2'}
+
+
+class TestExportResults:
+    def _full(self, tmp_path):
+        out = tmp_path / 'out'
+        make_output_tree(str(out), kmax=2)
+        (out / 'log_K1-2.txt').write_text('log')
+        (out / modec.AIC_PLOT_FILENAME).write_bytes(b'png')
+        logos = out / modec.LOGO_DIRNAME
+        logos.mkdir()
+        (logos / 'modec_logos_1of1-001.jpg').write_bytes(b'jpg')
+        (logos / 'modec_logos_1of1.eps').write_bytes(b'eps')
+        (logos / 'modec_logos_1of1_freq.mat').write_text('mat')
+        (out / modec.LOGO_TABLE_DIRNAME).mkdir()
+        (out / modec.LOGO_TABLE_DIRNAME / 'x.txt').write_text('t')
+        return str(out)
+
+    def test_copies_results_log_graph_and_logo_images(self, tmp_path):
+        out = self._full(tmp_path)
+        dst = str(tmp_path / 'export' / 'modec' / 'S1' / 'repA')
+        modec.export_results(out, dst)
+        assert os.path.isfile(os.path.join(dst, 'PWMs', 'PWM_K2_1.txt'))
+        assert os.path.isfile(os.path.join(dst, 'Responsibilities', 'bestPepResp_K1.txt'))
+        assert os.path.isfile(os.path.join(dst, 'Summary', 'nMotScores_K1-2.txt'))
+        assert os.path.isfile(os.path.join(dst, 'log_K1-2.txt'))
+        assert os.path.isfile(os.path.join(dst, modec.AIC_PLOT_FILENAME))
+        assert os.path.isfile(os.path.join(dst, 'logos', 'modec_logos_1of1-001.jpg'))
+
+    def test_leaves_out_logo_intermediates(self, tmp_path):
+        out = self._full(tmp_path)
+        dst = str(tmp_path / 'export')
+        modec.export_results(out, dst)
+        assert not os.path.exists(os.path.join(dst, 'logos', 'modec_logos_1of1.eps'))
+        assert not os.path.exists(os.path.join(dst, 'logos', 'modec_logos_1of1_freq.mat'))
+        assert not os.path.exists(os.path.join(dst, modec.LOGO_TABLE_DIRNAME))
+
+    def test_is_safe_to_run_twice(self, tmp_path):
+        out = self._full(tmp_path)
+        dst = str(tmp_path / 'export')
+        modec.export_results(out, dst)
+        modec.export_results(out, dst)  # no error on an existing folder
+
+
 class TestLogoTable:
     def test_table_is_transposed_with_symbol_header(self, tmp_path):
         p = tmp_path / 'PWM_K1_1.txt'
@@ -468,6 +583,8 @@ class TestRunJob:
         # The fake binary writes no PWMs; logo rendering has its own tests above.
         monkeypatch.setattr(modec, 'render_logos', lambda out_dir, **kw: 0)
         monkeypatch.setattr(modec, 'render_aic_plot', lambda out_dir: None)
+        monkeypatch.setattr(modec, 'export_results', lambda out_dir, export_dir: [])
+        monkeypatch.setattr(modec, 'write_mhctp_inputs', lambda out_dir: 0)
 
     def _cfg(self, binary):
         return types.SimpleNamespace(

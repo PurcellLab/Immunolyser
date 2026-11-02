@@ -678,8 +678,17 @@ def submit_job(self, samples, motif_length, mhcclass, alleles_unformatted, predi
             # with MoDec's reason rather than finishing with an empty section.
             subprocess.check_call(['python3', os.path.join('app', 'modec.py'), taskId, data_mount, motif_length, species or ''], shell=False)
 
-            # TODO(modec): MHC-TP can't read MoDec output yet (needs the `--source modec`
-            # mode on the MHC-TP branch). Until then MoDec jobs skip the allotype step.
+            # MHC-TP runs on MoDec's output too: app/modec.py wrote the GibbsCluster-shaped
+            # matrices/images/logos it reads (see the MHC-TP section of app/modec.py).
+            runHLAClust(
+                taskId,
+                data,
+                species=species,
+                use_mhc_tp_full_DB=use_mhc_tp_full_DB,
+                mhcclass=mhcclass,
+                logger=logger,
+                clustering_method=clustering_method
+            )
         else:
             # Calling script to generate gibbsclusters
             subprocess.check_call(['python3', os.path.join('app', 'gibbscluster.py'), taskId, data_mount, mhcclass, motif_length], shell=False)
@@ -873,6 +882,7 @@ def getExistingReport(taskId):
         modecData = modec.report_data(
             images_root, taskId,
             {sample: [rep[:-4] for rep in reps] for sample, reps in sample_data.items()})
+        attachModecPredictions(modecData, taskId)
     else:
         gibbsImages = getGibbsImages(logger, taskId, sample_data)
     # seqlogos = {}
@@ -2048,6 +2058,7 @@ def export_report(taskId):
         modecData = modec.report_data(
             images_root, taskId,
             {sample: [rep[:-4] for rep in reps] for sample, reps in sample_data.items()})
+        attachModecPredictions(modecData, taskId)
     else:
         gibbsImages = getGibbsImages(logger, taskId, sample_data)
         gibbsAllData = getGibbsImagesAll(logger, taskId, sample_data)

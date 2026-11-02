@@ -19,7 +19,7 @@
         and also fits one <em>flat</em> motif that absorbs peptides that fit no specific motif (often contaminants).
         Choose how many motifs to show per replicate; the number with the lowest AIC (marked on the graph) is shown first, but AIC is only a guide, so please inspect the motifs.
         The percentage under each logo is the share of peptides whose best-matching motif it is.
-        MHC-TP allotype prediction is not available for MoDec results yet.
+        Under each logo are the best-matching source allotypes and their PCC (Pearson Correlation Coefficient), as determined by MHC-TP; for the comparison, MoDec's frequencies are converted to log-odds scores. <strong>Note:</strong> MHC Class II allotype predictions are in preview &mdash; results should be interpreted with caution.
         <br><small>MoDec: Racle <i>et al.</i>, <i>Nat Biotechnol</i> 2019;37:1283&ndash;1286. MoDec was made available through the generosity of the Ludwig Institute for Cancer Research Ltd, for academic non-commercial research use.</small></p>
 
     <br>
@@ -78,6 +78,26 @@
                                     {% if motif.is_flat %}<em>Flat motif</em>{% else %}Motif {{ motif.id }}{% endif %}
                                     &mdash; {{ motif.n_peptides }} peptides ({{ '%.0f'|format(motif.fraction * 100) }}%)
                                 </p>
+                                {% if motif.predictions %}
+                                    {% if modec_offline %}
+                                        <p style="text-align: center; font-size: 0.85em; margin: 2px 0;">
+                                            {% for pred in motif.predictions %}#{{ loop.index }} {{ pred.hla }} ({{ pred.score }}){% if not loop.last %}, {% endif %}{% endfor %}
+                                        </p>
+                                    {% else %}
+                                        <div class="mhctp-predictions">
+                                            {% for pred in motif.predictions %}
+                                                <div class="mhctp-row{% if loop.index == 1 %} top-match{% endif %}">
+                                                    <span class="mhctp-rank">#{{ loop.index }}</span>
+                                                    <span class="mhctp-allele">{{ pred.hla }}</span>
+                                                    <div class="mhctp-bar-wrap">
+                                                        <div class="mhctp-bar-fill" style="width:{{ (pred.score * 100)|int }}%"></div>
+                                                    </div>
+                                                    <span class="mhctp-score">{{ pred.score }}</span>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                {% endif %}
                                 {% if not modec_offline and motif.n_peptides %}
                                     <div style="text-align: center; margin-top: 5px;">
                                         <a href="{{ url_for('download_modec_core', taskid=taskId, sample=sample, replicate=replicate, k=k, motif=motif.id) }}"
