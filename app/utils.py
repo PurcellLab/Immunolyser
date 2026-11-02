@@ -8,6 +8,7 @@ from distutils.dir_util import copy_tree
 from zipfile import ZipFile
 from os.path import basename
 from app import app
+from app.modec import motif_peptides
 from constants import *
 from mhcflurry import Class1PresentationPredictor
 from pathlib import Path
@@ -212,6 +213,37 @@ def build_enriched_gibbscluster_core_csv(taskId, sample, replicate, cluster_atte
         cluster_df = cluster_df.merge(original, on='StrippedPeptide', how='left')
 
     return cluster_df.to_csv(index=False)
+
+def build_enriched_modec_core_csv(taskId, sample, replicate, k, motif_id, rep_dir):
+    """Enriched CSV for one MoDec motif: every peptide whose best motif (at K=k) it is,
+    with its binding core, offset and responsibility, joined back onto the user's
+    original upload columns (same join as the GibbsCluster core download).
+
+    MoDec's bestPepResp file already pairs each full peptide with its core, so unlike
+    GibbsCluster no substring guessing is needed. Returns None when no peptide maps to
+    the motif or the results are missing, so the caller can answer 404.
+    """
+    try:
+        rows = motif_peptides(rep_dir, k, motif_id)
+    except FileNotFoundError:
+        return None
+    if not rows:
+        return None
+
+    df = pd.DataFrame([{
+        'StrippedPeptide': r['Peptide'],
+        'Core': r['Core_1st'],
+        'Core start (P1 offset)': r['P1_1st'],
+        'Responsibility': r['resp_1st'],
+        'Motif': motif_id,
+        'K': int(k),
+    } for r in rows])
+
+    original = load_original_upload_for_join(taskId, sample, replicate)
+    if original is not None:
+        df = df.merge(original, on='StrippedPeptide', how='left')
+
+    return df.to_csv(index=False)
 
 def resolve_upset_samples(taskId, raw_name):
     """UpSetJS set names can be a single sample or a cross-sample intersection like

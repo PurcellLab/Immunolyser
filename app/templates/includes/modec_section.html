@@ -1,0 +1,102 @@
+{# MoDec motif-deconvolution section, shared by the live report (analytics.html) and
+   the self-contained offline export (export.html).
+
+   Context: modecData (see app/modec.py report_data), taskId.
+   The export has `image_map` (static URL -> inlined data URI) and no server, so
+   image sources come from it and the download links are left out. #}
+{% set modec_offline = image_map is defined %}
+{% macro modec_img(path) -%}
+{%- if modec_offline -%}{{ image_map.get('/static/' + path, '/static/' + path) }}{%- else -%}{{ url_for('static', filename=path) }}{%- endif -%}
+{%- endmacro %}
+
+<fieldset class="report-section" id="section-modec">
+    <h3>Peptide Motif Deconvolution (MoDec)</h3>
+    <br>
+
+    <p class="section-info"><b>ⓘ</b> Peptides were deconvolved into binding motifs with
+        <b>MoDec</b> after removal of peptides labelled as <code>#CONTAM</code> or <code>#DECOY</code>, PTMs and resulting duplicates.
+        The analysis uses 12&ndash;20-mers (duplicates removed). MoDec finds the motifs and the binding core of every peptide without prior alignment,
+        and also fits one <em>flat</em> motif that absorbs peptides that fit no specific motif (often contaminants).
+        Choose how many motifs to show per replicate; the number with the lowest AIC is shown first, but AIC is only a guide, so please inspect the motifs.
+        The percentage under each logo is the share of peptides whose best-matching motif it is.
+        MHC-TP allotype prediction is not available for MoDec results yet.
+        <br><small>MoDec: Racle <i>et al.</i>, <i>Nat Biotechnol</i> 2019;37:1283&ndash;1286. MoDec was made available through the generosity of the Ludwig Institute for Cancer Research Ltd, for academic non-commercial research use.</small></p>
+
+    <br>
+
+    {% for sample, replicates in modecData.items() %}
+        <h4>{{ sample }}</h4>
+
+        {% for replicate, rep in replicates.items() %}
+            <div class="modec-rep" style="margin-left: 30px; margin-bottom: 30px;">
+                <div class="row">
+                    <h5>{{ replicate }}</h5>
+                    <select style="margin-left: 10px;" class="col-3 custom-select custom-select-sm" onchange="updateModecK(this)">
+                        {% for k in rep.k %}
+                            <option value="{{ k }}" {% if k == rep.suggested_k %}selected{% endif %}>
+                                {{ k }} motif{{ 's' if k != 1 }}{% if k == rep.suggested_k %} (lowest AIC){% endif %}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <table class="table table-sm" style="width: auto; margin-top: 8px; font-size: 0.85em;">
+                    <thead><tr><th>Motifs (K)</th><th>Log-likelihood</th><th>AIC</th></tr></thead>
+                    <tbody>
+                        {% for row in rep.aic %}
+                            <tr {% if row.n == rep.suggested_k %}style="font-weight: bold;"{% endif %}>
+                                <td>{{ row.n }}</td>
+                                <td>{{ '%.1f'|format(row.logL) }}</td>
+                                <td>{{ '%.1f'|format(row.AIC) }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                {% for k, motifs in rep.k.items() %}
+                    <div class="modec-k gibbs-cluster-row your-class" data-k="{{ k }}"
+                         {% if k != rep.suggested_k %}style="display: none;"{% endif %}>
+                        {% for motif in motifs %}
+                            <div class="image-container">
+                                {% if motif.image %}
+                                    <img src="{{ modec_img(motif.image) }}" alt="MoDec motif {{ motif.id }} of {{ k }}" width="100%"
+                                         title="{{ motif.n_peptides }} peptides">
+                                {% else %}
+                                    <p class="mhctp-na">Logo not available</p>
+                                {% endif %}
+                                <p style="text-align: center; font-size: 0.85em; margin: 2px 0;">
+                                    {% if motif.is_flat %}<em>Flat motif</em>{% else %}Motif {{ motif.id }}{% endif %}
+                                    &mdash; {{ motif.n_peptides }} peptides ({{ '%.0f'|format(motif.fraction * 100) }}%)
+                                </p>
+                                {% if not modec_offline and motif.n_peptides %}
+                                    <div style="text-align: center; margin-top: 5px;">
+                                        <a href="{{ url_for('download_modec_core', taskid=taskId, sample=sample, replicate=replicate, k=k, motif=motif.id) }}"
+                                           class="btn btn-sm chip-link"
+                                           download="{{ replicate }}_modec_K{{ k }}_motif{{ motif.id }}.csv">
+                                            download peptides
+                                        </a>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endfor %}
+    {% endfor %}
+
+    {% if not modecData %}
+        <p class="mhctp-na">No MoDec results were produced for this job.</p>
+    {% endif %}
+</fieldset>
+
+<script>
+    // Show only the chosen number of motifs for one replicate. State lives in the DOM
+    // (data-k), so the same code works on the live page and in the offline export.
+    function updateModecK(select) {
+        var rep = select.closest('.modec-rep');
+        rep.querySelectorAll('.modec-k').forEach(function (block) {
+            block.style.display = (block.getAttribute('data-k') === select.value) ? '' : 'none';
+        });
+    }
+</script>

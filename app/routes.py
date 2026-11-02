@@ -15,6 +15,7 @@ from email.mime.multipart import MIMEMultipart
 from markupsafe import escape
 from app.email_registry import save_email, get_email, get_job_name, claim_email_send, get_jobs_due_for_warning, claim_warning_send
 from app.job_registry import insert_job, update_job_status, get_jobs_older_than, get_completed_time, get_job_error
+from app import modec
 from app.modec import modec_available
 from geoip2.database import Reader
 from werkzeug.routing import BaseConverter
@@ -861,12 +862,24 @@ def getExistingReport(taskId):
     bar_density = plot_lenght_distribution(sample_data, hist='density', taskId=taskId)
     
     seqlogos = getSeqLogosImages(sample_data, task_id=taskId, motif_length=motif_length, logger=logger)
-    gibbsImages = getGibbsImages(logger, taskId, sample_data)
+    # Which clustering step produced this job's motifs. A job from before MoDec existed
+    # has no marker and is a GibbsCluster job.
+    images_root = os.path.join(project_root, 'app', 'static', 'images')
+    clustering_method = modec.read_job_method(images_root, taskId)
+    showModecSection = clustering_method == ClusteringMethod.MODEC
+    modecData = {}
+    if showModecSection:
+        gibbsImages = {}
+        modecData = modec.report_data(
+            images_root, taskId,
+            {sample: [rep[:-4] for rep in reps] for sample, reps in sample_data.items()})
+    else:
+        gibbsImages = getGibbsImages(logger, taskId, sample_data)
     # seqlogos = {}
     # gibbsImages = {}
 
     showSeqLogoSection = True
-    showGibbsSection = True
+    showGibbsSection = not showModecSection
     
     # Do not show Majority Voted option when MHC Class 2 analysis
     if mhcclass == MHC_Class.Two:
@@ -915,6 +928,8 @@ def getExistingReport(taskId):
         peptide_density=bar_density,
         seqlogos=seqlogos,
         gibbsImages=gibbsImages,
+        showModecSection=showModecSection,
+        modecData=modecData,
         upsetLayout=upsetLayout,
         predicted_binders=predicted_binders,
         predictionTools=predictionTools,  # List of short_names here
@@ -1795,6 +1810,39 @@ def download_gibbscluster_core(taskid, sample, replicate, cluster_attempt):
         logger.exception(f"Failed to send core file: {core_file}")
         return abort(500, description="Error sending core file.")
 
+@app.route('/download_modec_core/<taskid>/<sample>/<replicate>/<k>/<motif>')
+def download_modec_core(taskid, sample, replicate, k, motif):
+    """Peptides assigned to one MoDec motif (at motif count K), with their binding core,
+    offset and responsibility, joined onto the user's original upload columns."""
+    if not is_valid_uuid(taskid):
+        return "Invalid task ID", 400
+
+    _safe = re.compile(r'^[a-zA-Z0-9_\-\.]+$')
+    if not (_safe.match(sample) and _safe.match(replicate)):
+        return "Invalid path component", 400
+    # K is a small integer; the motif is a number or the literal 'flat'. Anything
+    # else never reaches the filesystem.
+    if not re.fullmatch(r'[1-9][0-9]?', k) or not re.fullmatch(r'[1-9][0-9]?|flat', motif):
+        return "Invalid motif", 400
+
+    safe_base_dir = os.path.realpath(os.path.join(project_root, 'app', 'static', 'images', taskid))
+    rep_dir = os.path.realpath(os.path.join(safe_base_dir, sample, modec.MODEC_DIRNAME, replicate))
+    if not rep_dir.startswith(safe_base_dir + os.sep):
+        return "Forbidden", 403
+
+    try:
+        csv_text = build_enriched_modec_core_csv(taskid, sample, replicate, k, motif, rep_dir)
+    except Exception:
+        logger.exception(f"Failed to build MoDec core CSV: {taskid}/{sample}/{replicate} K={k} motif={motif}")
+        return abort(500, description="Error building motif peptides.")
+    if csv_text is None:
+        return abort(404, description="No peptides found for this motif.")
+
+    response = make_response(csv_text)
+    response.headers["Content-Disposition"] = f"attachment; filename={replicate}_modec_K{k}_motif{motif}.csv"
+    response.headers["Content-Type"] = "text/csv"
+    return response
+
 @app.route('/motif-ref/<species>/<filename>')
 def serve_motif_ref(species, filename):
     allowed = {
@@ -1990,11 +2038,22 @@ def export_report(taskId):
     bar_percent = plot_lenght_distribution(sample_data, hist='percent', taskId=taskId)
     bar_density = plot_lenght_distribution(sample_data, hist='density', taskId=taskId)
     seqlogos = getSeqLogosImages(sample_data, task_id=taskId, motif_length=motif_length, logger=logger)
-    gibbsImages = getGibbsImages(logger, taskId, sample_data)
-    gibbsAllData = getGibbsImagesAll(logger, taskId, sample_data)
+    images_root = os.path.join(project_root, 'app', 'static', 'images')
+    clustering_method = modec.read_job_method(images_root, taskId)
+    showModecSection = clustering_method == ClusteringMethod.MODEC
+    modecData = {}
+    if showModecSection:
+        gibbsImages = {}
+        gibbsAllData = {}
+        modecData = modec.report_data(
+            images_root, taskId,
+            {sample: [rep[:-4] for rep in reps] for sample, reps in sample_data.items()})
+    else:
+        gibbsImages = getGibbsImages(logger, taskId, sample_data)
+        gibbsAllData = getGibbsImagesAll(logger, taskId, sample_data)
 
     showSeqLogoSection = True
-    showGibbsSection = True
+    showGibbsSection = not showModecSection
     if mhcclass == MHC_Class.Two:
         hideMajorityVotedOption = False
         if alleles_unformatted == '':
@@ -2149,6 +2208,8 @@ def export_report(taskId):
         seqlogos=seqlogos,
         gibbsImages=gibbsImages,
         gibbsAllData=gibbsAllData,
+        showModecSection=showModecSection,
+        modecData=modecData,
         upsetLayout=upsetLayout,
         predicted_binders=predicted_binders,
         predictionTools=predictionTools,

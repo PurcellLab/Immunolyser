@@ -90,10 +90,13 @@ class Config(object):
     # report's K-switcher is sized for 6.
     MODEC_KMIN = int(os.environ.get('MODEC_KMIN', 1))
     MODEC_KMAX = int(os.environ.get('MODEC_KMAX', 6))
-    # Random restarts per K. PROVISIONAL: MoDec's default is 20, and --MHC2 (which we
-    # always pass) multiplies that by 5 via --specInits. A 5,987-peptide replicate took
-    # 2m22s at nruns=2 on a laptop (K<=5), so 20 would be tens of minutes per replicate
-    # and blow the 2h default job limit. To be re-set from a Linux benchmark.
+    # Random restarts per K. MoDec's own default is 20, and --MHC2 (which we always
+    # pass) multiplies that by 5 via --specInits. MoDec is single-threaded; measured on
+    # the 8-vCPU dev instance with MoDec's HLA-II test set (5,987 peptides, K=1..6):
+    #   nruns=3 -> 164 s,  nruns=5 -> 254 s  (~17 min extrapolated for nruns=20)
+    # and nruns=3 and 5 give identical likelihoods for K=1..4 and AIC picks K=4 in both,
+    # so 3 is enough to choose K and keeps replicates well inside MODEC_TIME_LIMIT.
+    # Replicates run in parallel (see app/modec.py run_job), one core each.
     MODEC_NRUNS = int(os.environ.get('MODEC_NRUNS', 3))
     # Per-replicate wall-clock cap. On expiry the whole MoDec process group is killed
     # (a Celery time limit does NOT reap grandchildren — see the orphaned GibbsCluster

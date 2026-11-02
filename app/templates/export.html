@@ -125,6 +125,10 @@
 </fieldset>
 {% endif %}
 
+{% if showModecSection %}
+{% include 'includes/modec_section.html' %}
+{% endif %}
+
 {% if bindingImages %}
 <fieldset class="report-section" id="section-mhctp">
     <h3>MHC-TP (MHC Typing Prediction)</h3>

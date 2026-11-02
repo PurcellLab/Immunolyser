@@ -314,8 +314,128 @@ class TestRunModec:
             pytest.fail('grandchild survived the timeout')
 
 
+class TestReadJobMethod:
+    def test_missing_marker_means_gibbs(self, tmp_path):
+        assert modec.read_job_method(str(tmp_path), 'job1') == ClusteringMethod.GIBBS
+
+    def test_reads_marker(self, tmp_path):
+        (tmp_path / 'job1').mkdir()
+        (tmp_path / 'job1' / 'clustering_method.txt').write_text('modec\n')
+        assert modec.read_job_method(str(tmp_path), 'job1') == ClusteringMethod.MODEC
+
+    def test_blank_marker_means_gibbs(self, tmp_path):
+        (tmp_path / 'job1').mkdir()
+        (tmp_path / 'job1' / 'clustering_method.txt').write_text('  \n')
+        assert modec.read_job_method(str(tmp_path), 'job1') == ClusteringMethod.GIBBS
+
+
+class TestReportData:
+    def _tree(self, tmp_path, with_logos=True):
+        images = tmp_path / 'static' / 'images'
+        rep = images / 'job1' / 'S1' / modec.MODEC_DIRNAME / 'repA'
+        make_output_tree(str(rep), kmax=3)
+        if with_logos:
+            (rep / modec.LOGO_DIRNAME).mkdir()
+            for k in (1, 2, 3):
+                for mid in [str(i) for i in range(1, k + 1)] + ['flat']:
+                    (rep / modec.LOGO_DIRNAME / f'{modec.logo_basename(mid, k)}-001.jpg').write_bytes(b'x')
+        return str(images)
+
+    def test_structure_and_ordering(self, tmp_path):
+        images = self._tree(tmp_path)
+        data = modec.report_data(images, 'job1', {'S1': ['repA']})
+        rep = data['S1']['repA']
+        assert rep['suggested_k'] == 2
+        assert list(rep['k']) == [1, 2, 3]
+        assert [m['id'] for m in rep['k'][3]] == ['1', '2', '3', 'flat']  # flat last
+        assert rep['k'][3][-1]['is_flat'] and not rep['k'][3][0]['is_flat']
+
+    def test_counts_and_fractions(self, tmp_path):
+        images = self._tree(tmp_path)
+        motifs = modec.report_data(images, 'job1', {'S1': ['repA']})['S1']['repA']['k'][2]
+        # fixture: K=2 -> motif 1 has 10, motif 2 has 20, flat 2 => 32 peptides
+        assert [m['n_peptides'] for m in motifs] == [10, 20, 2]
+        assert motifs[1]['fraction'] == pytest.approx(20 / 32, abs=1e-3)
+        assert sum(m['fraction'] for m in motifs) == pytest.approx(1.0, abs=2e-3)
+
+    def test_image_paths_are_relative_to_static(self, tmp_path):
+        images = self._tree(tmp_path)
+        motif = modec.report_data(images, 'job1', {'S1': ['repA']})['S1']['repA']['k'][2][0]
+        assert motif['image'] == 'images/job1/S1/modec/repA/logos/modec_logos_1of2-001.jpg'
+
+    def test_missing_logo_is_none_not_an_error(self, tmp_path):
+        images = self._tree(tmp_path, with_logos=False)
+        motifs = modec.report_data(images, 'job1', {'S1': ['repA']})['S1']['repA']['k'][1]
+        assert all(m['image'] is None for m in motifs)
+
+    def test_replicate_without_output_is_skipped(self, tmp_path):
+        images = self._tree(tmp_path)
+        data = modec.report_data(images, 'job1', {'S1': ['repA', 'repB'], 'S2': ['x']})
+        assert list(data['S1']) == ['repA']
+        assert 'S2' not in data
+
+
+class TestLogoTable:
+    def test_table_is_transposed_with_symbol_header(self, tmp_path):
+        p = tmp_path / 'PWM_K1_1.txt'
+        write_pwm(p, 10, hot={('F', 0): 0.6, ('L', 8): 0.5})
+        lines = modec.pwm_to_seq2logo_table(modec.parse_pwm(p)).strip().split('\n')
+        assert lines[0].split() == list(modec.MODEC_AA_ORDER)
+        assert len(lines) == 1 + 9  # header + one row per position
+        assert all(len(row.split()) == 20 for row in lines[1:])
+        first = [float(x) for x in lines[1].split()]
+        assert first[modec.MODEC_AA_ORDER.index('F')] == pytest.approx(0.6, abs=1e-4)
+        last = [float(x) for x in lines[9].split()]
+        assert last[modec.MODEC_AA_ORDER.index('L')] == pytest.approx(0.5, abs=1e-4)
+
+    def test_command_uses_shannon_type_and_one_based_positions(self):
+        cmd = modec.build_logo_command('/t/in.txt', '/o/logo', 'title')
+        assert cmd[0] == 'python2'
+        assert cmd[cmd.index('-I') + 1] == '1'
+        assert cmd[cmd.index('-S') + 1] == '2'
+        assert cmd[cmd.index('--format') + 1] == '[JPEG]'
+        assert cmd[cmd.index('-o') + 1] == '/o/logo'
+
+    def test_logo_basename_mirrors_gibbs_naming(self):
+        assert modec.logo_basename('2', 4) == 'modec_logos_2of4'
+        assert modec.logo_basename('flat', 4) == 'modec_logos_flatof4'
+
+
+@POSIX_ONLY
+class TestRenderLogos:
+    FAKE = ('import sys\n'
+            'a = sys.argv\n'
+            'out = a[a.index("-o") + 1]\n'
+            'if "FAIL" in a[a.index("-t") + 1]: sys.exit(5)\n'
+            'open(out + "-001.jpg", "wb").write(b"jpg")\n')
+
+    def test_one_logo_per_motif_including_flat(self, tmp_path):
+        out = str(tmp_path / 'out')
+        make_output_tree(out, kmax=3)
+        script = tmp_path / 'fake_seq2logo.py'
+        script.write_text(self.FAKE)
+        n = modec.render_logos(out, seq2logo=str(script), python=sys.executable)
+        assert n == (1 + 1) + (2 + 1) + (3 + 1)  # motifs + flat, for K=1..3
+        logo_dir = os.path.join(out, modec.LOGO_DIRNAME)
+        assert os.path.isfile(os.path.join(logo_dir, 'modec_logos_2of3-001.jpg'))
+        assert os.path.isfile(os.path.join(logo_dir, 'modec_logos_flatof3-001.jpg'))
+
+    def test_failure_raises_naming_the_motif(self, tmp_path):
+        out = str(tmp_path / 'out')
+        make_output_tree(out, kmax=1)
+        script = tmp_path / 'fake_seq2logo.py'
+        script.write_text(self.FAKE.replace('"FAIL" in', '"motif 1" in'))
+        with pytest.raises(RuntimeError, match='modec_logos_1of1'):
+            modec.render_logos(out, seq2logo=str(script), python=sys.executable)
+
+
 @POSIX_ONLY
 class TestRunJob:
+    @pytest.fixture(autouse=True)
+    def _no_logos(self, monkeypatch):
+        # The fake binary writes no PWMs; logo rendering has its own tests above.
+        monkeypatch.setattr(modec, 'render_logos', lambda out_dir, **kw: 0)
+
     def _cfg(self, binary):
         return types.SimpleNamespace(
             MODEC_BIN=str(binary), MODEC_KMIN=1, MODEC_KMAX=2, MODEC_NRUNS=1,

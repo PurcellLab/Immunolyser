@@ -133,6 +133,17 @@ def run_modec(cmd, out_dir, time_limit):
         raise FileExistsError(f'MoDec output folder already exists: {out_dir}')
     os.makedirs(os.path.dirname(out_dir), exist_ok=True)
 
+    returncode, stderr = _run_group(cmd, time_limit, what=f'MoDec ({out_dir})')
+    if returncode != 0:
+        raise RuntimeError(f'MoDec failed (rc={returncode}): {(stderr or "")[-500:] or "no error output"}')
+
+
+def _run_group(cmd, time_limit, what):
+    """Run cmd in its own session with a wall-clock cap; return (returncode, stderr).
+
+    On timeout, or if the caller is interrupted, the whole process group is killed
+    so no child outlives the call. Shared by MoDec and the logo renderer.
+    """
     proc = subprocess.Popen(
         cmd,
         stdout=subprocess.DEVNULL,
@@ -144,12 +155,11 @@ def run_modec(cmd, out_dir, time_limit):
         _, stderr = proc.communicate(timeout=time_limit)
     except subprocess.TimeoutExpired:
         _kill_group(proc)
-        raise TimeoutError(f'MoDec exceeded {time_limit}s and was killed: {out_dir}')
+        raise TimeoutError(f'{what} exceeded {time_limit}s and was killed')
     except BaseException:  # includes Celery's SoftTimeLimitExceeded
         _kill_group(proc)
         raise
-    if proc.returncode != 0:
-        raise RuntimeError(f'MoDec failed (rc={proc.returncode}): {(stderr or "")[-500:] or "no error output"}')
+    return proc.returncode, stderr
 
 
 def _kill_group(proc):
@@ -265,6 +275,145 @@ def collect_results(out_dir):
 
 
 # --------------------------------------------------------------------------
+# Logos (rendered here with the Seq2Logo already in the image; we do not use
+# MoDec's own R report, which would need ggseqlogoMOD/htmlTable installed)
+# --------------------------------------------------------------------------
+
+# Logo files sit beside the PWMs, named like GibbsCluster's so the report code can
+# treat them alike: modec_logos_<motif>of<K>-001.jpg, motif = 1..K or 'flat'.
+LOGO_DIRNAME = 'logos'
+LOGO_TABLE_DIRNAME = 'logo_tables'
+SEQ2LOGO_SCRIPT = os.path.join('app', 'tools', 'seq2logo-2.1', 'Seq2Logo.py')
+# Seq2Logo is python2 (see CLAUDE.md: python2.7 is a hard runtime dependency).
+SEQ2LOGO_PYTHON = 'python2'
+
+
+def logo_basename(motif_id, k):
+    return f'modec_logos_{motif_id}of{k}'
+
+
+def pwm_to_seq2logo_table(pwm):
+    """A MoDec PWM as a Seq2Logo frequency table: a header of amino-acid symbols,
+    then one row per position (the transpose of MoDec's own layout)."""
+    lines = [' '.join(MODEC_AA_ORDER)]
+    for pos in range(pwm['positions']):
+        lines.append(' '.join(f"{pwm['freq'][aa][pos]:.6g}" for aa in MODEC_AA_ORDER))
+    return '\n'.join(lines) + '\n'
+
+
+def build_logo_command(table_path, out_prefix, title, seq2logo=SEQ2LOGO_SCRIPT, python=SEQ2LOGO_PYTHON):
+    """Seq2Logo argv for one motif.
+
+    -I 1 (Shannon): letter height = frequency x information content, no
+       background model, so letters never dip below zero. This is the closest match
+       to MoDec's own logos (checked against its reference output); the
+       Kullback-Leibler type used for Gibbs logos draws weak letters below the axis.
+    -S 2: number positions from 1 (Seq2Logo's default labels them from 0).
+    """
+    return [python, seq2logo, '-f', table_path, '-o', out_prefix,
+            '-I', '1', '-S', '2', '--format', '[JPEG]', '-t', title]
+
+
+def render_logos(out_dir, time_limit=120, seq2logo=SEQ2LOGO_SCRIPT, python=SEQ2LOGO_PYTHON):
+    """Draw a logo for every motif of every K in one replicate's MoDec output.
+
+    Returns the number of logos written. Raises if any logo fails, so a broken
+    renderer fails the job instead of leaving a report with silently missing images.
+    """
+    results = collect_results(out_dir)
+    table_dir = os.path.join(out_dir, LOGO_TABLE_DIRNAME)
+    logo_dir = os.path.join(out_dir, LOGO_DIRNAME)
+    os.makedirs(table_dir, exist_ok=True)
+    os.makedirs(logo_dir, exist_ok=True)
+
+    written = 0
+    for k, entry in results['k'].items():
+        for motif_id, pwm in entry['motifs'].items():
+            base = logo_basename(motif_id, k)
+            table_path = os.path.join(table_dir, f'{base}.txt')
+            with open(table_path, 'w') as f:
+                f.write(pwm_to_seq2logo_table(pwm))
+            title = f'K={k} motif {motif_id} ({pwm["n_peptides"]} peptides)'
+            cmd = build_logo_command(table_path, os.path.join(logo_dir, base), title, seq2logo, python)
+            rc, stderr = _run_group(cmd, time_limit, what=f'Seq2Logo ({base})')
+            jpg = os.path.join(logo_dir, f'{base}-001.jpg')
+            if rc != 0 or not os.path.isfile(jpg):
+                raise RuntimeError(f'Seq2Logo failed for {base} (rc={rc}): {(stderr or "")[-300:]}')
+            written += 1
+    return written
+
+
+# --------------------------------------------------------------------------
+# Report data (shared by the report page and the offline export)
+# --------------------------------------------------------------------------
+
+def read_job_method(images_root, task_id):
+    """The clustering method recorded for a job; GibbsCluster if none was recorded
+    (jobs from before MoDec existed have no marker file)."""
+    from constants import ClusteringMethod
+    try:
+        with open(os.path.join(images_root, task_id, 'clustering_method.txt')) as f:
+            return ClusteringMethod.normalise(f.read())
+    except OSError:
+        return ClusteringMethod.DEFAULT
+
+
+def motif_peptides(rep_dir, k, motif_id):
+    """The bestPepResp rows whose best motif (at this K) is `motif_id`.
+
+    motif_id is a motif number or 'flat'; MoDec numbers its flat (contaminant)
+    motif 0 in the responsibilities files. Raises FileNotFoundError if that K
+    was not run.
+    """
+    target = 0 if motif_id == 'flat' else int(motif_id)
+    path = os.path.join(rep_dir, 'Responsibilities', f'bestPepResp_K{int(k)}.txt')
+    return [row for row in parse_best_pep_resp(path) if row['Motif_1st'] == target]
+
+
+def _motif_sort_key(motif_id):
+    # numbered motifs first in order, the flat (contaminant) motif last
+    return (motif_id == 'flat', int(motif_id) if motif_id != 'flat' else 0)
+
+
+def report_data(images_root, task_id, replicates_by_sample):
+    """What the MoDec report section renders, per sample and replicate.
+
+    replicates_by_sample: {sample: [replicate stem, ...]}.
+    Returns {sample: {replicate: {'aic': [...], 'suggested_k': int|None,
+                                  'k': {K: [motif, ...]}}}} where each motif is
+    {'id', 'is_flat', 'n_peptides', 'fraction', 'image'} and 'image' is relative
+    to app/static (None if the logo is missing). Replicates MoDec produced nothing
+    for are skipped, like the Gibbs report skips replicates without a bar plot.
+    """
+    out = {}
+    for sample in sorted(replicates_by_sample):
+        for stem in sorted(replicates_by_sample[sample]):
+            rep_dir = os.path.join(images_root, task_id, sample, MODEC_DIRNAME, stem)
+            if not os.path.isdir(os.path.join(rep_dir, 'PWMs')):
+                continue
+            res = collect_results(rep_dir)
+            by_k = {}
+            for k, entry in res['k'].items():
+                total = len(entry['assignments'])
+                motifs = []
+                for motif_id in sorted(entry['motifs'], key=_motif_sort_key):
+                    n = entry['motifs'][motif_id]['n_peptides']
+                    logo = os.path.join(rep_dir, LOGO_DIRNAME, f'{logo_basename(motif_id, k)}-001.jpg')
+                    rel = os.path.relpath(logo, os.path.join(images_root, os.pardir)) if os.path.isfile(logo) else None
+                    motifs.append({
+                        'id': motif_id,
+                        'is_flat': motif_id == 'flat',
+                        'n_peptides': n,
+                        'fraction': round(n / total, 3) if total else 0.0,
+                        'image': rel.replace(os.sep, '/') if rel else None,
+                    })
+                by_k[k] = motifs
+            out.setdefault(sample, {})[stem] = {
+                'aic': res['aic'], 'suggested_k': res['suggested_k'], 'k': by_k}
+    return out
+
+
+# --------------------------------------------------------------------------
 # Whole-job runner (the python3 shim body)
 # --------------------------------------------------------------------------
 
@@ -321,6 +470,7 @@ def run_job(task_id, data_mount, motif_length, species, cfg=None, images_root=No
         )
         print('MoDec command:', ' '.join(cmd), flush=True)
         run_modec(cmd, out_dir, cfg.MODEC_TIME_LIMIT_SECONDS)
+        render_logos(out_dir)
         return label
 
     errors = []

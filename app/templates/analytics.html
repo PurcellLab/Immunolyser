@@ -10,7 +10,11 @@
         <a href="#section-length"  class="toc-link">Peptide Length</a>
         <a href="#section-overlap" class="toc-link">Peptide Overlap</a>
         <a href="#section-motif"   class="toc-link">Binding Motifs</a>
+        {% if showModecSection %}
+        <a href="#section-modec"   class="toc-link">MoDec Motifs</a>
+        {% else %}
         <a href="#section-gibbs"   class="toc-link">Gibbs Clusters</a>
+        {% endif %}
         <a href="#section-mhctp"   class="toc-link">MHC-TP</a>
         <a href="#section-binding" class="toc-link">Binding Affinity</a>
         <hr style="border-color: rgba(255,255,255,0.2); margin: 10px 0 6px;">
@@ -283,6 +287,10 @@
             <br>     
         </fieldset>
 
+    {% endif %}
+
+    {% if showModecSection %}
+        {% include 'includes/modec_section.html' %}
     {% endif %}
 
     {% if bindingImages %}
@@ -1132,7 +1140,7 @@
     <script>
     // ToC scroll-spy: highlight the active section as the user scrolls
     (function () {
-        var sections = ['section-length','section-overlap','section-motif','section-gibbs','section-mhctp','section-binding'];
+        var sections = ['section-length','section-overlap','section-motif','section-gibbs','section-modec','section-mhctp','section-binding'];
         var links = {};
         sections.forEach(function(id) {
             var el = document.getElementById(id);
