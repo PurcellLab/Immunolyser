@@ -52,8 +52,8 @@ class MHC_Class:
     One = "I"
     Two = "II"
 
-APP_VERSION = "2.2.0"
-APP_VERSION_DATE = "May 2026"
+APP_VERSION = "2.4.0"
+APP_VERSION_DATE = "November 2026"
 
 class ClusteringMethod:
     """Motif-clustering step run on the n-mer peptides of a job.
