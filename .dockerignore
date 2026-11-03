@@ -12,3 +12,8 @@ data_files/
 data_files_2/
 /pvol/
 *.log
+# The Dockerfile git-clones MHC-TP into this path, so a pre-existing copy in the build
+# context makes the clone fail ("destination path already exists"). On the server the
+# MHC-TP reference data (HLA_PEPCLUST_REF_DATA) sits here, 2.6 GB that is bind-mounted
+# at runtime and so never needs to be baked into the image.
+app/tools/HLA-PepClust
