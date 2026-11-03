@@ -439,13 +439,18 @@ MHCTP_MATRIX_DIRNAME = 'matrices'
 MHCTP_IMAGES_DIRNAME = 'images'
 MHCTP_KLD_FILENAME = 'gibbs.KLDvsClusters.tab'
 
-# UniProtKB/Swiss-Prot amino-acid composition (%), used as the background. GibbsCluster
-# bakes its own pre-calculated UniProt background into its binary, so it cannot be
-# reused as a file; these published values are the closest stand-in.
+# GibbsCluster's own "-z 1" (pre-calculated) background, in percent. The DTU page calls
+# it "Uniprot"; the values match the BLOSUM62 background frequencies. It is compiled into
+# the gibbs_cluster_1.2.2 binary as 20 float constants (set_bgfreq_aa), read out of the
+# 2.0f Linux release, and sums to exactly 1. MHC-TP's reference motifs are GibbsCluster
+# PSSMs built against it, so converting MoDec's frequencies with the same table puts both
+# on one scale. Gibbs uses it for every species, so one table serves human and mouse.
+# (An earlier version used a Swiss-Prot composition as a stand-in; it differed most for
+# C, E and F.)
 BACKGROUND_PERCENT = {
-    'A': 8.25, 'R': 5.53, 'N': 4.06, 'D': 5.45, 'C': 1.37, 'Q': 3.93, 'E': 6.75,
-    'G': 7.07, 'H': 2.27, 'I': 5.96, 'L': 9.66, 'K': 5.84, 'M': 2.42, 'F': 3.86,
-    'P': 4.70, 'S': 6.56, 'T': 5.34, 'W': 1.08, 'Y': 2.92, 'V': 6.87,
+    'A': 7.4, 'R': 5.2, 'N': 4.5, 'D': 5.4, 'C': 2.5, 'Q': 3.4, 'E': 5.4,
+    'G': 7.4, 'H': 2.6, 'I': 6.8, 'L': 9.9, 'K': 5.8, 'M': 2.5, 'F': 4.7,
+    'P': 3.9, 'S': 5.7, 'T': 5.1, 'W': 1.3, 'Y': 3.2, 'V': 7.3,
 }
 # GibbsCluster PSSMs bottom out near -7.5 halfbits (its pseudocounts keep rare residues
 # off zero). An unfloored log of a near-zero MoDec frequency would reach about -17 and
