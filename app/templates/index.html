@@ -62,14 +62,38 @@
                 <div id="releaseNotes" class="accordion mb-3">
 
                     <div class="card">
-                        <div class="card-header p-0" id="rn-2-3-0">
+                        <div class="card-header p-0" id="rn-2-4-0">
                             <button class="btn btn-link btn-block text-left px-3 py-2" type="button"
-                                    data-toggle="collapse" data-target="#collapse-2-3-0" aria-expanded="true">
-                                <strong>v2.3.0</strong> <small class="text-muted ml-2">August 2026</small>
+                                    data-toggle="collapse" data-target="#collapse-2-4-0" aria-expanded="true">
+                                <strong>v2.4.0</strong> <small class="text-muted ml-2">November 2026</small>
                                 <span class="badge badge-success ml-2">Latest</span>
                             </button>
                         </div>
-                        <div id="collapse-2-3-0" class="collapse show" aria-labelledby="rn-2-3-0" data-parent="#releaseNotes">
+                        <div id="collapse-2-4-0" class="collapse show" aria-labelledby="rn-2-4-0" data-parent="#releaseNotes">
+                            <div class="card-body">
+                                <p class="mb-1"><strong>New features</strong></p>
+                                <ul>
+                                    <li><strong>MoDec motif deconvolution for MHC Class II</strong> &mdash; for Class II jobs you can now choose <b>MoDec</b> instead of GibbsCluster to find the binding motifs in your peptides. MoDec finds the motifs and the binding core of every peptide without prior alignment, and reports a <em>flat</em> motif for peptides that fit no specific motif (often contaminants). It is also faster than GibbsCluster, and the difference grows with the size of the dataset. MoDec is provided by the Ludwig Institute for Cancer Research for academic, non-commercial research use, so choosing it requires accepting its licence terms.</li>
+                                    <li><strong>MoDec in the report</strong> &mdash; logos for 1 to 6 motifs per replicate (the lowest-AIC choice first), an AIC graph to help choose how many motifs to trust, the number and share of peptides behind each logo, the best-matching allotypes from MHC-TP under each logo, and a per-motif download of the assigned peptides with their binding cores joined to your original upload columns. Everything is included in the downloadable report, and the raw MoDec results (motif tables, per-peptide assignments, AIC summary) are in the data ZIP. <em>MHC Class II allotype predictions are in preview &mdash; results should be interpreted with caution.</em></li>
+                                </ul>
+                                <p class="mb-1"><strong>Improvements</strong></p>
+                                <ul>
+                                    <li>The contents list on the report page now only shows sections that exist in your report, so no link leads nowhere (for example Binding Motifs when no alleles were given for Class II).</li>
+                                    <li>The MHC-TP score bars under each cluster logo now display correctly; they were squeezed into a small dot.</li>
+                                    <li>On the submission page, the <em>Motif Clustering</em> choice now appears below the MHC class and alleles, once you select Class II.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header p-0" id="rn-2-3-0">
+                            <button class="btn btn-link btn-block text-left px-3 py-2 collapsed" type="button"
+                                    data-toggle="collapse" data-target="#collapse-2-3-0" aria-expanded="false">
+                                <strong>v2.3.0</strong> <small class="text-muted ml-2">August 2026</small>
+                            </button>
+                        </div>
+                        <div id="collapse-2-3-0" class="collapse" aria-labelledby="rn-2-3-0" data-parent="#releaseNotes">
                             <div class="card-body">
                                 <p class="mb-1"><strong>New features</strong></p>
                                 <ul>
@@ -159,6 +183,7 @@
                         <li><b>MHCflurry 2.0</b>: Improved Pan-Allele Prediction of MHC Class I-Presented Peptides by Incorporating Antigen Processing <i>T. O'Donnell, A. Rubinsteyn, U. Laserson, Cell Systems 2020. doi.org/10.1016/j.cels.2020.06.010</i>.</li>
                         <li><b>MixMHCpred 3.0</b>: <i>Tadros et al. redicting MHC-I ligands across alleles and species: How far can we go?, BioRxiv (2024) </i>.</li>
                         <li><b>MixMHC2pred</b>: <i> Racle J, Michaux J, Rockinger GA et al. Robust prediction of HLA class II epitopes by deep motif deconvolution of immunopeptidomes, Nat Biotechnol 2019;37:1283-1286</i>.</li>
+                        <li><b>MoDec 1.2</b>: Motif deconvolution of HLA class II peptidomes (optional alternative to GibbsCluster for MHC Class II). <i>Racle J, Michaux J, Rockinger GA et al. Robust prediction of HLA class II epitopes by deep motif deconvolution of immunopeptidomes, Nat Biotechnol 2019;37:1283-1286</i>. MoDec was made available through the generosity of the Ludwig Institute for Cancer Research Ltd, for academic non-commercial research use (<a href="https://github.com/GfellerLab/MoDec/blob/v1.2.1/LICENSE" target="_blank" rel="noopener noreferrer">licence</a>).</li>
                         <li><b>NetMHCIIpan - 4.3</b>: <i>Nilsson JB, Kaabinejadian S, Yari H, Kester MGD, van Balen P, Hildebrand WH, Nielsen M. Accurate prediction of HLA class II antigen presentation across all loci using tailored data acquisition and refined machine learning, Science Advances, 2023; 24 Nov. https://www.science.org/doi/10.1126/sciadv.adj6367</i>.</li>
                     </ol>
                 </p>

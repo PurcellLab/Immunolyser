@@ -8,6 +8,7 @@ from distutils.dir_util import copy_tree
 from zipfile import ZipFile
 from os.path import basename
 from app import app
+from app.modec import motif_peptides, MODEC_DIRNAME as modec_dirname
 from constants import *
 from mhcflurry import Class1PresentationPredictor
 from pathlib import Path
@@ -212,6 +213,37 @@ def build_enriched_gibbscluster_core_csv(taskId, sample, replicate, cluster_atte
         cluster_df = cluster_df.merge(original, on='StrippedPeptide', how='left')
 
     return cluster_df.to_csv(index=False)
+
+def build_enriched_modec_core_csv(taskId, sample, replicate, k, motif_id, rep_dir):
+    """Enriched CSV for one MoDec motif: every peptide whose best motif (at K=k) it is,
+    with its binding core, offset and responsibility, joined back onto the user's
+    original upload columns (same join as the GibbsCluster core download).
+
+    MoDec's bestPepResp file already pairs each full peptide with its core, so unlike
+    GibbsCluster no substring guessing is needed. Returns None when no peptide maps to
+    the motif or the results are missing, so the caller can answer 404.
+    """
+    try:
+        rows = motif_peptides(rep_dir, k, motif_id)
+    except FileNotFoundError:
+        return None
+    if not rows:
+        return None
+
+    df = pd.DataFrame([{
+        'StrippedPeptide': r['Peptide'],
+        'Core': r['Core_1st'],
+        'Core start (P1 offset)': r['P1_1st'],
+        'Responsibility': r['resp_1st'],
+        'Motif': motif_id,
+        'K': int(k),
+    } for r in rows])
+
+    original = load_original_upload_for_join(taskId, sample, replicate)
+    if original is not None:
+        df = df.merge(original, on='StrippedPeptide', how='left')
+
+    return df.to_csv(index=False)
 
 def resolve_upset_samples(taskId, raw_name):
     """UpSetJS set names can be a single sample or a cross-sample intersection like
@@ -499,6 +531,24 @@ def appendPredictedAllelesInfo(clusters, taskId, sample, replicate):
             continue
 
     print(f'appendPredictedAllelesInfo : Updated clusters: {clusters}')
+
+# Attach MHC-TP allotype predictions to every motif of a MoDec report (see
+# modec.report_data). Reuses appendPredictedAllelesInfo, which looks a cluster up by its
+# '<i>of<K>' id in MHC-TP's corr_matrix.csv, so Gibbs clusters and MoDec motifs share one
+# code path. The flat motif is never submitted to MHC-TP, so it gets no prediction; a
+# motif MHC-TP produced nothing for gets None (the page shows nothing rather than a
+# misleading "no prediction").
+def attachModecPredictions(modecData, taskId):
+    for sample, replicates in modecData.items():
+        for replicate, data in replicates.items():
+            for k, motifs in data['k'].items():
+                clusters = [[None, None, None, None, None, f"{m['id']}of{k}"] for m in motifs if not m['is_flat']]
+                # appendPredictedAllelesInfo takes the replicate's upload file name
+                appendPredictedAllelesInfo(clusters, taskId, sample, f'{replicate}.csv')
+                by_id = {c[5]: c[2] for c in clusters}
+                for m in motifs:
+                    m['predictions'] = by_id.get(f"{m['id']}of{k}")
+    return modecData
 
 # This method will generate the binding predictions.
 # User can select the binding prediction to be used.
@@ -1062,9 +1112,14 @@ def saveMajorityVotedBinders(taskId, data, predictionTools, alleles_unformatted,
                     )
                     filtered_df.to_csv(output_path, index=False)
 
-def runHLAClust(taskId, data, species=None, use_mhc_tp_full_DB=None, mhcclass=None, logger=None):
+def runHLAClust(taskId, data, species=None, use_mhc_tp_full_DB=None, mhcclass=None, logger=None, clustering_method=None):
 
     logger.info(f'Running HLA Clust for task {taskId}.')
+
+    # MHC-TP reads a GibbsCluster-shaped folder. For a MoDec job app/modec.py writes the
+    # same layout (matrices/, images/, logos/) into its own output folder, so only the
+    # folder name differs.
+    clustering_dir = modec_dirname if clustering_method == ClusteringMethod.MODEC else 'gibbscluster'
 
     # Determine effective species for MHC-TP (Class II uses separate reference db per species)
     if mhcclass == MHC_Class.Two:
@@ -1092,7 +1147,7 @@ def runHLAClust(taskId, data, species=None, use_mhc_tp_full_DB=None, mhcclass=No
                             # internally) - that's gibbs_base itself in this flattened Docker
                             # GibbsCluster output layout (see the Dockerfile's sed patch that
                             # removed the old $prefix subdirectory nesting).
-                            gibbs_base = os.path.join(project_root, 'app', 'static', 'images', taskId, sample, 'gibbscluster', replicate[:-4])
+                            gibbs_base = os.path.join(project_root, 'app', 'static', 'images', taskId, sample, clustering_dir, replicate[:-4])
                             input_file = gibbs_base
                             ref_file = os.path.join(project_root, 'app', 'tools', 'HLA-PepClust', 'data', 'ref_data')
 

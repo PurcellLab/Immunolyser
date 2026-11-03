@@ -15,6 +15,8 @@ from email.mime.multipart import MIMEMultipart
 from markupsafe import escape
 from app.email_registry import save_email, get_email, get_job_name, claim_email_send, get_jobs_due_for_warning, claim_warning_send
 from app.job_registry import insert_job, update_job_status, get_jobs_older_than, get_completed_time, get_job_error
+from app import modec
+from app.modec import modec_available
 from geoip2.database import Reader
 from werkzeug.routing import BaseConverter
 
@@ -264,7 +266,10 @@ def initialiser():
                                 max_total_peptides=app.config['MAX_TOTAL_PEPTIDES'],
                                 max_alleles=app.config['MAX_ALLELES'],
                                 peptide_warning_threshold=app.config['PEPTIDE_WARNING_THRESHOLD'],
-                                recaptcha_site_key=app.config['RECAPTCHA_SITE_KEY'])
+                                recaptcha_site_key=app.config['RECAPTCHA_SITE_KEY'],
+                                modec_available=modec_available(app.config['MODEC_BIN']),
+                                ClusteringMethod=ClusteringMethod,
+                                modec_licence_version=app.config['MODEC_LICENCE_VERSION'])
 
     elif request.method == 'POST':
         # Handle POST request
@@ -336,6 +341,23 @@ def initialiser():
         species = request.form.get('species')
         use_mhc_tp_full_DB = request.form.get('useFullDB', 'no')
 
+        # Clustering method (class II only offers a choice). A missing field is a
+        # GibbsCluster job, so older clients and scripts keep working unchanged.
+        clustering_method = ClusteringMethod.normalise(request.form.get('clustering_method'))
+        if not ClusteringMethod.is_allowed(clustering_method, mhcclass):
+            return "Invalid clustering method for the selected MHC class.", 400
+
+        modec_licence_version = None
+        if clustering_method == ClusteringMethod.MODEC:
+            if not modec_available(app.config['MODEC_BIN']):
+                return "MoDec is not available on this server.", 400
+            # MoDec's licence (academic non-commercial, LICR) requires that every user
+            # of a server running it has agreed to its terms. The tick box is only a
+            # courtesy in the browser; this is the check that counts.
+            if request.form.get('modec_licence_accepted') != 'yes':
+                return "You must accept the MoDec licence terms to use MoDec.", 400
+            modec_licence_version = app.config['MODEC_LICENCE_VERSION']
+
         ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
         country = get_country_from_request(request)
 
@@ -376,6 +398,7 @@ def initialiser():
                 'predictionTools': predictionTools,
                 'species': species,
                 'use_mhc_tp_full_DB': use_mhc_tp_full_DB,
+                'clustering_method': clustering_method,
             }, f)
 
         insert_job(
@@ -386,13 +409,15 @@ def initialiser():
             alleles=alleles_unformatted,
             user_agent=user_agent,
             referrer=referrer,
-            status="SUBMITTED"
+            status="SUBMITTED",
+            clustering_method=clustering_method,
+            modec_licence_version=modec_licence_version,
         )
 
         return redirect(url_for('job_confirmation', task_id=job_id))
 
 @celery.task(name='app.submit_job', bind=True, soft_time_limit=7200, time_limit=7260)
-def submit_job(self, samples, motif_length, mhcclass, alleles_unformatted, predictionTools, species, use_mhc_tp_full_DB):
+def submit_job(self, samples, motif_length, mhcclass, alleles_unformatted, predictionTools, species, use_mhc_tp_full_DB, clustering_method=ClusteringMethod.DEFAULT):
 
     try:
         # Normalise: treat None and "" the same way throughout the task
@@ -537,6 +562,14 @@ def submit_job(self, samples, motif_length, mhcclass, alleles_unformatted, predi
         mhcclass_selected_file.write(mhcclass)
         mhcclass_selected_file.close()
 
+        # Saving the clustering method, next to mhcclass.txt. The report reads this
+        # back; a job without the file predates MoDec and is a GibbsCluster job.
+        clustering_method = ClusteringMethod.normalise(clustering_method)
+        if not ClusteringMethod.is_allowed(clustering_method, mhcclass):
+            raise Exception(f"Clustering method '{clustering_method}' is not available for MHC class {mhcclass}.")
+        with open(os.path.join('app', 'static', 'images', taskId, "clustering_method.txt"), "w") as f:
+            f.write(clustering_method)
+
         # Save allele compatibility matrix based on alleles and MHC class of preference selected.
         # if alleles_unformatted != "":
         # Split alleles only if alleles_unformatted is not an empty string
@@ -639,18 +672,36 @@ def submit_job(self, samples, motif_length, mhcclass, alleles_unformatted, predi
             # Calling script to generate sequence logos
             subprocess.check_call(['python3', os.path.join('app','seqlogo.py'), taskId, data_mount, motif_length], shell=False)
 
-        # Calling script to generate gibbsclusters
-        subprocess.check_call(['python3', os.path.join('app', 'gibbscluster.py'), taskId, data_mount, mhcclass, motif_length], shell=False)
+        if clustering_method == ClusteringMethod.MODEC:
+            # MoDec replaces GibbsCluster for this job (class II only; enforced above
+            # and at submission). A non-zero exit raises, so the job is marked FAILURE
+            # with MoDec's reason rather than finishing with an empty section.
+            subprocess.check_call(['python3', os.path.join('app', 'modec.py'), taskId, data_mount, motif_length, species or ''], shell=False)
 
-        # Run HLA-Clust to generate heatmap (Class I and human Class II)
-        runHLAClust(
-            taskId,
-            data,
-            species=species,
-            use_mhc_tp_full_DB=use_mhc_tp_full_DB,
-            mhcclass=mhcclass,
-            logger=logger
-        )
+            # MHC-TP runs on MoDec's output too: app/modec.py wrote the GibbsCluster-shaped
+            # matrices/images/logos it reads (see the MHC-TP section of app/modec.py).
+            runHLAClust(
+                taskId,
+                data,
+                species=species,
+                use_mhc_tp_full_DB=use_mhc_tp_full_DB,
+                mhcclass=mhcclass,
+                logger=logger,
+                clustering_method=clustering_method
+            )
+        else:
+            # Calling script to generate gibbsclusters
+            subprocess.check_call(['python3', os.path.join('app', 'gibbscluster.py'), taskId, data_mount, mhcclass, motif_length], shell=False)
+
+            # Run HLA-Clust to generate heatmap (Class I and human Class II)
+            runHLAClust(
+                taskId,
+                data,
+                species=species,
+                use_mhc_tp_full_DB=use_mhc_tp_full_DB,
+                mhcclass=mhcclass,
+                logger=logger
+            )
 
         # On job success: update status first
         update_job_status(job_id=taskId, status='SUCCESS', error_message=None, logger=logger)
@@ -820,12 +871,25 @@ def getExistingReport(taskId):
     bar_density = plot_lenght_distribution(sample_data, hist='density', taskId=taskId)
     
     seqlogos = getSeqLogosImages(sample_data, task_id=taskId, motif_length=motif_length, logger=logger)
-    gibbsImages = getGibbsImages(logger, taskId, sample_data)
+    # Which clustering step produced this job's motifs. A job from before MoDec existed
+    # has no marker and is a GibbsCluster job.
+    images_root = os.path.join(project_root, 'app', 'static', 'images')
+    clustering_method = modec.read_job_method(images_root, taskId)
+    showModecSection = clustering_method == ClusteringMethod.MODEC
+    modecData = {}
+    if showModecSection:
+        gibbsImages = {}
+        modecData = modec.report_data(
+            images_root, taskId,
+            {sample: [rep[:-4] for rep in reps] for sample, reps in sample_data.items()})
+        attachModecPredictions(modecData, taskId)
+    else:
+        gibbsImages = getGibbsImages(logger, taskId, sample_data)
     # seqlogos = {}
     # gibbsImages = {}
 
     showSeqLogoSection = True
-    showGibbsSection = True
+    showGibbsSection = not showModecSection
     
     # Do not show Majority Voted option when MHC Class 2 analysis
     if mhcclass == MHC_Class.Two:
@@ -874,6 +938,8 @@ def getExistingReport(taskId):
         peptide_density=bar_density,
         seqlogos=seqlogos,
         gibbsImages=gibbsImages,
+        showModecSection=showModecSection,
+        modecData=modecData,
         upsetLayout=upsetLayout,
         predicted_binders=predicted_binders,
         predictionTools=predictionTools,  # List of short_names here
@@ -1754,6 +1820,39 @@ def download_gibbscluster_core(taskid, sample, replicate, cluster_attempt):
         logger.exception(f"Failed to send core file: {core_file}")
         return abort(500, description="Error sending core file.")
 
+@app.route('/download_modec_core/<taskid>/<sample>/<replicate>/<k>/<motif>')
+def download_modec_core(taskid, sample, replicate, k, motif):
+    """Peptides assigned to one MoDec motif (at motif count K), with their binding core,
+    offset and responsibility, joined onto the user's original upload columns."""
+    if not is_valid_uuid(taskid):
+        return "Invalid task ID", 400
+
+    _safe = re.compile(r'^[a-zA-Z0-9_\-\.]+$')
+    if not (_safe.match(sample) and _safe.match(replicate)):
+        return "Invalid path component", 400
+    # K is a small integer; the motif is a number or the literal 'flat'. Anything
+    # else never reaches the filesystem.
+    if not re.fullmatch(r'[1-9][0-9]?', k) or not re.fullmatch(r'[1-9][0-9]?|flat', motif):
+        return "Invalid motif", 400
+
+    safe_base_dir = os.path.realpath(os.path.join(project_root, 'app', 'static', 'images', taskid))
+    rep_dir = os.path.realpath(os.path.join(safe_base_dir, sample, modec.MODEC_DIRNAME, replicate))
+    if not rep_dir.startswith(safe_base_dir + os.sep):
+        return "Forbidden", 403
+
+    try:
+        csv_text = build_enriched_modec_core_csv(taskid, sample, replicate, k, motif, rep_dir)
+    except Exception:
+        logger.exception(f"Failed to build MoDec core CSV: {taskid}/{sample}/{replicate} K={k} motif={motif}")
+        return abort(500, description="Error building motif peptides.")
+    if csv_text is None:
+        return abort(404, description="No peptides found for this motif.")
+
+    response = make_response(csv_text)
+    response.headers["Content-Disposition"] = f"attachment; filename={replicate}_modec_K{k}_motif{motif}.csv"
+    response.headers["Content-Type"] = "text/csv"
+    return response
+
 @app.route('/motif-ref/<species>/<filename>')
 def serve_motif_ref(species, filename):
     allowed = {
@@ -1824,6 +1923,8 @@ def dispatch_pending_jobs():
                 payload['samples'], payload['motif_length'], payload['mhcclass'],
                 payload['alleles_unformatted'], payload['predictionTools'],
                 payload['species'], payload['use_mhc_tp_full_DB'],
+                # Absent in submissions queued before MoDec existed.
+                payload.get('clustering_method', ClusteringMethod.DEFAULT),
             ],
             task_id=job_id,
             **limit_kwargs,
@@ -1947,11 +2048,23 @@ def export_report(taskId):
     bar_percent = plot_lenght_distribution(sample_data, hist='percent', taskId=taskId)
     bar_density = plot_lenght_distribution(sample_data, hist='density', taskId=taskId)
     seqlogos = getSeqLogosImages(sample_data, task_id=taskId, motif_length=motif_length, logger=logger)
-    gibbsImages = getGibbsImages(logger, taskId, sample_data)
-    gibbsAllData = getGibbsImagesAll(logger, taskId, sample_data)
+    images_root = os.path.join(project_root, 'app', 'static', 'images')
+    clustering_method = modec.read_job_method(images_root, taskId)
+    showModecSection = clustering_method == ClusteringMethod.MODEC
+    modecData = {}
+    if showModecSection:
+        gibbsImages = {}
+        gibbsAllData = {}
+        modecData = modec.report_data(
+            images_root, taskId,
+            {sample: [rep[:-4] for rep in reps] for sample, reps in sample_data.items()})
+        attachModecPredictions(modecData, taskId)
+    else:
+        gibbsImages = getGibbsImages(logger, taskId, sample_data)
+        gibbsAllData = getGibbsImagesAll(logger, taskId, sample_data)
 
     showSeqLogoSection = True
-    showGibbsSection = True
+    showGibbsSection = not showModecSection
     if mhcclass == MHC_Class.Two:
         hideMajorityVotedOption = False
         if alleles_unformatted == '':
@@ -2106,6 +2219,8 @@ def export_report(taskId):
         seqlogos=seqlogos,
         gibbsImages=gibbsImages,
         gibbsAllData=gibbsAllData,
+        showModecSection=showModecSection,
+        modecData=modecData,
         upsetLayout=upsetLayout,
         predicted_binders=predicted_binders,
         predictionTools=predictionTools,

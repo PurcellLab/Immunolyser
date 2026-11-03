@@ -115,6 +115,49 @@
 			
 		</fieldset>
 
+		<!-- Section: Motif clustering method (MHC class II only; shown by JS) -->
+		{% if modec_available %}
+		<fieldset class="form-section" id="clustering_method_section" hidden>
+			<legend>Motif Clustering</legend>
+
+			<div class="form-row mb-2">
+				<h5 class="col-md-7">
+					Clustering method
+					<i class="fa fa-question-circle" aria-hidden="true" data-toggle="tooltip" data-placement="right"
+					title="Both methods split your class II peptides into binding motifs. GibbsCluster is the default. MoDec (Gfeller Lab) deconvolves the peptides into motifs and binding cores without prior alignment, for both human and mouse (mouse jobs use MoDec's mouse MHC-II background). Only one is run per job."></i>
+				</h5>
+				<div class="col-md-5">
+					<div class="form-check">
+						<input class="form-check-input" type="radio" name="clustering_method" id="clustering_gibbs"
+						       value="{{ ClusteringMethod.GIBBS }}" checked onchange="updateClusteringMethod()">
+						<label class="form-check-label" for="clustering_gibbs">{{ ClusteringMethod.DISPLAY_NAMES[ClusteringMethod.GIBBS] }}</label>
+					</div>
+					<div class="form-check">
+						<input class="form-check-input" type="radio" name="clustering_method" id="clustering_modec"
+						       value="{{ ClusteringMethod.MODEC }}" onchange="updateClusteringMethod()">
+						<label class="form-check-label" for="clustering_modec">{{ ClusteringMethod.DISPLAY_NAMES[ClusteringMethod.MODEC] }}</label>
+					</div>
+				</div>
+			</div>
+
+			<div id="modec_licence_box" class="form-text small" hidden>
+				<p>
+					MoDec is provided by the Ludwig Institute for Cancer Research Ltd (LICR) under a licence for
+					<b>academic, non-commercial research purposes only</b>. For-profit use requires a separate licence from LICR.
+					Please cite Racle <i>et al.</i>, <i>Nat Biotechnol</i> 2019;37:1283&ndash;1286 if you use the results.
+					Read the full
+					<a href="https://github.com/GfellerLab/MoDec/blob/v1.2.1/LICENSE" target="_blank" rel="noopener noreferrer">MoDec licence</a>.
+				</p>
+				<div class="form-check">
+					<input class="form-check-input" type="checkbox" name="modec_licence_accepted" id="modec_licence_accepted" value="yes">
+					<label class="form-check-label" for="modec_licence_accepted">
+						I agree to the MoDec licence terms and confirm I am using Immunolyser for academic, non-commercial research.
+					</label>
+				</div>
+			</div>
+		</fieldset>
+		{% endif %}
+
 		<!-- Section: MHC Typing -->
 		<fieldset id="mhcTypingDiv" class="form-section" style="display:none;">
 			<legend>MHC-Typing Prediction</legend>
@@ -700,6 +743,34 @@
 		} else {
 			motifLengthSection.setAttribute("hidden", true); // Hide if MHC Class is not I
 		}
+
+		// The clustering choice only exists for class II (and only when MoDec is installed).
+		var clusteringSection = document.getElementById("clustering_method_section");
+		if (clusteringSection) {
+			if (mhcClass === "II") {
+				clusteringSection.removeAttribute("hidden");
+			} else {
+				clusteringSection.setAttribute("hidden", true);
+				// Leaving class II must not carry a MoDec choice (or its licence tick) along.
+				document.getElementById("clustering_gibbs").checked = true;
+				document.getElementById("modec_licence_accepted").checked = false;
+				updateClusteringMethod();
+			}
+		}
+	}
+
+	// Show the licence box only for MoDec, and require the tick only then.
+	function updateClusteringMethod() {
+		var modecChosen = document.getElementById("clustering_modec").checked;
+		var box = document.getElementById("modec_licence_box");
+		var tick = document.getElementById("modec_licence_accepted");
+		if (modecChosen) {
+			box.removeAttribute("hidden");
+		} else {
+			box.setAttribute("hidden", true);
+			tick.checked = false;
+		}
+		tick.required = modecChosen;
 	}
 
 	function filterAlleles() {

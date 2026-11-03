@@ -292,6 +292,22 @@ input[type=text]:focus, input[type=password]:focus {
     margin-bottom: 1rem;
     color: var(--color-text);
 }
+/* A small "?" whose native title explains a term (works in the offline export too, which
+   has no Bootstrap tooltip JS). Mirrored in export.html. */
+.help-tip {
+    cursor: help;
+    display: inline-block;
+    width: 1.1em;
+    height: 1.1em;
+    line-height: 1.1em;
+    border-radius: 50%;
+    background: var(--color-accent);
+    color: #fff;
+    font-size: 0.8em;
+    font-weight: 700;
+    text-align: center;
+    vertical-align: middle;
+}
 
 /* ============================================================
    Table of Contents Sidebar
@@ -496,7 +512,9 @@ input[type=text]:focus, input[type=password]:focus {
     cursor: pointer;
     position: relative;
 }
-.mhctp-predictions { font-size: 0.78em; margin-top: 4px; }
+/* width: 100% because the cards are centred flex columns, which shrink this block to
+   the width of its text and collapse the score bar to a dot. */
+.mhctp-predictions { font-size: 0.78em; margin-top: 4px; width: 100%; }
 .mhctp-row { display: flex; align-items: center; gap: 4px; margin-bottom: 2px; }
 .mhctp-row.top-match { font-weight: 600; }
 .mhctp-rank { color: #888; min-width: 18px; }
