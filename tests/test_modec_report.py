@@ -87,7 +87,12 @@ class TestSectionPartial:
     def test_table_fallback_for_jobs_without_a_graph(self, job):
         html = _render(job)
         assert 'alt="AIC by number of motifs"' not in html
-        assert '<th>AIC</th>' in html
+        assert '<th>AIC <span class="help-tip"' in html
+
+    def test_aic_is_explained_in_the_section_and_offline(self, job):
+        for html in (_render(job), _render(job, image_map={})):
+            assert 'Akaike Information Criterion' in html
+            assert html.count('class="help-tip"') >= 3
 
     def test_attribution_and_licence_credit_present(self, job):
         html = _render(job)

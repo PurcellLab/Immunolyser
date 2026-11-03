@@ -9,6 +9,9 @@
 {%- if modec_offline -%}{{ image_map.get('/static/' + path, '/static/' + path) }}{%- else -%}{{ url_for('static', filename=path) }}{%- endif -%}
 {%- endmacro %}
 
+{# One wording for every AIC "?" in this section. Plain title text so it also works in the offline export. #}
+{% set aic_help = 'AIC (Akaike Information Criterion) scores how well a set of motifs explains your peptides while penalising extra motifs, so adding motifs that do not really help makes it worse. Lower is better. The number of motifs with the lowest AIC is a suggestion, not a verdict: always check that the motifs look sensible.' %}
+
 <fieldset class="report-section" id="section-modec">
     <h3>Peptide Motif Deconvolution (MoDec)</h3>
     <br>
@@ -17,7 +20,7 @@
         <b>MoDec</b> after removal of peptides labelled as <code>#CONTAM</code> or <code>#DECOY</code>, PTMs and resulting duplicates.
         The analysis uses 12&ndash;20-mers (duplicates removed). MoDec finds the motifs and the binding core of every peptide without prior alignment,
         and also fits one <em>flat</em> motif that absorbs peptides that fit no specific motif (often contaminants).
-        Choose how many motifs to show per replicate; the number with the lowest AIC (marked on the graph) is shown first, but AIC is only a guide, so please inspect the motifs.
+        Choose how many motifs to show per replicate; the number with the lowest AIC <span class="help-tip" title="{{ aic_help }}">?</span> (marked on the graph) is shown first, but AIC is only a guide, so please inspect the motifs.
         The percentage under each logo is the share of peptides whose best-matching motif it is.
         Under each logo are the best-matching source allotypes and their PCC (Pearson Correlation Coefficient), as determined by MHC-TP; for the comparison, MoDec's frequencies are converted to log-odds scores. <strong>Note:</strong> MHC Class II allotype predictions are in preview &mdash; results should be interpreted with caution.
         <br><small>MoDec: Racle <i>et al.</i>, <i>Nat Biotechnol</i> 2019;37:1283&ndash;1286. MoDec was made available through the generosity of the Ludwig Institute for Cancer Research Ltd, for academic non-commercial research use.</small></p>
@@ -31,7 +34,8 @@
             <div class="modec-rep" style="margin-left: 30px; margin-bottom: 30px;">
                 <div class="row">
                     <h5>{{ replicate }}</h5>
-                    <select style="margin-left: 10px;" class="col-3 custom-select custom-select-sm" onchange="updateModecK(this)">
+                    <span class="help-tip" style="margin: 4px 0 0 10px;" title="Number of motifs to show. {{ aic_help }}">?</span>
+                    <select style="margin-left: 6px;" class="col-3 custom-select custom-select-sm" onchange="updateModecK(this)">
                         {% for k in rep.k %}
                             <option value="{{ k }}" {% if k == rep.suggested_k %}selected{% endif %}>
                                 {{ k }} motif{{ 's' if k != 1 }}{% if k == rep.suggested_k %} (lowest AIC){% endif %}
@@ -44,7 +48,7 @@
                    the graph existed have no image; they fall back to the plain table. #}
                 {% if not rep.aic_plot %}
                 <table class="table table-sm" style="width: auto; margin-top: 8px; font-size: 0.85em;">
-                    <thead><tr><th>Motifs (K)</th><th>Log-likelihood</th><th>AIC</th></tr></thead>
+                    <thead><tr><th>Motifs (K)</th><th>Log-likelihood</th><th>AIC <span class="help-tip" title="{{ aic_help }}">?</span></th></tr></thead>
                     <tbody>
                         {% for row in rep.aic %}
                             <tr {% if row.n == rep.suggested_k %}style="font-weight: bold;"{% endif %}>
