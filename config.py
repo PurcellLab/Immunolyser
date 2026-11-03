@@ -35,6 +35,17 @@ class Config(object):
 
     BASE_URL = os.environ.get('BASE_URL', 'https://immunolyser.erc.monash.edu')
 
+    # Session cookie hardening. The only thing stored in the session is Flask-WTF's
+    # CSRF token, but Monash's security scan flagged the cookie for lacking `Secure`
+    # (MEDIUM, 2026-11-03). TLS terminates at the proxy in front of us, so Flask
+    # can't infer HTTPS itself; Secure is set unconditionally and the browser
+    # decides. Set SESSION_COOKIE_SECURE=false only for plain-http local dev on a
+    # non-localhost hostname, where the browser would otherwise drop the cookie and
+    # every POST would fail CSRF validation.
+    SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'true').lower() != 'false'
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
+
     # Days before job data is deleted from the server
     DATA_RETENTION_DAYS = int(os.environ.get('DATA_RETENTION_DAYS', 30))
 
