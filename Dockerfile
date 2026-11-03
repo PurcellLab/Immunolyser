@@ -115,7 +115,19 @@ RUN wget -q https://github.com/GfellerLab/MixMHCpred/archive/refs/tags/v3.0.tar.
 # PWMdef data or vice versa. The directory is still called MixMHC2pred-2.0
 # because that string is also the tool-name key used to look up allele names
 # in app/static/Immunolyser2.0_Allele_Dictionary.csv — keep it as-is.
-RUN wget -q https://github.com/GfellerLab/MixMHC2pred/releases/download/v2.1.beta1/MixMHC2pred-2.1.beta1.zip -O /tmp/mixmhc2pred.zip \
+#
+# 2026-11: upstream deleted the original v2.1.beta1 asset (MixMHC2pred-2.1.beta1.zip
+# now 404s and, with wget -q, failed every fresh build silently at this layer) and
+# re-published it as release v2.1.beta1.2 / MixMHC2pred-2.1-beta1.zip (note -beta1,
+# not .beta1). Checked before switching, on all 6,519 MixMHC2pred allele names in the
+# allele dictionary: the new binary runs every one, and on the 867 the old build could
+# also run, the output (columns and every score) is identical, only the version banner
+# differs (vpan_v29 -> v2.1-beta1). The old build lacked definitions for the other
+# 5,652 names. The sha256 below pins the asset so upstream cannot swap it unnoticed.
+ARG MIXMHC2PRED_URL=https://github.com/GfellerLab/MixMHC2pred/releases/download/v2.1.beta1.2/MixMHC2pred-2.1-beta1.zip
+ARG MIXMHC2PRED_SHA256=fe86e0390c96ca7b4e7b8b68d563c717ce43f4091fe460fc283a33ccd716be74
+RUN wget -q "${MIXMHC2PRED_URL}" -O /tmp/mixmhc2pred.zip \
+  && echo "${MIXMHC2PRED_SHA256}  /tmp/mixmhc2pred.zip" | sha256sum -c - \
   && mkdir -p app/tools/MixMHC2pred-2.0 \
   && unzip -oq /tmp/mixmhc2pred.zip -d app/tools/MixMHC2pred-2.0 \
   && chmod +x app/tools/MixMHC2pred-2.0/MixMHC2pred_unix \
